@@ -1,0 +1,53 @@
+{
+  "name": "bailu-desktop",
+  "productName": "白露",
+  "version": "1.0.0",
+  "description": "白露 - AI角色互动/发推/聊天/小说续写应用（桌面版）",
+  "main": "main.js",
+  "author": "林",
+  "license": "UNLICENSED",
+  "private": true,
+  "scripts": {
+    "sync": "node sync.js",
+    "start": "npm run sync && electron .",
+    "build": "npm run sync && electron-builder --win portable",
+    "build:dir": "npm run sync && electron-builder --win dir"
+  },
+  "devDependencies": {
+    "electron": "^38.0.0",
+    "electron-builder": "^26.0.0"
+  },
+  "build": {
+    "appId": "com.bailu.desktop",
+    "productName": "白露",
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "files": [
+      "main.js",
+      "app/**/*",
+      "build/icon.ico"
+    ],
+    "win": {
+      "icon": "build/icon.ico",
+      "target": [
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    },
+    "portable": {
+      "artifactName": "白露.exe",
+      "requestExecutionLevel": "user"
+    },
+    "compression": "maximum",
+    "asar": true,
+    "electronDownload": {
+      "mirror": "https://npmmirror.com/mirrors/electron/"
+    }
+  }
+}

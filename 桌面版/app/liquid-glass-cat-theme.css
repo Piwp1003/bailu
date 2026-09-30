@@ -1,0 +1,160 @@
+/* ============================================================
+   🐱 液态玻璃 · 猫咪主题 (Liquid Glass Cat Theme)
+   使用方法：设置 → 全局界面自定义(CSS) → 把这一整段粘贴进去 → 拉到最下面点"保存设置"
+   全是纯CSS，不改任何功能逻辑，随时可以清空这个框恢复默认外观。
+   ============================================================ */
+
+/* ---------- 1. 页面底色：纯白，干净不花哨 ---------- */
+body {
+    background: #ffffff !important;
+}
+body.dark-theme {
+    background: #15181c !important;
+}
+
+/* ---------- 2. 侧边栏 / 顶部导航：磨砂玻璃 ---------- */
+.sidebar-content, .top-tabs, .header-title {
+    background-color: rgba(255,255,255,0.55) !important;
+    backdrop-filter: blur(18px) saturate(160%);
+    -webkit-backdrop-filter: blur(18px) saturate(160%);
+}
+body.dark-theme .sidebar-content, body.dark-theme .top-tabs, body.dark-theme .header-title {
+    background-color: rgba(20,24,32,0.55) !important;
+}
+.nav-item.active { background-color: rgba(29,155,240,0.12); border-radius: 9999px; }
+.user-profile-mini {
+    background: rgba(255,255,255,0.5) !important;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255,255,255,0.6);
+}
+
+/* logo旁边加一只小猫脸，纯装饰，不挡点击 */
+.logo { position: relative; }
+.logo::after {
+    content: '';
+    display: inline-block;
+    width: 22px; height: 20px;
+    margin-left: 6px;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 110' fill='none' stroke='%231d9bf0' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M28 30 Q22 8 40 20 Q34 14 28 30 Z'/%3E%3Cpath d='M92 30 Q98 8 80 20 Q86 14 92 30 Z'/%3E%3Ccircle cx='60' cy='52' r='36'/%3E%3Cpath d='M42 48 Q47 43 52 48'/%3E%3Cpath d='M68 48 Q73 43 78 48'/%3E%3Cpath d='M57 58 Q60 61 63 58 Q60 63 57 58 Z' fill='%231d9bf0' stroke='none'/%3E%3Cpath d='M60 61 Q58 66 52 64'/%3E%3Cpath d='M60 61 Q62 66 68 64'/%3E%3C/svg%3E");
+    background-size: contain; background-repeat: no-repeat;
+    vertical-align: middle;
+    pointer-events: none;
+}
+
+/* ---------- 3. 各种卡片：帖子/信息卡/关注卡/世界书卡/通知/AI状态块/预设行，统一玻璃圆角 ---------- */
+.post-placeholder, .info-card, .following-card, .wb-card, .notification-item,
+.ai-status-block, .preset-prompt-row, .emo-item, .center-char-item, .mini-game-float-panel {
+    background: rgba(255,255,255,0.55) !important;
+    backdrop-filter: blur(14px) saturate(160%);
+    -webkit-backdrop-filter: blur(14px) saturate(160%);
+    border: 1px solid rgba(255,255,255,0.6) !important;
+    border-radius: 20px !important;
+    box-shadow: 0 8px 24px rgba(31,38,135,0.10);
+}
+body.dark-theme .post-placeholder, body.dark-theme .info-card, body.dark-theme .following-card,
+body.dark-theme .wb-card, body.dark-theme .notification-item, body.dark-theme .ai-status-block,
+body.dark-theme .preset-prompt-row, body.dark-theme .emo-item, body.dark-theme .center-char-item,
+body.dark-theme .mini-game-float-panel {
+    background: rgba(30,34,44,0.55) !important;
+    border-color: rgba(255,255,255,0.12) !important;
+}
+.post-media { border-radius: 18px !important; }
+
+/* ---------- 4. 聊天气泡：液态玻璃感，圆角拉大 ---------- */
+.chat-bubble { border-radius: 20px !important; box-shadow: 0 4px 14px rgba(31,38,135,0.08); }
+.chat-bubble.me {
+    background-color: rgba(255,255,255,0.65) !important;
+    backdrop-filter: blur(12px) saturate(160%);
+    -webkit-backdrop-filter: blur(12px) saturate(160%);
+    border: 1px solid rgba(255,255,255,0.7) !important;
+    border-top-right-radius: 6px !important;
+}
+.chat-bubble.other {
+    background: linear-gradient(135deg, rgba(29,155,240,0.85), rgba(120,170,255,0.85)) !important;
+    backdrop-filter: blur(12px);
+    border-top-left-radius: 6px !important;
+}
+.chat-input-area {
+    background: rgba(255,255,255,0.55) !important;
+    backdrop-filter: blur(16px) saturate(160%);
+    -webkit-backdrop-filter: blur(16px) saturate(160%);
+    border-top: 1px solid rgba(255,255,255,0.6) !important;
+}
+body.dark-theme .chat-input-area { background: rgba(20,24,32,0.6) !important; }
+
+/* ---------- 5. 按钮：玻璃感圆润按钮 ---------- */
+.btn-primary {
+    background: linear-gradient(135deg, #1d9bf0, #6fb8ff) !important;
+    border-radius: 9999px !important;
+    box-shadow: 0 6px 16px rgba(29,155,240,0.3);
+    border: none !important;
+}
+.btn-secondary, .btn-post, .btn-edit-small, .context-btn, .preset-tab-chip {
+    background: rgba(255,255,255,0.6) !important;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-radius: 9999px !important;
+}
+body.dark-theme .btn-secondary, body.dark-theme .btn-post, body.dark-theme .btn-edit-small,
+body.dark-theme .context-btn, body.dark-theme .preset-tab-chip {
+    background: rgba(30,34,44,0.6) !important;
+}
+.btn-cancel { border-radius: 9999px !important; }
+
+/* ---------- 6. 弹窗 / 右键菜单：磨砂玻璃卡片 ---------- */
+.modal-box, .custom-context-menu, .mini-game-float-panel {
+    background: rgba(255,255,255,0.7) !important;
+    backdrop-filter: blur(22px) saturate(180%);
+    -webkit-backdrop-filter: blur(22px) saturate(180%);
+    border-radius: 24px !important;
+    border: 1px solid rgba(255,255,255,0.7) !important;
+    box-shadow: 0 20px 50px rgba(31,38,135,0.18);
+}
+body.dark-theme .modal-box, body.dark-theme .custom-context-menu {
+    background: rgba(24,28,38,0.75) !important;
+    border-color: rgba(255,255,255,0.12) !important;
+}
+.modal-overlay { backdrop-filter: blur(6px); }
+
+/* ---------- 7. 输入框：玻璃感描边 ---------- */
+.input-group input:not([type="checkbox"]):not([type="radio"]), .input-group select, .input-group textarea,
+input[type="text"], input[type="password"], textarea, .search-box {
+    background: rgba(255,255,255,0.5) !important;
+    border-radius: 14px !important;
+    border: 1px solid rgba(29,155,240,0.35) !important;
+}
+body.dark-theme .input-group input, body.dark-theme .input-group select, body.dark-theme .input-group textarea,
+body.dark-theme input[type="text"], body.dark-theme input[type="password"], body.dark-theme textarea {
+    background: rgba(30,34,44,0.55) !important;
+}
+.search-box { border-radius: 9999px !important; }
+
+/* ---------- 8. 头像：玻璃描边光圈 + 大头像角落挂个小猫爪印 ---------- */
+.avatar { box-shadow: 0 0 0 3px rgba(255,255,255,0.6), 0 4px 10px rgba(29,155,240,0.2); }
+.profile-avatar-large { position: relative; box-shadow: 0 0 0 5px rgba(255,255,255,0.75), 0 6px 16px rgba(29,155,240,0.25) !important; }
+.profile-avatar-large::after {
+    content: '';
+    position: absolute; right: -6px; bottom: -6px;
+    width: 26px; height: 24px;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 60 55' fill='%231a1a1a'%3E%3Cellipse cx='28' cy='38' rx='13' ry='10.5'/%3E%3Ccircle cx='12' cy='18' r='5.8'/%3E%3Ccircle cx='25' cy='9' r='5.8'/%3E%3Ccircle cx='40' cy='11' r='5.8'/%3E%3Ccircle cx='49' cy='21' r='5.8'/%3E%3C/svg%3E");
+    background-size: contain; background-repeat: no-repeat;
+    filter: drop-shadow(0 0 2px white);
+    pointer-events: none;
+}
+
+/* ---------- 9. 空状态插画：来只坐着的猫 ---------- */
+.empty-state { position: relative; padding-top: 90px !important; }
+.empty-state::before {
+    content: '';
+    position: absolute; top: 15px; left: 50%; transform: translateX(-50%);
+    width: 56px; height: 60px;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 132 140' fill='none' stroke='%231d9bf0' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M28 30 Q22 8 40 20 Q34 14 28 30 Z'/%3E%3Cpath d='M92 30 Q98 8 80 20 Q86 14 92 30 Z'/%3E%3Ccircle cx='60' cy='52' r='36'/%3E%3Cpath d='M42 48 Q47 43 52 48'/%3E%3Cpath d='M68 48 Q73 43 78 48'/%3E%3Cpath d='M57 58 Q60 61 63 58 Q60 63 57 58 Z' fill='%231d9bf0' stroke='none'/%3E%3Cpath d='M60 61 Q58 66 52 64'/%3E%3Cpath d='M60 61 Q62 66 68 64'/%3E%3Cline x1='12' y1='55' x2='34' y2='53'/%3E%3Cline x1='12' y1='61' x2='34' y2='60'/%3E%3Cline x1='108' y1='55' x2='86' y2='53'/%3E%3Cline x1='108' y1='61' x2='86' y2='60'/%3E%3Cpath d='M20 92 Q60 68 100 92 Q106 118 60 118 Q14 118 20 92 Z'/%3E%3Cpath d='M100 100 Q126 104 122 78 Q119 63 104 68'/%3E%3Cellipse cx='38' cy='116' rx='9' ry='6'/%3E%3Cellipse cx='82' cy='116' rx='9' ry='6'/%3E%3C/svg%3E");
+    background-size: contain; background-repeat: no-repeat;
+    opacity: 0.8;
+}
+
+/* ---------- 10. 细节：圆润滚动条 + 标题旁小爪印 ---------- */
+.header-title { position: relative; }
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-thumb { background: rgba(29,155,240,0.35); border-radius: 9999px; }
+::-webkit-scrollbar-track { background: transparent; }

@@ -1,0 +1,53 @@
+// 🧠 记忆总览：各功能里 TA 记下的事都列出来，能改能删
+import { chromium } from 'playwright';
+import { launchBrowser, fileUrl } from './_launch.mjs';
+import path from 'path';
+const root = process.cwd();
+const browser = await launchBrowser(chromium);
+const page = await (await browser.newContext({ viewport: { width: 1280, height: 860 } })).newPage();
+const errs = []; page.on('pageerror', e => errs.push(e.message));
+page.on('dialog', d => d.accept());
+await page.route(/^https?:\/\//, r => r.abort());
+const results = []; const check = (n, ok, extra = '') => results.push({ n, ok: !!ok, extra });
+await page.goto(fileUrl(path.join(root, 'index.html')));
+await page.waitForFunction(() => window.__guyuBooted && window.gyMemExRender, { timeout: 20000 });
+await page.waitForTimeout(600);
+await page.evaluate(() => {
+  window.appConfirm = async () => true;
+  myCharacters.length = 0;
+  myCharacters.push({ id: 9101, name: '沈之遥', worldbooks: [], theaterMemory: '和顾迟在书店吵了一架', scheduleMemory: '这周都在盘点',
+    diaryPeeks: [{ entryId: 'd1', title: '失眠', at: Date.now(), trace: '书签挪了', remember: '她最近总失眠' }],
+    lifeEvents: [{ at: Date.now(), t: '路上捡到一只猫' }, { at: Date.now(), t: '下雨没带伞' }], bioHistory: [{ at: Date.now(), bio: '旧签名' }] });
+  globalUserDiaries.length = 0; globalUserDiaries.push({ id: 'd1', title: '失眠', content: 'x', date: Date.now(), secretPeeks: [{ charId: 9101, trace: '书签挪了' }] });
+  if (window.gymMemSet) gymMemSet(9101, '那天一起听了晴天');
+  openMemoryHub('9101');
+});
+await page.waitForTimeout(400);
+const t = await page.evaluate(() => (document.getElementById('gyMemExtra') || {}).innerText || '');
+check('记忆总览最下面有「其它记忆」，各功能记下的事都在', ['其它记忆', '小剧场记忆', '日程记忆', '一起听歌的记忆', '偷翻过你的日记', '最近碰上的事', '过往签名'].every(x => t.includes(x)), t.slice(0, 300));
+const vals = await page.evaluate(() => [...document.querySelectorAll('#gyMemExtra textarea')].map(x => x.value).join('|'));
+check('内容都在框里（能直接改）', ['和顾迟在书店吵了一架', '那天一起听了晴天', '她最近总失眠', '路上捡到一只猫', '旧签名'].every(x => vals.includes(x)), vals);
+await page.evaluate(() => { const ta = document.querySelector('#gyMemExtra textarea[data-t="theaterMemory"]'); ta.value = '和顾迟和好了'; ta.dispatchEvent(new Event('change')); });
+check('改一段：存进去了', await page.evaluate(() => myCharacters[0].theaterMemory === '和顾迟和好了'));
+await page.evaluate(() => gyMemExEdit('lifeEvents', 0, '路上捡到一只橘猫'));
+check('改一条：存进去了', await page.evaluate(() => myCharacters[0].lifeEvents[0].t === '路上捡到一只橘猫'));
+await page.evaluate(() => gyMemExDel('lifeEvents', 1));
+await page.waitForTimeout(100);
+check('删一条', await page.evaluate(() => myCharacters[0].lifeEvents.length === 1 && !document.getElementById('gyMemExtra').innerText.includes('下雨没带伞')));
+await page.evaluate(() => gyMemExDel('diaryPeeks', 0));
+await page.waitForTimeout(100);
+check('删掉偷翻日记的记忆：日记上的痕迹也一起清掉', await page.evaluate(() => !myCharacters[0].diaryPeeks.length && !globalUserDiaries[0].secretPeeks.length));
+await page.evaluate(() => gyMemExSetText('music', '', 1));
+await page.waitForTimeout(100);
+check('清空一起听歌的记忆', await page.evaluate(() => !window.gymMemGet || gymMemGet(9101) === ''));
+check('删了的不再进提示词', await page.evaluate(() => { const p = getBoxPrompt(myCharacters[0]); return !p.includes('她最近总失眠'); }));
+await page.evaluate(() => { getMemoryEntries('9101').push({ code: 'AM001', title: '初见', content: '在书店第一次见面' }); renderMemoryEntriesList('9101'); });
+check('记忆条目：每条多了「改」', await page.evaluate(() => !!document.querySelector('#memoryEntriesList .gyme-edit')));
+await page.evaluate(() => { document.querySelector('#memoryEntriesList .gyme-edit').click(); document.getElementById('gymeC0').value = '在书店门口第一次见面'; gyMemEntrySave('9101', 0); });
+check('记忆条目：改完存进去', await page.evaluate(() => getMemoryEntries('9101')[0].content === '在书店门口第一次见面' && document.getElementById('memoryEntriesList').innerText.includes('在书店门口第一次见面')));
+check('没有页面报错', errs.length === 0, errs.join(' | '));
+await browser.close();
+const bad = results.filter(r => !r.ok);
+results.forEach(r => console.log((r.ok ? '  ✅' : '  ❌') + ' ' + r.n + (r.ok ? '' : '\n       → ' + r.extra)));
+console.log('\n' + (results.length - bad.length) + '/' + results.length + ' 通过');
+process.exit(bad.length ? 1 : 0);

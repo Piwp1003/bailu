@@ -1,0 +1,47 @@
+// 🔄 让 TA 重新写这条推文（收在 ⋮ 里）+ 换回上一版
+import { chromium } from 'playwright';
+import { launchBrowser, fileUrl } from './_launch.mjs';
+import path from 'path';
+const root = process.cwd();
+const browser = await launchBrowser(chromium);
+const page = await (await browser.newContext({ viewport: { width: 1280, height: 860 } })).newPage();
+const errs = []; page.on('pageerror', e => errs.push(e.message));
+let prompt = '';
+await page.route(/^https?:\/\//, async r => {
+  if (!/chat\/completions/.test(r.request().url())) return r.abort();
+  prompt = r.request().postData() || '';
+  return r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ choices: [{ message: { content: JSON.stringify({ text: '雨停了，书店门口的猫又来蹭饭。' }) } }] }) });
+});
+const results = []; const check = (n, ok, extra = '') => results.push({ n, ok: !!ok, extra });
+await page.goto(fileUrl(path.join(root, 'index.html')));
+await page.waitForFunction(() => window.__guyuBooted && window.gyPostRegen, { timeout: 20000 });
+await page.waitForTimeout(500);
+await page.evaluate(() => {
+  myApiKey = 'sk-test'; myApiUrl = 'https://api.test.local/v1'; myModel = 'm';
+  myCharacters.length = 0; myCharacters.push({ id: 9101, name: '沈之遥', handle: '@shen', persona: '旧书店老板', worldbooks: [] });
+  globalPosts.unshift({ id: 'p_rg', char: myCharacters[0], text: '今天下雨，店里没什么人。\n#雨天', timestamp: Date.now(), replies: [{ char: { name: '顾迟' }, text: '借我一本' }], stats: {} });
+  globalPosts.unshift({ id: 'u_me', char: { id: 'me', name: '我' }, text: '我自己的', timestamp: Date.now(), replies: [], stats: {} });
+  switchMainView('home'); renderPosts();
+});
+await page.waitForTimeout(300);
+await page.evaluate(() => gyPostMenu({ preventDefault() {}, stopPropagation() {}, pageX: 300, pageY: 200 }, 'p_rg'));
+const m1 = await page.evaluate(() => document.getElementById('chatContextMenu').innerText);
+check('角色的推文：⋮ 里有「让 TA 重新写」', m1.includes('让 TA 重新写') && !m1.includes('换回上一版'), m1);
+await page.evaluate(() => gyPostMenu({ preventDefault() {}, stopPropagation() {}, pageX: 300, pageY: 200 }, 'u_me'));
+check('自己的推文：没有这一项', !(await page.evaluate(() => document.getElementById('chatContextMenu').innerText)).includes('重新写'));
+await page.evaluate(() => gyPostRegen('p_rg'));
+await page.waitForTimeout(300);
+const p1 = await page.evaluate(() => { const p = globalPosts.find(x => x.id === 'p_rg'); return { t: p.text, prev: p.prevTexts, rep: p.replies.length }; });
+check('重新写好了：正文换了，标签留着，评论不动', p1.t.includes('猫又来蹭饭') && p1.t.includes('#雨天') && p1.rep === 1, JSON.stringify(p1));
+check('提示词里带着原来那条、让 TA 换个说法', prompt.includes('今天下雨，店里没什么人') && prompt.includes('重新写一遍'));
+check('页面上也换了', (await page.evaluate(() => document.getElementById('view-home').innerText)).includes('猫又来蹭饭'));
+await page.evaluate(() => gyPostMenu({ preventDefault() {}, stopPropagation() {}, pageX: 300, pageY: 200 }, 'p_rg'));
+check('⋮ 里出现「换回上一版」', (await page.evaluate(() => document.getElementById('chatContextMenu').innerText)).includes('换回上一版'));
+await page.evaluate(() => gyPostRegenUndo('p_rg'));
+check('换回上一版', await page.evaluate(() => globalPosts.find(x => x.id === 'p_rg').text.startsWith('今天下雨')));
+check('没有页面报错', errs.length === 0, errs.join(' | '));
+await browser.close();
+const bad = results.filter(r => !r.ok);
+results.forEach(r => console.log((r.ok ? '  ✅' : '  ❌') + ' ' + r.n + (r.ok ? '' : '\n       → ' + r.extra)));
+console.log('\n' + (results.length - bad.length) + '/' + results.length + ' 通过');
+process.exit(bad.length ? 1 : 0);
