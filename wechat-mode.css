@@ -1,0 +1,254 @@
+/* ===========================================================================
+   wechat-mode.css —— 💬 微信模式下，谷雨其它页面的样子（跟聊天页一个风格）
+   ---------------------------------------------------------------------------
+   只在 body.gywx（设置里打开「微信模式」）时生效；关掉就一条都不起作用。
+   前半截是照你那份「微信风聊天界面.css」皮肤改出来的（按钮、输入框、设置页、弹窗、时间线……），
+   每一条都加了 body.gywx 前缀，所以不会影响平时的谷雨；后半截是补的其它页面。
+   主题色（--gy-accent）在这里换成微信绿，项目里跟着主题色走的地方会一起变。
+   =========================================================================== */
+body.gywx,
+body.gywx.dark-theme,
+body.gywx.theme-mono,
+body.gywx.theme-mono.dark-theme {
+    --gy-accent: #07c160;
+    --gy-accent-2: #06ad56;
+    --gy-accent-rgb: 7, 193, 96;
+    --gy-accent-fg: #ffffff;
+    --gy-accent-soft: rgba(7, 193, 96, .10);
+    --gy-accent-line: rgba(7, 193, 96, .30);
+    --gy-ok: #07c160;
+    --gy-ok-rgb: 7, 193, 96;
+    --gy-warn: #fa9d3b;
+    --gy-warn-rgb: 250, 157, 59;
+    --gy-bad: #fa5151;
+    --gy-bad-rgb: 250, 81, 81;
+    --gy-border: #e5e5e5;
+    --gy-bg: #ffffff;
+    --gy-sub: #888888;
+    --gy-game-box-bg: #f7f7f7;
+    --gy-game-box-fg: #191919;
+}
+
+body.gywx,
+body.gywx.dark-theme {
+    background-color: #ededed !important;
+    color: #191919 !important;
+}
+body.gywx #mainLayoutContainer,
+body.gywx.dark-theme #mainLayoutContainer { background: #ededed !important; }
+
+body.gywx .main-content,
+body.gywx.dark-theme .main-content {
+    background: #ffffff !important;
+    border-left: 1px solid #e5e5e5 !important;
+    border-right: 1px solid #e5e5e5 !important;
+}
+body.gywx .header-title,
+body.gywx.dark-theme .header-title {
+    background-color: #ededed !important;
+    color: #191919 !important;
+    border-bottom: 1px solid #e5e5e5 !important;
+    font-size: 17px !important;
+    padding: 12px 16px !important;
+}
+body.gywx .top-tabs,
+body.gywx.dark-theme .top-tabs {
+    background-color: #ffffff !important;
+    border-bottom: 1px solid #e5e5e5 !important;
+}
+body.gywx #view-home > .top-tabs { display: none !important; }
+body.gywx .tab, body.gywx.dark-theme .tab { color: #888888 !important; font-weight: 500 !important; }
+body.gywx .tab.active, body.gywx.dark-theme .tab.active { color: #07c160 !important; }
+body.gywx .tab.active::after,
+body.gywx.dark-theme .tab.active::after,
+body.gywx.theme-mono .tab.active::after { background-color: #07c160 !important; height: 3px !important; }
+body.gywx .gymo-banner, body.gywx.dark-theme .gymo-banner { background: #ffffff !important; margin-bottom: 0 !important; }
+body.gywx .gymo-cover, body.gywx.dark-theme .gymo-cover { height: 240px !important; }
+body.gywx .gymo-me, body.gywx.dark-theme .gymo-me { right: 18px !important; bottom: 16px !important; }
+body.gywx .gymo-name, body.gywx.dark-theme .gymo-name { font-size: 17px !important; }
+body.gywx .gymo-avatar, body.gywx.dark-theme .gymo-avatar {
+    width: 62px !important; height: 62px !important; flex-basis: 62px !important;
+    margin-bottom: -30px !important;
+    border-radius: 6px !important; border: 0 !important; box-shadow: none !important;
+}
+body.gywx .gymo-bio, body.gywx.dark-theme .gymo-bio {
+    background: #ffffff !important; color: #888888 !important; opacity: 1 !important;
+    font-size: 13px !important; padding: 12px 96px 14px 18px !important;
+    min-height: 26px !important; border-bottom: 0 !important;
+}
+body.gywx .post-placeholder,
+body.gywx.dark-theme .post-placeholder {
+    background: #ffffff !important;
+    border-bottom: 1px solid #f0f0f0 !important;
+}
+body.gywx .post-placeholder:hover,
+body.gywx.dark-theme .post-placeholder:hover { background-color: #fafafa !important; }
+body.gywx .post-body, body.gywx.dark-theme .post-body { font-size: 15px !important; color: #191919 !important; line-height: 1.65 !important; }
+body.gywx .post-name, body.gywx.dark-theme .post-name { color: #576b95 !important; font-size: 15px !important; }
+body.gywx .post-footer, body.gywx.dark-theme .post-footer { font-size: 12px !important; }
+body.gywx .post-stats-group, body.gywx.dark-theme .post-stats-group { opacity: .55 !important; }
+body.gywx .post-placeholder, body.gywx.dark-theme .post-placeholder { padding: 14px 16px !important; gap: 10px !important; }
+body.gywx .post-placeholder .avatar, body.gywx.dark-theme .post-placeholder .avatar {
+    border-radius: 6px !important; width: 42px !important; height: 42px !important;
+}
+body.gywx .post-body:hover, body.gywx.dark-theme .post-body:hover { background: transparent !important; }
+body.gywx .post-handle, body.gywx .post-footer, body.gywx.dark-theme .post-handle, body.gywx.dark-theme .post-footer { color: #b2b2b2 !important; }
+body.gywx .post-name:hover, body.gywx.dark-theme .post-name:hover { color: #576b95 !important; }
+body.gywx .post-media, body.gywx.dark-theme .post-media {
+    border: 1px solid #e5e5e5 !important; border-radius: 6px !important;
+}
+body.gywx .post-location, body.gywx.dark-theme .post-location { color: #576b95 !important; }
+body.gywx .btn-post, body.gywx.dark-theme .btn-post {
+    background-color: #07c160 !important; color: #ffffff !important;
+    border: none !important; border-radius: 6px !important;
+    padding: 8px 18px !important; font-weight: 500 !important;
+}
+body.gywx .btn-post:hover, body.gywx.dark-theme .btn-post:hover { background-color: #06ad56 !important; color: #fff !important; }
+body.gywx .btn-primary, body.gywx.dark-theme .btn-primary {
+    background-color: #07c160 !important; color: #fff !important; border-radius: 6px !important;
+    font-weight: 500 !important;
+}
+body.gywx .btn-edit-small, body.gywx.dark-theme .btn-edit-small {
+    background: #ffffff !important; color: #576b95 !important;
+    border: 1px solid #e5e5e5 !important; border-radius: 6px !important;
+}
+body.gywx .btn-cancel, body.gywx.dark-theme .btn-cancel {
+    background: #f7f7f7 !important; color: #191919 !important; border: 1px solid #e5e5e5 !important;
+}
+body.gywx .input-group label, body.gywx.dark-theme .input-group label { color: #191919 !important; }
+body.gywx .input-group input:not([type="checkbox"]):not([type="radio"]),
+body.gywx .input-group select,
+body.gywx .input-group textarea,
+body.gywx.dark-theme .input-group input,
+body.gywx.dark-theme .input-group select,
+body.gywx.dark-theme .input-group textarea,
+body.gywx.dark-theme input,
+body.gywx.dark-theme select,
+body.gywx.dark-theme textarea {
+    background: #ffffff !important; color: #191919 !important;
+    border: 1px solid #e5e5e5 !important; border-radius: 6px !important;
+}
+body.gywx .form-hint, body.gywx.dark-theme .form-hint {
+    background: #f7f7f7 !important; color: #888888 !important;
+    border-left: 3px solid #07c160 !important;
+}
+body.gywx .set-panel, body.gywx.dark-theme .set-panel { background: #ffffff !important; color: #191919 !important; }
+body.gywx .set-entry, body.gywx.dark-theme .set-entry {
+    background: #ffffff !important; color: #191919 !important;
+    border: 1px solid #e5e5e5 !important; border-radius: 8px !important;
+}
+body.gywx .set-entry:hover, body.gywx.dark-theme .set-entry:hover { background: #f7f7f7 !important; }
+body.gywx .set-entry-title, body.gywx.dark-theme .set-entry-title { color: #191919 !important; font-weight: 500 !important; }
+body.gywx .set-entry-desc, body.gywx.dark-theme .set-entry-desc { color: #888888 !important; }
+body.gywx .set-entry-arrow, body.gywx.dark-theme .set-entry-arrow { color: #c8c8c8 !important; }
+body.gywx .avatar, body.gywx.dark-theme .avatar {
+    color: #576b95 !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    background-color: #e4e4e4 !important;
+}
+body.gywx .modal-overlay, body.gywx.dark-theme .modal-overlay { background: rgba(0, 0, 0, .35) !important; }
+body.gywx .modal-box, body.gywx .modal-content, body.gywx.dark-theme .modal-box, body.gywx.dark-theme .modal-content {
+    background: #ffffff !important; color: #191919 !important;
+    border: none !important; border-radius: 12px !important;
+}
+body.gywx .modal-box h2, body.gywx.dark-theme .modal-box h2 { color: #191919 !important; }
+body.gywx .memory-card, body.gywx .empty-state, body.gywx.dark-theme .memory-card, body.gywx.dark-theme .empty-state { background: #ffffff !important; color: #b2b2b2 !important; }
+body.gywx.dark-theme div[style*="background:white"],
+body.gywx.dark-theme div[style*="background: white"],
+body.gywx.dark-theme div[style*="background:#fff"],
+body.gywx.dark-theme div[style*="background: #fff"],
+body.gywx.dark-theme div[style*="background:#f7f9f9"],
+body.gywx.dark-theme div[style*="background: #f7f9f9"],
+body.gywx.dark-theme div[style*="background:rgba(255,255,255"],
+body.gywx.dark-theme div[style*="background: rgba(255,255,255"] {
+    background: #ffffff !important; color: #191919 !important;
+}
+body.gywx.dark-theme div[style*="color:#536471"],
+body.gywx.dark-theme span[style*="color:#536471"] { color: #888888 !important; }
+body.gywx a, body.gywx.dark-theme a { color: #576b95 !important; }
+body.gywx input[type="checkbox"], body.gywx input[type="radio"] { accent-color: #07c160 !important; }
+body.gywx input[type="range"] { accent-color: #07c160 !important; }
+/* 滚动条：平时透明看不见，鼠标放上去 / 正在滚的时候才浮出来（.gy-sb-on 由 js/04b 加） */
+body.gywx ::-webkit-scrollbar-thumb,
+body.gywx.dark-theme ::-webkit-scrollbar-thumb { background-color: transparent !important; }
+body.gywx .gy-sb-on::-webkit-scrollbar-thumb,
+body.gywx.gy-sb-on::-webkit-scrollbar-thumb,
+body.gywx.dark-theme .gy-sb-on::-webkit-scrollbar-thumb { background-color: rgba(0, 0, 0, .18) !important; }
+body.gywx ::-webkit-scrollbar-thumb:hover { background-color: rgba(0, 0, 0, .32) !important; }
+@supports not selector(::-webkit-scrollbar) { body.gywx, body.gywx * { scrollbar-color: transparent transparent; } body.gywx *:hover { scrollbar-color: rgba(0,0,0,.18) transparent; } }
+
+
+/* ===================== 补的：其它页面 ===================== */
+/* 字体：跟微信一样用系统字 */
+body.gywx { --gy-font: -apple-system, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Segoe UI", sans-serif; }
+
+/* 头像一律圆角方块（微信） */
+body.gywx .avatar { border-radius: 6px !important; }
+body.gywx #profAvatarWrap .avatar { border-radius: 10px !important; border: 3px solid #fff !important; }
+
+/* 页面标题栏：灰底、黑字、居中感 */
+body.gywx .header-title { position: sticky; top: 0; z-index: 20; backdrop-filter: none !important; }
+body.gywx .header-title h2, body.gywx .header-title .profile-header-name { color: #191919 !important; font-weight: 600 !important; font-size: 17px !important; }
+body.gywx .back-btn { color: #191919 !important; background: transparent !important; }
+body.gywx .back-btn:hover { background: rgba(0,0,0,.06) !important; }
+body.gywx .profile-header-meta { color: #888 !important; }
+
+/* 按钮：微信那两种——绿底白字（主要）、浅灰底绿字（次要） */
+body.gywx .btn-secondary {
+    background: #f2f2f2 !important; color: #06ae56 !important; border: none !important;
+    border-radius: 6px !important; font-weight: 500 !important; box-shadow: none !important;
+}
+body.gywx .btn-secondary:hover { background: #e9e9e9 !important; }
+body.gywx .btn-primary, body.gywx .btn-post { box-shadow: none !important; }
+body.gywx .follow-btn {
+    background: #f2f2f2 !important; color: #06ae56 !important; border: none !important;
+    border-radius: 6px !important; padding: 6px 16px !important; font-weight: 500 !important;
+}
+body.gywx .follow-btn:hover { background: #e9e9e9 !important; }
+body.gywx #profChatBtn { background: #07c160 !important; color: #fff !important; }
+
+/* 个人主页：像微信「朋友圈」的封面那样，大图不带蓝边 */
+body.gywx .profile-banner { border-bottom: none !important; background-color: #d8dfdb !important; }
+body.gywx .profile-details { background: #fff !important; }
+body.gywx .profile-meta-item { color: #888 !important; }
+body.gywx .profile-meta-item svg { stroke: #888 !important; }
+
+/* 卡片：白底 + 细灰线 + 小圆角（不要粗蓝框） */
+body.gywx .info-card, body.gywx .memory-card, body.gywx .up-panel, body.gywx .gy-api-grp {
+    background: #fff !important; border: 1px solid #e5e5e5 !important; border-radius: 8px !important; box-shadow: none !important;
+}
+body.gywx .info-card h2, body.gywx .info-card h3 { color: #191919 !important; }
+
+/* 标签页（资料页的 帖子/回复/收藏，小功能里的分页……） */
+body.gywx .gy-tab, body.gywx .ss-tab { color: #888 !important; }
+body.gywx .gy-tab.active, body.gywx .ss-tab.active, body.gywx .gy-tab.on, body.gywx .ss-tab.on { color: #07c160 !important; border-color: #07c160 !important; }
+
+/* 右键 / 长按菜单：跟微信弹出菜单一样 */
+body.gywx .custom-context-menu { background: #fff !important; border: none !important; border-radius: 8px !important; box-shadow: 0 4px 20px rgba(0,0,0,.16) !important; }
+body.gywx .context-btn { color: #191919 !important; }
+body.gywx .context-btn:hover { background: #f2f2f2 !important; }
+
+/* 手机「···」里的抽屉菜单：白条 + 细线 */
+body.gywx .mobile-drawer { background: #ededed !important; }
+body.gywx .mdrawer-item { background: #fff !important; color: #191919 !important; border-bottom: 1px solid #f0f0f0 !important; border-radius: 0 !important; }
+
+/* 今天面板 */
+body.gywx #gyToday .gyt-day, body.gywx #gyTodayM .gyt-day { color: #07c160 !important; }
+body.gywx #gyToday .gyt-dot, body.gywx #gyTodayM .gyt-dot { background: #fa5151 !important; }
+
+/* 发帖那颗悬浮 ＋：绿 */
+body.gywx .fab-btn { background-color: #07c160 !important; box-shadow: 0 4px 14px rgba(7,193,96,.35) !important; }
+
+/* 项目里一些写死在行内的推特蓝：链接色换成微信的蓝灰，底色换成微信绿 */
+body.gywx [style*="color:#1d9bf0"], body.gywx [style*="color: #1d9bf0"],
+body.gywx [style*="color:#1D9BF0"], body.gywx [style*="color: #1D9BF0"] { color: #576b95 !important; }
+body.gywx [style*="background:#1d9bf0"], body.gywx [style*="background: #1d9bf0"],
+body.gywx [style*="background-color:#1d9bf0"], body.gywx [style*="background-color: #1d9bf0"] { background: #07c160 !important; color: #fff !important; }
+body.gywx [style*="solid #1d9bf0"], body.gywx [style*="solid #1D9BF0"] { border-color: #e5e5e5 !important; }
+body.gywx [style*="rgba(29,155,240"], body.gywx [style*="rgba(29, 155, 240"] { background-color: rgba(7,193,96,.07) !important; }
+/* 但别把绿按钮上的字也刷成蓝灰 */
+body.gywx .btn-primary[style*="color"], body.gywx .btn-post[style*="color"] { color: #fff !important; }
+
+/* 选中文字 */
+body.gywx ::selection { background: rgba(7,193,96,.25); }

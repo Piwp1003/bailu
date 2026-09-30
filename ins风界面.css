@@ -1,0 +1,653 @@
+/* ===========================================================
+   谷雨 · ins 风（整站皮肤）
+   -----------------------------------------------------------
+   用法：设置 → 外观 → 全局界面自定义 (CSS) → 整段贴进去 → 保存。
+   不想要了就整段删掉，不动任何原有设置。
+
+   跟那张微信皮肤一样，这张也是**纯 CSS**：
+   项目里一个字都没改、一个文件都不用加，贴进去就变样。
+
+   两条原则：
+   ① **整站**都按 ins 来，不只是首页：侧边栏、顶栏、底部导航、时间线、
+      私信、设置页、弹窗、按钮、输入框，全都换成那套白底细线 + 大量留白。
+   ② **颜色锁死**：不管你在 App 里选的是浅色/深色、蓝白/黑白哪套主题，
+      这张皮肤永远是同一个样子（做法是把主题变量在四种组合下钉成同一份，
+      再把深色主题那些 !important 的覆盖逐条顶回来）。切主题时它纹丝不动，这是故意的。
+      —— 想要深色版的 ins，跟我说一声，那是另写一份。
+
+   配色（ins 原色）：
+     页面底 #FAFAFA   卡片白 #FFFFFF   分隔线 #DBDBDB  更淡的线 #EFEFEF
+     正文 #262626     次要 #8E8E8E     链接/按钮蓝 #0095F6   红心 #ED4956
+     私信我这边 #3797F0    对方 #EFEFEF
+     （头像不带环、不带框，就是干净的一个正圆）
+
+   跟微信那张的区别（故意的）：
+     · ins 是有右侧栏的（推荐关注），所以这张**留着右栏**，只是重画一遍
+     · 头像一律**正圆**，而且不带任何边框
+     · 私信气泡是大圆角胶囊，不带小尖角
+     · 主色是那个蓝，不是绿
+   =========================================================== */
+
+/* ========== 0. 主题变量：四种组合全钉成同一份 ========== */
+:root,
+body.dark-theme,
+body.theme-mono,
+body.theme-mono.dark-theme {
+    --gy-accent: #0095f6;
+    --gy-accent-2: #1877f2;
+    --gy-accent-rgb: 0, 149, 246;
+    --gy-accent-fg: #ffffff;
+    --gy-accent-soft: rgba(0, 149, 246, .10);
+    --gy-accent-line: rgba(0, 149, 246, .28);
+    --gy-ok: #0095f6;
+    --gy-ok-rgb: 0, 149, 246;
+    --gy-warn: #ffb400;
+    --gy-warn-rgb: 255, 180, 0;
+    --gy-bad: #ed4956;
+    --gy-bad-rgb: 237, 73, 86;
+    --gy-line: #dbdbdb;
+    --gy-border: #dbdbdb;
+    --gy-bg: #ffffff;
+    --gy-sub: #8e8e8e;
+    --gy-game-box-bg: #fafafa;
+    --gy-game-box-fg: #262626;
+    --gy-ring: linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%);
+}
+
+/* ========== 1. 页面底色 / 三栏 ========== */
+body,
+body.dark-theme {
+    background-color: #fafafa !important;
+    color: #262626 !important;
+    -webkit-font-smoothing: antialiased;
+}
+#mainLayoutContainer,
+body.dark-theme #mainLayoutContainer { background: #fafafa !important; }
+
+.main-content,
+body.dark-theme .main-content {
+    background: #fafafa !important;
+    border-left: 1px solid #dbdbdb !important;
+    border-right: 1px solid #dbdbdb !important;
+}
+.sidebar-left, .sidebar-right,
+body.dark-theme .sidebar-left,
+body.dark-theme .sidebar-right {
+    background: #ffffff !important;
+    border-color: #dbdbdb !important;
+    color: #262626 !important;
+}
+.sidebar-left, body.dark-theme .sidebar-left { border-right: 1px solid #dbdbdb !important; }
+.sidebar-right, body.dark-theme .sidebar-right { background: #fafafa !important; }
+
+/* ========== 2. 侧边栏：照 ins 桌面版那一列做 ==========
+   ins 的左栏是：上面一个 logo，下面一列"图标 + 文字"，
+   没有卡片、没有分割线，hover 只是淡淡一层灰，当前页那一行文字加粗。 */
+.sidebar-left, body.dark-theme .sidebar-left { padding: 0 8px !important; }
+.sidebar-content, body.dark-theme .sidebar-content { padding: 8px 4px !important; }
+
+.gy-logo-row, body.dark-theme .gy-logo-row {
+    padding: 20px 12px 24px !important;
+    border-bottom: none !important;
+}
+.app-signature, body.dark-theme .app-signature { color: #8e8e8e !important; font-size: 11px !important; }
+
+.nav-menu, body.dark-theme .nav-menu {
+    background: transparent !important;
+    border: none !important;
+    gap: 2px !important;
+}
+.nav-item,
+body.dark-theme .nav-item {
+    color: #262626 !important;
+    font-size: 15px !important;
+    font-weight: 400 !important;
+    border-radius: 10px !important;
+    padding: 11px 12px !important;
+    margin: 0 !important;
+    gap: 16px !important;
+    border: none !important;
+    background: transparent !important;
+    transition: background-color .12s ease !important;
+}
+.nav-item:hover,
+body.dark-theme .nav-item:hover { background-color: #f2f2f2 !important; }
+/* ins 里"当前在哪一页"是**文字加粗**，不是换颜色 */
+.nav-item.active,
+body.dark-theme .nav-item.active {
+    color: #262626 !important;
+    background-color: transparent !important;
+    font-weight: 700 !important;
+}
+.nav-item .nav-icon, body.dark-theme .nav-item .nav-icon {
+    width: 24px !important; height: 24px !important;
+    stroke: #262626 !important; stroke-width: 1.6px !important;
+}
+.nav-item.active .nav-icon,
+body.dark-theme .nav-item.active .nav-icon { stroke: #262626 !important; stroke-width: 2.4px !important; }
+.nav-item .badge, body.dark-theme .nav-item .badge {
+    background: #ed4956 !important; color: #fff !important;
+    border-radius: 999px !important; font-size: 11px !important;
+}
+
+/* 底下"我"那张卡：ins 里就是一行头像 + 名字，跟别的导航项一个样子 */
+.user-profile-mini, body.dark-theme .user-profile-mini {
+    background: transparent !important;
+    border: none !important;
+    border-radius: 10px !important;
+    padding: 10px 12px !important;
+    gap: 16px !important;
+}
+.user-profile-mini:hover, body.dark-theme .user-profile-mini:hover { background: #f2f2f2 !important; }
+.user-profile-mini .avatar, body.dark-theme .user-profile-mini .avatar {
+    width: 26px !important; height: 26px !important; font-size: 12px !important;
+}
+.user-profile-mini .user-name, body.dark-theme .user-profile-mini .user-name {
+    font-size: 15px !important; font-weight: 400 !important; color: #262626 !important;
+}
+.user-profile-mini .user-handle, body.dark-theme .user-profile-mini .user-handle {
+    font-size: 12px !important; color: #8e8e8e !important;
+}
+
+/* ========== 2.9（可删）侧边栏收成图标条 ==========
+   ins 在窄一点的窗口下左栏就只剩图标。想一直看到文字，把这一整节删掉。
+   ⚠️ 导航项里的文字是**裸文本**（<svg> 后面直接跟"主页"两个字），没有元素能单独藏，
+   所以收起时用 font-size:0 把文字压没；图标是 flex 项会被挤扁，得钉住 flex-basis。 */
+@media (min-width: 901px) and (max-width: 1263px) {
+    .sidebar-left, body.dark-theme .sidebar-left {
+        width: 72px !important; min-width: 72px !important; flex: 0 0 72px !important; padding: 0 !important;
+    }
+    .sidebar-left .gy-logo-row .app-signature { display: none !important; }
+    .sidebar-left .nav-item, body.dark-theme .sidebar-left .nav-item {
+        font-size: 0 !important; padding: 12px 0 !important; gap: 0 !important; justify-content: center !important;
+    }
+    .sidebar-left .nav-item::after { display: none !important; }
+    .sidebar-left .nav-item .nav-icon, body.dark-theme .sidebar-left .nav-item .nav-icon {
+        flex: 0 0 24px !important; width: 24px !important; height: 24px !important;
+    }
+    .sidebar-left .user-profile-mini .user-info { display: none !important; }
+    .sidebar-left .user-profile-mini { justify-content: center !important; padding: 12px 0 !important; }
+    .sidebar-left .gy-w-grip { display: none !important; }
+}
+
+/* ========== 3. 顶栏 / 标签栏 ========== */
+.header-title,
+body.dark-theme .header-title {
+    background-color: rgba(255, 255, 255, .92) !important;
+    color: #262626 !important;
+    border-bottom: 1px solid #dbdbdb !important;
+    font-size: 16px !important;
+    font-weight: 600 !important;
+    padding: 14px 16px !important;
+}
+.top-tabs,
+body.dark-theme .top-tabs {
+    background-color: #ffffff !important;
+    border-bottom: 1px solid #dbdbdb !important;
+}
+/* 首页那条「为你推荐 / 正在关注」：ins 首页就是一条流，没有切页签，藏掉。
+   （只藏首页这一条，别处的页签照常——资料页的"推文/喜欢"还要用。）
+   想要回来就把下面这一条删掉。 */
+#view-home > .top-tabs { display: none !important; }
+.tab, body.dark-theme .tab {
+    color: #8e8e8e !important; font-weight: 600 !important;
+    font-size: 12px !important; letter-spacing: .6px !important; text-transform: uppercase !important;
+}
+.tab.active, body.dark-theme .tab.active { color: #262626 !important; }
+.tab.active::after,
+body.dark-theme .tab.active::after,
+body.theme-mono .tab.active::after {
+    background-color: #262626 !important; height: 1px !important;
+    width: 100% !important; border-radius: 0 !important; left: 0 !important; transform: none !important;
+}
+
+/* 手机端顶栏 / 底部导航：ins 是纯白 + 一根细线，图标黑色描边 */
+.mobile-topbar,
+body.dark-theme .mobile-topbar {
+    background: rgba(255, 255, 255, .94) !important;
+    border-bottom: 1px solid #dbdbdb !important;
+}
+.mtb-icon-btn, body.dark-theme .mtb-icon-btn { color: #262626 !important; }
+.mtb-icon-btn svg { stroke-width: 1.7px !important; }
+.mobile-bottom-nav,
+body.dark-theme .mobile-bottom-nav {
+    background: #ffffff !important;
+    border-top: 1px solid #dbdbdb !important;
+}
+.mnav-item, body.dark-theme .mnav-item { color: #262626 !important; opacity: .55 !important; }
+.mnav-item.active, body.dark-theme .mnav-item.active { color: #262626 !important; opacity: 1 !important; }
+.mnav-item.active svg { stroke-width: 2.4px !important; }
+.mnav-badge, body.dark-theme .mnav-badge { background-color: #ed4956 !important; }
+
+/* ========== 4. 头像：一律正圆，一律不带框 ==========
+   项目默认给 .avatar 加了 2px 描边 + 一层投影——ins 没有那个框。
+   这儿全去掉，只留一个浅灰底给纯文字头像垫着（有图的话图会盖住它）。 */
+.avatar, body.dark-theme .avatar {
+    border-radius: 50% !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    background-color: #efefef !important;
+    color: #8e8e8e !important;
+    font-weight: 600 !important;
+}
+/* 时间线里发帖人的头像：ins 的头一行是小头像 + 名字，小一号就行，不加环 */
+.post-placeholder .avatar, body.dark-theme .post-placeholder .avatar {
+    width: 36px !important; height: 36px !important; font-size: 15px !important;
+    margin-top: 1px !important;
+}
+
+/* ========== 5. 时间线：照 ins 那张卡片做 ==========
+   一条 ins ＝ 白卡片 + 细边框 + 顶上一行（头像 · 用户名 · ⋯）+ 正文 + 图 + 一排动作。
+   这儿把能对上的部分对过去：卡片化、用户名加粗黑、@账号和时间缩小变灰、
+   互动数那一排靠左排（ins 不是平均分布的）。 */
+.feed-section, body.dark-theme .feed-section { background: transparent !important; }
+.post-placeholder,
+body.dark-theme .post-placeholder {
+    background: #ffffff !important;
+    border: 1px solid #dbdbdb !important;
+    border-radius: 8px !important;
+    margin: 0 0 18px !important;
+    padding: 12px 14px 8px !important;
+    gap: 10px !important;
+}
+.post-placeholder:hover, body.dark-theme .post-placeholder:hover { background: #ffffff !important; }
+.post-body:hover, body.dark-theme .post-body:hover { background: transparent !important; }
+.post-name, body.dark-theme .post-name {
+    color: #262626 !important; font-weight: 600 !important; font-size: 14px !important;
+}
+.post-name:hover, body.dark-theme .post-name:hover { color: #262626 !important; }
+/* ins 的一条只写「名字 · 时间」，不写 @账号 */
+.post-handle { display: none !important; }
+.post-dot, .post-time,
+body.dark-theme .post-dot,
+body.dark-theme .post-time { color: #8e8e8e !important; font-size: 12px !important; }
+.post-body, body.dark-theme .post-body {
+    color: #262626 !important; font-size: 14px !important; line-height: 1.55 !important;
+}
+.post-more-btn, body.dark-theme .post-more-btn { color: #262626 !important; }
+/* 配图：ins 的图是满宽的，卡片左右都顶到边。
+   左边要多退 64px＝卡片左内边距 14 + 头像 40 + 中间那 10 的间距，才能真的贴到卡片左沿。 */
+.post-media, body.dark-theme .post-media {
+    margin: 10px -14px 4px -64px !important; border-radius: 0 !important; border: none !important;
+    border-top: 1px solid #efefef !important; border-bottom: 1px solid #efefef !important;
+}
+.post-media img { border-radius: 0 !important; width: 100% !important; display: block !important; }
+/* 那一排互动：ins 是靠左挤在一起的黑色描边图标，不是一行蓝的、也不是平均分布 */
+.post-actions, body.dark-theme .post-actions {
+    justify-content: flex-start !important;
+    gap: 16px !important;
+    max-width: none !important;
+    margin-top: 12px !important;
+    color: #262626 !important;
+    font-size: 13px !important;
+}
+.pa-item, body.dark-theme .pa-item { color: #262626 !important; padding: 4px !important; margin: -4px !important; }
+.pa-item .x-icon, body.dark-theme .pa-item .x-icon { fill: #262626 !important; }
+/* ins 那一排图标比正文大一圈 */
+.post-actions .stat-icon, body.dark-theme .post-actions .stat-icon {
+    width: 22px !important; height: 22px !important;
+}
+.pa-item:hover, .pa-item:hover:not(.like), .pa-item.rt:hover,
+body.dark-theme .pa-item:hover { color: #8e8e8e !important; background: transparent !important; }
+.pa-item:hover .x-icon, .pa-item:hover:not(.like) .x-icon, .pa-item.rt:hover .x-icon { fill: #8e8e8e !important; }
+/* 点赞那颗心：ins 的红。点过之后数字也跟着变红加粗（ins 的 likes 那一行是加粗的） */
+.pa-item.like:hover, .pa-item.like.on,
+body.dark-theme .pa-item.like.on { color: #ed4956 !important; background: transparent !important; }
+.pa-item.like:hover .x-icon, .pa-item.like.on .x-icon, .x-icon.liked { fill: #ed4956 !important; }
+.pa-item.like span, body.dark-theme .pa-item.like span { font-weight: 600 !important; }
+/* 分享那颗顶到最右边——ins 右下角那个收藏书签就在这个位置 */
+.pa-item.pa-share, body.dark-theme .pa-item.pa-share { margin-left: auto !important; margin-right: -4px !important; }
+/* 正文里的 #话题：ins 的话题是深蓝的 */
+.clickable-tag, .mention-tag,
+body.dark-theme .clickable-tag,
+body.theme-mono .clickable-tag { color: #00376b !important; }
+
+/* ========== 5.5 首页顶上那张大图（开关在 设置 → 外观 →「📷 主页顶上放一张大图」） ==========
+   ins 没有封面图，但资料页顶上那块"大头像 + 名字 + 简介"是有的。
+   这几条把项目自带的封面压成 ins 资料页的调子：图矮一点、头像正圆无框。
+   没开那个开关的话这几条就是空跑。 */
+.gymo-banner, body.dark-theme .gymo-banner { background: #ffffff !important; margin-bottom: 18px !important; }
+.gymo-cover, body.dark-theme .gymo-cover { height: 190px !important; }
+.gymo-me, body.dark-theme .gymo-me { right: 20px !important; bottom: 14px !important; }
+.gymo-name, body.dark-theme .gymo-name { font-size: 16px !important; font-weight: 600 !important; }
+.gymo-avatar, body.dark-theme .gymo-avatar {
+    width: 72px !important; height: 72px !important; flex-basis: 72px !important;
+    margin-bottom: -34px !important;
+    border-radius: 50% !important; border: 0 !important; box-shadow: none !important;
+}
+.gymo-bio, body.dark-theme .gymo-bio {
+    background: #ffffff !important; color: #262626 !important; opacity: 1 !important;
+    text-align: left !important; font-size: 14px !important;
+    padding: 24px 100px 14px 18px !important; border-bottom: 1px solid #dbdbdb !important;
+}
+
+/* ========== 6. 右侧栏：ins 是有这一栏的，重画一遍 ========== */
+.sidebar-right .info-card,
+body.dark-theme .sidebar-right .info-card {
+    background: transparent !important;
+    border: none !important;
+    border-radius: 0 !important;
+    padding: 8px 0 18px !important;
+}
+.sidebar-right .info-card h3,
+body.dark-theme .sidebar-right .info-card h3 {
+    color: #8e8e8e !important; font-size: 14px !important; font-weight: 600 !important;
+    margin-bottom: 10px !important;
+}
+.search-box, body.dark-theme .search-box {
+    background: #efefef !important;
+    border: none !important;
+    border-radius: 8px !important;
+    padding: 9px 12px !important;
+}
+.search-box svg, body.dark-theme .search-box svg { stroke: #8e8e8e !important; }
+.search-box input, body.dark-theme .search-box input {
+    background: transparent !important; color: #262626 !important; font-size: 14px !important;
+}
+.search-box input::placeholder { color: #8e8e8e !important; }
+
+/* 「有什么新鲜事」那一列：ins 的标题是灰的小字，条目黑字，数字灰字，一概不上蓝 */
+.trend-item, body.dark-theme .trend-item { padding: 8px !important; border-radius: 8px !important; }
+.trend-item:hover, body.dark-theme .trend-item:hover { background-color: #ffffff !important; }
+.trend-title,
+body.dark-theme .trend-title,
+body.theme-mono .trend-title {
+    color: #262626 !important; font-size: 14px !important; font-weight: 600 !important;
+}
+.trend-meta, body.dark-theme .trend-meta { color: #8e8e8e !important; font-size: 12px !important; }
+#rightPanelTrend p[style*="#1d9bf0"], #suggestRefreshBtn { color: #8e8e8e !important; }
+.add-trend-box input, body.dark-theme .add-trend-box input {
+    background: #efefef !important; border: none !important; border-radius: 8px !important;
+    color: #262626 !important; font-size: 13px !important;
+}
+.add-trend-box button, body.dark-theme .add-trend-box button {
+    background: transparent !important; color: #0095f6 !important;
+    border: none !important; font-weight: 600 !important; font-size: 13px !important;
+}
+
+/* 「你可能会喜欢」那一列：ins 是一行头像 + 名字 + 一个蓝色文字「关注」 */
+.suggest-row, body.dark-theme .suggest-row { padding: 8px !important; border-radius: 8px !important; }
+.suggest-row:hover, body.dark-theme .suggest-row:hover { background-color: #ffffff !important; }
+.suggest-name, body.dark-theme .suggest-name { color: #262626 !important; font-size: 14px !important; font-weight: 600 !important; }
+.suggest-handle, body.dark-theme .suggest-handle { color: #8e8e8e !important; font-size: 12px !important; }
+.suggest-follow, body.dark-theme .suggest-follow {
+    background: transparent !important; color: #0095f6 !important;
+    border: none !important; padding: 4px 6px !important;
+    font-size: 13px !important; font-weight: 600 !important;
+}
+.suggest-follow:hover, body.dark-theme .suggest-follow:hover { background: transparent !important; color: #00376b !important; }
+.sidebar-right .avatar, body.dark-theme .sidebar-right .avatar { border-radius: 50% !important; }
+
+/* 搜出来的「功能」那一块（设置 → 外观 →「🔎 搜索里也搜功能」） */
+#gyFeatHits.gyfs-box { border-bottom: 1px solid #dbdbdb !important; }
+#gyFeatHits .gyfs-t { color: #262626 !important; font-weight: 600 !important; }
+#gyFeatHits .gyfs-row:hover { background: #fafafa !important; }
+
+/* 右栏那块「今天」（设置 → 外观 →「📅 右边放一块「今天」」） */
+#gyToday.gyt-box { color: #262626 !important; }
+#gyToday .gyt-day { color: #262626 !important; font-weight: 300 !important; }
+#gyToday .gyt-sec h4 { color: #8e8e8e !important; }
+#gyToday .gyt-row.click:hover { background: #ffffff !important; }
+#gyToday .gyt-dot { background: #ed4956 !important; }
+
+/* ========== 7. 按钮：ins 的蓝胶囊 ========== */
+.btn-post, body.dark-theme .btn-post {
+    background-color: #0095f6 !important; color: #ffffff !important;
+    border: none !important; border-radius: 8px !important;
+    padding: 8px 18px !important; font-weight: 600 !important; font-size: 14px !important;
+}
+.btn-post:hover, body.dark-theme .btn-post:hover { background-color: #1877f2 !important; color: #fff !important; }
+.btn-primary, body.dark-theme .btn-primary {
+    background-color: #0095f6 !important; color: #fff !important;
+    border-radius: 8px !important; font-weight: 600 !important; border: none !important;
+}
+.btn-primary:hover, body.dark-theme .btn-primary:hover { background-color: #1877f2 !important; }
+/* ins 的次要按钮是浅灰底黑字，不是描边 */
+.btn-edit-small, body.dark-theme .btn-edit-small {
+    background: #efefef !important; color: #262626 !important;
+    border: none !important; border-radius: 8px !important; font-weight: 600 !important;
+}
+.btn-edit-small:hover, body.dark-theme .btn-edit-small:hover { background: #dbdbdb !important; }
+.btn-secondary, body.dark-theme .btn-secondary {
+    background: #efefef !important; color: #262626 !important; border: none !important; border-radius: 8px !important;
+}
+.btn-cancel, body.dark-theme .btn-cancel {
+    background: #efefef !important; color: #262626 !important; border: none !important; border-radius: 8px !important;
+}
+
+/* ========== 8. 输入框 / 设置页 ========== */
+.input-group label, body.dark-theme .input-group label { color: #262626 !important; font-weight: 600 !important; }
+.input-group input:not([type="checkbox"]):not([type="radio"]),
+.input-group select, .input-group textarea,
+body.dark-theme .input-group input,
+body.dark-theme .input-group select,
+body.dark-theme .input-group textarea,
+body.dark-theme input, body.dark-theme select, body.dark-theme textarea {
+    background: #fafafa !important; color: #262626 !important;
+    border: 1px solid #dbdbdb !important; border-radius: 8px !important;
+}
+.input-group input::placeholder, .input-group textarea::placeholder { color: #8e8e8e !important; }
+.form-hint, body.dark-theme .form-hint {
+    background: #fafafa !important; color: #8e8e8e !important;
+    border-left: 2px solid #dbdbdb !important;
+}
+.set-panel, body.dark-theme .set-panel { background: #ffffff !important; color: #262626 !important; }
+.set-entry, body.dark-theme .set-entry {
+    background: #ffffff !important; color: #262626 !important;
+    border: 1px solid #dbdbdb !important; border-radius: 10px !important;
+}
+.set-entry:hover, body.dark-theme .set-entry:hover { background: #fafafa !important; }
+.set-entry-title, body.dark-theme .set-entry-title { color: #262626 !important; font-weight: 600 !important; }
+.set-entry-desc, body.dark-theme .set-entry-desc { color: #8e8e8e !important; }
+.set-entry-arrow, body.dark-theme .set-entry-arrow { color: #c7c7c7 !important; }
+.set-menu-sep, body.dark-theme .set-menu-sep { color: #8e8e8e !important; }
+.header-title .back-btn, body.dark-theme .header-title .back-btn { color: #262626 !important; }
+.back-btn, body.dark-theme .back-btn { color: #262626 !important; }
+
+/* ========== 9. 弹窗：ins 的弹窗是圆角白卡 + 居中细分隔线 ========== */
+.modal-overlay, body.dark-theme .modal-overlay { background: rgba(0, 0, 0, .65) !important; }
+.modal-box, .modal-content,
+body.dark-theme .modal-box,
+body.dark-theme .modal-content {
+    background: #ffffff !important; color: #262626 !important;
+    border: none !important; border-radius: 12px !important;
+}
+.modal-box h2, body.dark-theme .modal-box h2 { color: #262626 !important; font-weight: 600 !important; }
+.memory-card, .empty-state,
+body.dark-theme .memory-card,
+body.dark-theme .empty-state { background: #ffffff !important; color: #8e8e8e !important; }
+
+/* 深色主题那条"把所有内联白底刷成深色"的兜底，逐条顶回来 */
+body.dark-theme div[style*="background:white"],
+body.dark-theme div[style*="background: white"],
+body.dark-theme div[style*="background:#fff"],
+body.dark-theme div[style*="background: #fff"],
+body.dark-theme div[style*="background:#f7f9f9"],
+body.dark-theme div[style*="background: #f7f9f9"],
+body.dark-theme div[style*="background:rgba(255,255,255"],
+body.dark-theme div[style*="background: rgba(255,255,255"] {
+    background: #ffffff !important; color: #262626 !important;
+}
+body.dark-theme div[style*="color:#536471"],
+body.dark-theme span[style*="color:#536471"] { color: #8e8e8e !important; }
+
+/* ========== 10. 私信：照 ins 的 DM 做 ========== */
+#view-chat, body.dark-theme #view-chat { background: #ffffff !important; }
+.chat-char-row, body.dark-theme .chat-char-row {
+    background: #ffffff !important; border-bottom: 1px solid #dbdbdb !important;
+}
+/* 私信列表里"正在聊的那一个"：ins 是名字加粗，不是给头像画圈 */
+.chat-char-item.active .chat-char-name,
+body.dark-theme .chat-char-item.active .chat-char-name { font-weight: 700 !important; }
+.chat-char-name, body.dark-theme .chat-char-name { color: #262626 !important; }
+.chat-list-vertical, body.dark-theme .chat-list-vertical { background: #ffffff !important; }
+
+/* 聊天顶栏（设置 → 外观 →「💬 聊天页顶上显示对方昵称和返回键」） */
+#gyChatHead.gych-bar, body.dark-theme #gyChatHead.gych-bar {
+    background: #ffffff !important;
+    border-bottom: 1px solid #dbdbdb !important;
+    padding: 12px !important;
+}
+#gyChatHead .gych-name, body.dark-theme #gyChatHead .gych-name {
+    color: #262626 !important; font-size: 16px !important; font-weight: 600 !important;
+}
+#gyChatHead .gych-sub, body.dark-theme #gyChatHead .gych-sub { color: #8e8e8e !important; opacity: 1 !important; }
+#gyChatHead .gych-back, body.dark-theme #gyChatHead .gych-back { color: #262626 !important; }
+#gyChatHead .gych-back:hover, body.dark-theme #gyChatHead .gych-back:hover { background: #fafafa !important; }
+
+/* 气泡：ins 的 DM 是大圆角胶囊，我这边蓝、对方浅灰，**没有小尖角** */
+.chat-bubble, body.dark-theme .chat-bubble {
+    border-radius: 22px !important;
+    padding: 9px 14px !important;
+    font-size: 15px !important;
+    line-height: 1.5 !important;
+    box-shadow: none !important;
+    max-width: 100% !important;
+}
+/* 气泡最宽不超过聊天区的 70%，窗口一变它自己跟着变（百分比是照聊天区算的，不是屏幕） */
+.chat-bubble-wrapper, body.dark-theme .chat-bubble-wrapper { max-width: 70% !important; }
+.chat-bubble.me, body.dark-theme .chat-bubble.me {
+    background: #3797f0 !important; color: #ffffff !important; border: none !important;
+}
+.chat-bubble.other, body.dark-theme .chat-bubble.other {
+    background: #efefef !important; color: #262626 !important; border: none !important;
+}
+.chat-bubble::before { display: none !important; }      /* 把可能存在的小尖角关掉 */
+.chat-bubble a, body.dark-theme .chat-bubble.me a { color: inherit !important; text-decoration: underline !important; }
+
+#view-chat .avatar, body.dark-theme #view-chat .avatar {
+    border-radius: 50% !important; border: none !important;
+    width: 28px !important; height: 28px !important;
+}
+/* ins 的 DM 每条旁边不写时间，时间只看中间那条分隔。想让它回来就删掉这一行。 */
+.chat-msg-time { display: none !important; }
+.chat-sender-name, body.dark-theme .chat-sender-name {
+    font-size: 11px !important; color: #8e8e8e !important; margin-bottom: 3px !important;
+}
+.chat-bubble-wrapper > div[style*="color:#1d9bf0"],
+.chat-bubble-wrapper > div[style*="color: #1d9bf0"] {
+    color: #8e8e8e !important; font-size: 10px !important;
+}
+/* 时间分隔条 / 系统提示：ins 是居中的小灰字，没有底色 */
+.chat-time-sep span, body.dark-theme .chat-time-sep span {
+    font-size: 12px !important; color: #8e8e8e !important; font-weight: 600 !important;
+    background: transparent !important; padding: 2px 6px !important;
+}
+.chat-time-sep.full span, body.dark-theme .chat-time-sep.full span {
+    background: transparent !important; color: #8e8e8e !important;
+}
+.chat-system-msg span, body.dark-theme .chat-system-msg span {
+    font-size: 12px !important; color: #8e8e8e !important; background: transparent !important;
+}
+
+/* 输入栏：ins 是一整条描边的大圆角，右边挂着按钮 */
+.chat-input-area, body.dark-theme .chat-input-area {
+    background: #ffffff !important; border-top: 1px solid #dbdbdb !important; padding: 12px !important;
+}
+.chat-in-wrap, body.dark-theme .chat-in-wrap {
+    border: 1px solid #dbdbdb !important; border-radius: 22px !important; background: #ffffff !important;
+}
+.chat-input-row input, body.dark-theme .chat-input-row input {
+    border: none !important; border-radius: 22px !important;
+    background: transparent !important; color: #262626 !important;
+    padding: 11px 40px 11px 16px !important; box-shadow: none !important;
+}
+.chat-input-row input::placeholder { color: #8e8e8e !important; }
+.chat-mic, body.dark-theme .chat-mic { color: #262626 !important; }
+.chat-mic:hover, body.dark-theme .chat-mic:hover { color: #0095f6 !important; }
+.chat-more, body.dark-theme .chat-more {
+    background: transparent !important; border: none !important; color: #262626 !important;
+}
+/* 群聊里打 @ 弹出来那个名单（设置 → 互动与描写 →「💬 聊天补丁」） */
+.gyat-pop { background: #ffffff !important; border: 1px solid #dbdbdb !important; border-radius: 10px !important; }
+.gyat-row:hover { background: #fafafa !important; }
+
+/* 引用 / 角色发的图卡 / 推文日记信件的配图 */
+.chat-quote-bubble, body.dark-theme .chat-quote-bubble {
+    background: rgba(0, 0, 0, .04) !important;
+    border-left: 2px solid #dbdbdb !important;
+    border-radius: 8px !important; color: #8e8e8e !important; font-size: 13px !important;
+}
+.gypic-card, body.dark-theme .gypic-card {
+    background: #ffffff !important; border: 1px solid #dbdbdb !important; border-radius: 12px !important;
+    overflow: hidden !important;
+}
+.gypic-img { border-radius: 0 !important; }
+.gypic-desc, body.dark-theme .gypic-desc { color: #262626 !important; font-size: 13px !important; }
+.gyart-shot img { border-radius: 8px !important; }
+.gyart-shot .gyart-desc { color: #8e8e8e !important; }
+
+/* ========== 11. 打电话：ins 视频通话那种全黑 + 蓝 ========== */
+#gyCallModal .gycall-box { background: linear-gradient(180deg, #262626 0%, #000000 100%) !important; }
+#gyCallModal .gycall-hang, #gyCallIncoming .gyin-no { background: #ed4956 !important; }
+#gyCallIncoming .gyin-yes { background: #0095f6 !important; }
+#gyCallIncoming { background: linear-gradient(180deg, #262626 0%, #000000 100%) !important; }
+#gyCallModal .gycall-av .avatar,
+#gyCallIncoming .gyin-av .avatar { border-radius: 50% !important; }
+#gyCallMini { background: #262626 !important; border-radius: 18px !important; }
+#gyCallMini .gymini-av .avatar { border-radius: 50% !important; }
+
+/* ========== 12. 发帖：那颗悬浮 ➕ 变成 ins 的「创建」 ==========
+   ins 没有悬浮按钮，发帖是顶栏那个方框 ➕。
+   这儿不删按钮、也不加新按钮——把项目原来那颗 ➕ 挪到右上角、换成 ins 那个图标
+   （原来那个 ➕ 字符用 font-size:0 藏掉，图标是 CSS 背景图）。
+   点它还是原来的发帖弹窗，一行 JS 都没动。
+   ⚠️ 它本来能拖着走；钉死之后拖不动了，点还是能点。 */
+.fab-btn, body.dark-theme .fab-btn {
+    position: fixed !important;
+    top: 10px !important;
+    /* 贴着正文那一栏的右上角，而不是贴屏幕右边——不然会压在右栏的搜索框上。
+       算法：三栏整体是居中的，(屏宽 − 整体宽)/2 是它离屏幕右边的距离，再往里让出右栏那 350px。 */
+    right: calc((100vw - min(100vw, var(--gy-main-w, 600px) + var(--gy-left-w, 275px) + 405px)) / 2 + 362px) !important;
+    bottom: auto !important; left: auto !important;
+    width: 38px !important; height: 38px !important;
+    background-color: #ffffff !important;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23262626' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='3' width='18' height='18' rx='5'/%3E%3Cline x1='12' y1='8' x2='12' y2='16'/%3E%3Cline x1='8' y1='12' x2='16' y2='12'/%3E%3C/svg%3E") !important;
+    background-repeat: no-repeat !important;
+    background-position: center !important;
+    background-size: 24px 24px !important;
+    border: 1px solid #dbdbdb !important;
+    border-radius: 10px !important;
+    box-shadow: none !important;
+    font-size: 0 !important;
+    color: transparent !important;
+    z-index: 1500 !important;
+    transform: none !important;
+    transition: background-color .12s ease !important;
+}
+.fab-btn:active, body.dark-theme .fab-btn:active {
+    transform: none !important; background-color: #efefef !important;
+}
+/* 桌面端它浮在正文右上角，给时间线让出这一行，
+   不然第一条帖子右上角那颗 ⋯ 会被压在底下点不到 */
+@media (min-width: 901px) {
+    body:not(.gymo-on) #feedSection { padding-top: 52px !important; }
+}
+/* 手机端：坐进顶栏右边那排图标里当第四颗（ins 的 ➕ 也在顶栏）。
+   顶栏原来那三颗往左让 46px，不飘在正文上挡东西。 */
+@media (max-width: 900px) {
+    .mtb-right, body.dark-theme .mtb-right { padding-right: 46px !important; }
+    .fab-btn, body.dark-theme .fab-btn {
+        right: 12px !important;
+        top: calc(var(--app-safe-top, env(safe-area-inset-top, 0px)) + 9px) !important;
+        width: 34px !important; height: 34px !important;
+        background-color: transparent !important;
+        background-size: 24px 24px !important;
+        border: 0 !important;
+        z-index: 1700 !important;
+    }
+    .fab-btn:active, body.dark-theme .fab-btn:active { background-color: #f2f2f2 !important; }
+    body:not(.gymo-on) #feedSection { padding-top: 0 !important; }
+}
+
+/* ========== 13. 杂项：链接色、开关、滚动条 ========== */
+a, body.dark-theme a { color: #00376b !important; font-weight: 600 !important; }
+.post-content a, .chat-bubble a { font-weight: inherit !important; }
+input[type="checkbox"], input[type="radio"] { accent-color: #0095f6 !important; }
+input[type="range"] { accent-color: #0095f6 !important; }
+::-webkit-scrollbar { width: 8px !important; height: 8px !important; }
+::-webkit-scrollbar-thumb,
+body.dark-theme ::-webkit-scrollbar-thumb {
+    background-color: #c7c7c7 !important; border-radius: 999px !important;
+}
+::-webkit-scrollbar-track { background: transparent !important; }

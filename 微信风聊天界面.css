@@ -1,0 +1,629 @@
+/* ===========================================================
+   谷雨 · 微信风（整站皮肤）
+   -----------------------------------------------------------
+   用法：设置 → 外观 → 全局界面自定义 (CSS) → 整段贴进去 → 保存。
+   不想要了就整段删掉，不动任何原有设置。
+
+   两条原则：
+   ① **整站**都按微信来，不只是聊天页：侧边栏、顶栏、底部导航、时间线、
+      设置页、弹窗、按钮、输入框，全都换成微信那套灰底白卡 + 微信绿。
+   ② **颜色锁死**：不管你在 App 里选的是浅色/深色、蓝白/黑白哪套主题，
+      这张皮肤永远是同一个样子。做法是把主题变量在**四种组合**下
+      （默认 / .dark-theme / .theme-mono / .theme-mono.dark-theme）
+      统统改成同一份，再把深色主题那些 !important 的覆盖逐条顶回来。
+      所以你切主题时这张皮肤纹丝不动——这是故意的。
+
+   配色（微信原色）：
+     页面底 #EDEDED   卡片白 #FFFFFF   主色绿 #07C160
+     正文 #191919     次要 #888888     更浅 #B2B2B2
+     分隔线 #E5E5E5   我的气泡 #95EC69  可点文字 #576B95
+   =========================================================== */
+
+/* ========== 0. 主题变量：四种组合全钉成同一份 ==========
+   ⚠️ 这张皮肤**纯 CSS**，项目里一个字都没改、一个文件都不用加。
+   贴进去就变样，整段删掉就原样回来。 */
+:root,
+body.dark-theme,
+body.theme-mono,
+body.theme-mono.dark-theme {
+    --gy-accent: #07c160;
+    --gy-accent-2: #06ad56;
+    --gy-accent-rgb: 7, 193, 96;
+    --gy-accent-fg: #ffffff;
+    --gy-accent-soft: rgba(7, 193, 96, .10);
+    --gy-accent-line: rgba(7, 193, 96, .30);
+    --gy-ok: #07c160;
+    --gy-ok-rgb: 7, 193, 96;
+    --gy-warn: #fa9d3b;
+    --gy-warn-rgb: 250, 157, 59;
+    --gy-bad: #fa5151;
+    --gy-bad-rgb: 250, 81, 81;
+    --gy-border: #e5e5e5;
+    --gy-bg: #ffffff;
+    --gy-sub: #888888;
+    --gy-game-box-bg: #f7f7f7;
+    --gy-game-box-fg: #191919;
+}
+
+/* ========== 1. 页面底色 / 三栏 ========== */
+body,
+body.dark-theme {
+    background-color: #ededed !important;
+    color: #191919 !important;
+}
+#mainLayoutContainer,
+body.dark-theme #mainLayoutContainer { background: #ededed !important; }
+
+.main-content,
+body.dark-theme .main-content {
+    background: #ffffff !important;
+    border-left: 1px solid #e5e5e5 !important;
+    border-right: 1px solid #e5e5e5 !important;
+}
+.sidebar-left, .sidebar-right,
+body.dark-theme .sidebar-left,
+body.dark-theme .sidebar-right {
+    background: #ededed !important;
+    border-color: #e5e5e5 !important;
+    color: #191919 !important;
+}
+
+/* 右边那一栏（有什么新鲜事 / 你可能会喜欢 / 搜索框）：
+   微信没有这种右侧栏，整条收掉，正文直接铺到右边。
+   ⚠️ 只是不显示，节点全都还在——那些卡片的 JS（趋势标签、推荐关注）照跑不误，
+   皮肤一删原样回来。
+   搜索留着，但缩成右上角一个小圆图标，鼠标移上去/点一下才展开。 */
+.sidebar-right, body.dark-theme .sidebar-right {
+    width: 0 !important; min-width: 0 !important; padding: 0 !important;
+    flex: 0 0 0 !important; overflow: visible !important;
+}
+.sidebar-right-content, body.dark-theme .sidebar-right-content { padding: 0 !important; }
+.sidebar-right .info-card, body.dark-theme .sidebar-right .info-card { display: none !important; }
+
+/* 📅 开了「右边放一块『今天』」（设置 → 外观）的话，把这条右栏重新放出来专门装它——
+   新鲜事/推荐关注那些卡片还是藏着，只露「今天」。没开那个开关就还是收着。 */
+@media (min-width: 1101px) {
+    /* 右栏吃掉正文右边剩下的全部宽度，面板在里面**居中**——
+       这样窗口再宽也不会在最右边留一块死角。 */
+    body.gytoday-on .sidebar-right {
+        width: auto !important; min-width: 300px !important; max-width: none !important;
+        flex: 1 1 auto !important; padding: 0 !important; overflow: visible !important;
+        display: flex !important; justify-content: center !important;
+    }
+    body.gytoday-on .sidebar-right-content {
+        width: 340px !important; max-width: 340px !important; flex: 0 0 340px !important;
+        /* 顶上留一行给右上角那两颗（相机和搜索），别压到「今天」的日期 */
+        padding: 56px 16px 0 !important;
+    }
+    body.gytoday-on #gyToday.gyt-box { color: #191919 !important; }
+    body.gytoday-on #gyToday .gyt-day { color: #07c160 !important; }
+    body.gytoday-on #gyToday .gyt-row.click:hover { background: rgba(0, 0, 0, .04) !important; }
+    body.gytoday-on #gyToday .gyt-dot { background: #fa5151 !important; }
+}
+/* 正文：**收成一栏固定宽度贴着侧边栏放**，右边留白。
+   以前是"占满剩下的宽度"，窗口一宽，一条帖子被拉成一千多像素——
+   名字在最左、⋯ 在最右、中间一大片空，跟左边那条窄侧边栏完全不搭。
+   现在两栏都从最左边同一条线开始、顶边也齐，右边空出来的地方正好给相机和搜索。 */
+@media (min-width: 901px) {
+    .layout-container, body.dark-theme .layout-container {
+        justify-content: flex-start !important;   /* 别居中，不然固定定位的侧边栏会跟它的位子脱开 */
+    }
+    .main-content, body.dark-theme .main-content {
+        width: 720px !important; max-width: 720px !important;
+        flex: 0 0 720px !important; min-width: 0 !important;
+        border-left: 1px solid #e5e5e5 !important;
+        border-right: 1px solid #e5e5e5 !important;
+    }
+}
+/* 手机端不受影响：本来就是满宽 */
+@media (max-width: 900px) {
+    .main-content, body.dark-theme .main-content {
+        width: 100% !important; max-width: none !important;
+    }
+}
+
+/* 🔍 搜索：平时是个圆图标，鼠标放上去或者点进去才展开成输入框 */
+.search-box, body.dark-theme .search-box {
+    position: fixed !important; top: 10px !important; right: 16px !important; z-index: 1500 !important;
+    width: 40px !important; height: 40px !important;
+    padding: 0 11px !important; margin: 0 !important;
+    background: #ffffff !important; border: 1px solid #e5e5e5 !important;
+    border-radius: 999px !important; overflow: hidden !important;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, .08) !important;
+    transition: width .18s ease !important; cursor: pointer !important;
+}
+.search-box:hover, .search-box:focus-within,
+body.dark-theme .search-box:hover, body.dark-theme .search-box:focus-within { width: 280px !important; }
+.search-box svg, body.dark-theme .search-box svg { flex: 0 0 auto !important; stroke: #7a7a7a !important; }
+.search-box input, body.dark-theme .search-box input {
+    color: #191919 !important; font-size: 14px !important;
+    opacity: 0 !important; transition: opacity .18s ease !important;
+}
+.search-box:hover input, .search-box:focus-within input { opacity: 1 !important; }
+@media (max-width: 700px) { .search-box { display: none !important; } }   /* 手机端顶栏本来就有搜索 */
+
+/* ========== 2. 侧边栏：照微信「我」那一页做 ==========
+   微信那一页是：上面一块个人信息，下面是**整行白卡 + 细分隔线**，
+   几项一组、组与组之间空一条灰缝，每行右边一个灰色的 ›。
+   这儿把侧边栏那几行导航按同一套改：整行铺满、白底、贴着分隔线，
+   不再是一颗颗胶囊。 */
+.sidebar-left, body.dark-theme .sidebar-left { padding: 0 !important; }
+.sidebar-content, body.dark-theme .sidebar-content { padding: 0 !important; }
+
+/* 顶上那一块：微信「我」那一页最上面是**你的头像和名字**，不是一个应用图标。
+   这儿把 logo 那一行藏掉，改成把页面底下那张"我"的卡片用 flex 的 order 提到最上面
+   ——只是换个显示顺序，没动任何节点，皮肤一删就回到原位。 */
+.gy-logo-row, body.dark-theme .gy-logo-row { display: none !important; }
+.sidebar-content, body.dark-theme .sidebar-content { display: flex !important; flex-direction: column !important; }
+.user-profile-mini, body.dark-theme .user-profile-mini {
+    order: -1 !important;
+    margin: 0 0 8px !important;
+    background: #ffffff !important;
+    border-radius: 0 !important;
+    border: none !important;
+    border-bottom: 1px solid #e5e5e5 !important;
+    padding: 18px 16px !important;
+    gap: 12px !important;
+}
+.user-profile-mini:hover, body.dark-theme .user-profile-mini:hover { background: #f7f7f7 !important; }
+.user-profile-mini .avatar, body.dark-theme .user-profile-mini .avatar {
+    width: 56px !important; height: 56px !important; border-radius: 8px !important;
+    border: none !important; font-size: 22px !important; margin-right: 0 !important;
+}
+.user-profile-mini .user-name, body.dark-theme .user-profile-mini .user-name {
+    font-size: 17px !important; font-weight: 600 !important; color: #191919 !important;
+}
+.user-profile-mini .user-handle, body.dark-theme .user-profile-mini .user-handle {
+    font-size: 13px !important; color: #888888 !important;
+}
+
+.nav-menu, body.dark-theme .nav-menu {
+    background: #ffffff !important;
+    border-top: 1px solid #e5e5e5 !important;
+    border-bottom: 1px solid #e5e5e5 !important;
+}
+.nav-item,
+body.dark-theme .nav-item {
+    color: #191919 !important;
+    font-size: 15px !important;
+    border-radius: 0 !important;
+    width: auto !important;
+    padding: 13px 14px !important;
+    margin: 0 !important;
+    gap: 12px !important;
+    border-bottom: 1px solid #f0f0f0 !important;
+    position: relative !important;
+}
+/* 每行右边那个灰 ›（微信每一项都有） */
+.nav-item::after {
+    content: "›";
+    margin-left: auto;
+    color: #c8c8c8;
+    font-size: 18px;
+    line-height: 1;
+}
+.nav-item:hover,
+body.dark-theme .nav-item:hover { background-color: #f5f5f5 !important; }
+/* 微信那一页没有"当前页高亮"，但留一点绿做记号，不然不知道自己在哪 */
+.nav-item.active,
+body.dark-theme .nav-item.active {
+    color: #07c160 !important;
+    background-color: #ffffff !important;
+    font-weight: 500 !important;
+}
+.nav-item.active .nav-icon,
+body.dark-theme .nav-item.active .nav-icon { stroke: #07c160 !important; }
+.nav-item .nav-icon, body.dark-theme .nav-item .nav-icon { width: 22px !important; height: 22px !important; }
+/* 组与组之间空一条灰缝：按微信那种"几项一组"的节奏断开 */
+.nav-menu .nav-item:nth-child(4),
+.nav-menu .nav-item:nth-child(8) {
+    border-top: 8px solid #ededed !important;
+}
+.nav-menu .nav-item:last-child { border-bottom: none !important; }
+
+/* ========== 2.9 侧边栏收起来（鼠标移上去才展开） ==========
+   电脑端左边那 275px 一直占着，看时间线的时候其实用不上。
+   这儿把它收成一条 60px 的图标窄条，鼠标移上去才滑出来——**盖在正文上面**，
+   正文不会跟着左右跳。想一直展开就把这一整节删掉。
+   实现说明：导航项里的文字是**裸文本**（<svg>后面直接跟"主页"两个字），
+   没有元素可以单独藏，所以收起时用 font-size:0 把文字压没，
+   图标是 svg 有自己的宽高，不受影响；展开时再把字号还回来。 */
+@media (min-width: 901px) {
+    .sidebar-left, body.dark-theme .sidebar-left {
+        width: 60px !important; min-width: 60px !important; flex: 0 0 60px !important;
+    }
+    .sidebar-content, body.dark-theme .sidebar-content {
+        position: fixed !important; left: 0 !important; top: 0 !important;
+        width: 60px !important; height: 100vh !important;
+        overflow-x: hidden !important; overflow-y: auto !important;
+        background: #ededed !important; z-index: 1400 !important;
+        border-right: 1px solid #e5e5e5 !important;
+        transition: width .18s ease !important;
+    }
+    .sidebar-left:hover .sidebar-content,
+    body.dark-theme .sidebar-left:hover .sidebar-content {
+        width: 275px !important; box-shadow: 2px 0 16px rgba(0, 0, 0, .12) !important;
+    }
+    /* 收起时：只剩图标，文字和右边那个 › 都压没 */
+    .sidebar-left .nav-item, body.dark-theme .sidebar-left .nav-item {
+        font-size: 0 !important; padding: 13px 0 !important; gap: 0 !important;
+        justify-content: center !important;
+    }
+    /* ⚠️ 图标是 flex 项，默认 flex-shrink:1——窄条里会被挤成 7px（实测）。
+       这里钉死 flex-basis，不让它缩。 */
+    .sidebar-left .nav-item .nav-icon, body.dark-theme .sidebar-left .nav-item .nav-icon {
+        flex: 0 0 22px !important; width: 22px !important; height: 22px !important;
+    }
+    .sidebar-left .nav-item::after { display: none !important; }
+    .sidebar-left .nav-item .badge { display: none !important; }
+    .sidebar-left:hover .nav-item, body.dark-theme .sidebar-left:hover .nav-item {
+        font-size: 15px !important; padding: 13px 14px !important; gap: 12px !important;
+        justify-content: flex-start !important;
+    }
+    .sidebar-left:hover .nav-item::after { display: inline !important; }
+    .sidebar-left:hover .nav-item .badge { display: inline-block !important; }
+    /* 收起时"我"那张卡只剩头像 */
+    .sidebar-left .user-profile-mini, body.dark-theme .sidebar-left .user-profile-mini {
+        padding: 12px 10px !important; justify-content: center !important;
+    }
+    .sidebar-left .user-profile-mini .user-info { display: none !important; }
+    .sidebar-left .user-profile-mini .avatar,
+    body.dark-theme .sidebar-left .user-profile-mini .avatar {
+        width: 38px !important; height: 38px !important; font-size: 16px !important;
+    }
+    .sidebar-left:hover .user-profile-mini,
+    body.dark-theme .sidebar-left:hover .user-profile-mini {
+        padding: 18px 16px !important; justify-content: flex-start !important;
+    }
+    .sidebar-left:hover .user-profile-mini .user-info { display: block !important; }
+    .sidebar-left:hover .user-profile-mini .avatar,
+    body.dark-theme .sidebar-left:hover .user-profile-mini .avatar {
+        width: 56px !important; height: 56px !important; font-size: 22px !important;
+    }
+    /* 拖宽度那道缝在收起状态下没意义，藏掉免得误拖 */
+    .sidebar-left .gy-w-grip { display: none !important; }
+}
+
+/* ========== 3. 顶栏 / 标签栏 ========== */
+.header-title,
+body.dark-theme .header-title {
+    background-color: #ededed !important;
+    color: #191919 !important;
+    border-bottom: 1px solid #e5e5e5 !important;
+    font-size: 17px !important;
+    padding: 12px 16px !important;
+}
+.top-tabs,
+body.dark-theme .top-tabs {
+    background-color: #ffffff !important;
+    border-bottom: 1px solid #e5e5e5 !important;
+}
+/* 主页那条「为你推荐 / 正在关注」：朋友圈没有这种切页签，藏掉。
+   （只藏主页这一条，别处的页签照常——比如资料页的"推文/喜欢"还要用。）
+   想要回来就把下面这一条删掉。 */
+#view-home > .top-tabs { display: none !important; }
+.tab, body.dark-theme .tab { color: #888888 !important; font-weight: 500 !important; }
+.tab.active, body.dark-theme .tab.active { color: #07c160 !important; }
+.tab.active::after,
+body.dark-theme .tab.active::after,
+body.theme-mono .tab.active::after { background-color: #07c160 !important; height: 3px !important; }
+
+/* 手机端顶栏 / 底部导航 */
+.mobile-topbar,
+body.dark-theme .mobile-topbar {
+    background: #ededed !important;
+    border-bottom: 1px solid #e5e5e5 !important;
+}
+.mtb-icon-btn, body.dark-theme .mtb-icon-btn { color: #191919 !important; }
+.mobile-bottom-nav,
+body.dark-theme .mobile-bottom-nav {
+    background: #f7f7f7 !important;
+    border-top: 1px solid #e5e5e5 !important;
+}
+.mnav-item, body.dark-theme .mnav-item { color: #7a7a7a !important; }
+.mnav-item.active, body.dark-theme .mnav-item.active { color: #07c160 !important; }
+.mnav-badge, body.dark-theme .mnav-badge { background-color: #fa5151 !important; }
+
+/* ========== 3.5 主页顶上那张大图（开关在 设置 → 外观 →「📷 主页顶上放一张大图」） ==========
+   这几条只在你把那个开关打开时才有东西可管；没开就是空跑，不影响任何页面。
+   把项目自带的那块朴素封面压成朋友圈的样子：图更高、头像方一点、名字小一号。 */
+.gymo-banner, body.dark-theme .gymo-banner { background: #ffffff !important; margin-bottom: 0 !important; }
+.gymo-cover, body.dark-theme .gymo-cover { height: 240px !important; }
+.gymo-me, body.dark-theme .gymo-me { right: 18px !important; bottom: 16px !important; }
+.gymo-name, body.dark-theme .gymo-name { font-size: 17px !important; }
+.gymo-avatar, body.dark-theme .gymo-avatar {
+    width: 62px !important; height: 62px !important; flex-basis: 62px !important;
+    margin-bottom: -30px !important;          /* 探出图的下沿，跟朋友圈一样 */
+    border-radius: 6px !important; border: 0 !important; box-shadow: none !important;
+}
+/* 简介在图下面那一条：白底、右对齐、灰字。**底下不画线**——多一条横杠就断得很硬。 */
+.gymo-bio, body.dark-theme .gymo-bio {
+    background: #ffffff !important; color: #888888 !important; opacity: 1 !important;
+    font-size: 13px !important; padding: 12px 96px 14px 18px !important;
+    min-height: 26px !important; border-bottom: 0 !important;
+}
+
+/* ========== 4. 时间线：照朋友圈的样子排 ==========
+   朋友圈一条 = 头像 + 蓝灰色的名字 + 黑色正文 + 图 + 灰色时间 + 右下角那颗 ⋯
+   跟推特那种"名字@账号·时间 + 一排互动数"不是一个排法。
+   这儿把能对上的部分对过去：名字变蓝灰、正文黑、时间和互动数缩小变灰。 */
+.post-placeholder,
+body.dark-theme .post-placeholder {
+    background: #ffffff !important;
+    border-bottom: 1px solid #f0f0f0 !important;
+}
+.post-placeholder:hover,
+body.dark-theme .post-placeholder:hover { background-color: #fafafa !important; }
+.post-body, body.dark-theme .post-body { font-size: 15px !important; color: #191919 !important; line-height: 1.65 !important; }
+.post-name, body.dark-theme .post-name { color: #576b95 !important; font-size: 15px !important; }
+.post-footer, body.dark-theme .post-footer { font-size: 12px !important; }
+.post-stats-group, body.dark-theme .post-stats-group { opacity: .55 !important; }
+.post-placeholder, body.dark-theme .post-placeholder { padding: 14px 16px !important; gap: 10px !important; }
+.post-placeholder .avatar, body.dark-theme .post-placeholder .avatar {
+    border-radius: 6px !important; width: 42px !important; height: 42px !important;
+}
+.post-body:hover, body.dark-theme .post-body:hover { background: transparent !important; }
+.post-handle, .post-footer,
+body.dark-theme .post-handle,
+body.dark-theme .post-footer { color: #b2b2b2 !important; }
+.post-name:hover, body.dark-theme .post-name:hover { color: #576b95 !important; }
+.post-media, body.dark-theme .post-media {
+    border: 1px solid #e5e5e5 !important; border-radius: 6px !important;
+}
+.post-location, body.dark-theme .post-location { color: #576b95 !important; }
+
+/* ========== 5. 按钮 ========== */
+.btn-post, body.dark-theme .btn-post {
+    background-color: #07c160 !important; color: #ffffff !important;
+    border: none !important; border-radius: 6px !important;
+    padding: 8px 18px !important; font-weight: 500 !important;
+}
+.btn-post:hover, body.dark-theme .btn-post:hover { background-color: #06ad56 !important; color: #fff !important; }
+.btn-primary, body.dark-theme .btn-primary {
+    background-color: #07c160 !important; color: #fff !important; border-radius: 6px !important;
+    font-weight: 500 !important;
+}
+.btn-edit-small, body.dark-theme .btn-edit-small {
+    background: #ffffff !important; color: #576b95 !important;
+    border: 1px solid #e5e5e5 !important; border-radius: 6px !important;
+}
+.btn-cancel, body.dark-theme .btn-cancel {
+    background: #f7f7f7 !important; color: #191919 !important; border: 1px solid #e5e5e5 !important;
+}
+
+/* ========== 6. 输入框 / 设置页 ========== */
+.input-group label, body.dark-theme .input-group label { color: #191919 !important; }
+.input-group input:not([type="checkbox"]):not([type="radio"]),
+.input-group select, .input-group textarea,
+body.dark-theme .input-group input,
+body.dark-theme .input-group select,
+body.dark-theme .input-group textarea,
+body.dark-theme input, body.dark-theme select, body.dark-theme textarea {
+    background: #ffffff !important; color: #191919 !important;
+    border: 1px solid #e5e5e5 !important; border-radius: 6px !important;
+}
+.form-hint, body.dark-theme .form-hint {
+    background: #f7f7f7 !important; color: #888888 !important;
+    border-left: 3px solid #07c160 !important;
+}
+.set-panel, body.dark-theme .set-panel { background: #ffffff !important; color: #191919 !important; }
+
+/* 设置索引那些卡片：微信的设置页是白底 + 黑字 + 灰说明，绿色只做点缀，
+   不是整片绿。这几条把默认那种"标题也跟着主题色"的样子按下去。 */
+.set-entry, body.dark-theme .set-entry {
+    background: #ffffff !important; color: #191919 !important;
+    border: 1px solid #e5e5e5 !important; border-radius: 8px !important;
+}
+.set-entry:hover, body.dark-theme .set-entry:hover { background: #f7f7f7 !important; }
+.set-entry-title, body.dark-theme .set-entry-title { color: #191919 !important; font-weight: 500 !important; }
+.set-entry-desc, body.dark-theme .set-entry-desc { color: #888888 !important; }
+.set-entry-arrow, body.dark-theme .set-entry-arrow { color: #c8c8c8 !important; }
+
+/* 头像那一格：微信是圆角方块，**没有描边也没有那圈投影**——
+   项目默认给 .avatar 加了 2px 描边 + 一层投影，看着像每张脸都裱了个框。
+   这儿全去掉，只留一个浅灰底给纯文字头像垫着（有图的话图会盖住它）。 */
+.avatar, body.dark-theme .avatar {
+    color: #576b95 !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    background-color: #e4e4e4 !important;
+}
+
+/* ========== 7. 弹窗 ========== */
+.modal-overlay, body.dark-theme .modal-overlay { background: rgba(0, 0, 0, .35) !important; }
+.modal-box, .modal-content,
+body.dark-theme .modal-box,
+body.dark-theme .modal-content {
+    background: #ffffff !important; color: #191919 !important;
+    border: none !important; border-radius: 12px !important;
+}
+.modal-box h2, body.dark-theme .modal-box h2 { color: #191919 !important; }
+.memory-card, .empty-state,
+body.dark-theme .memory-card,
+body.dark-theme .empty-state { background: #ffffff !important; color: #b2b2b2 !important; }
+
+/* 深色主题那条"把所有内联白底刷成深色"的兜底，逐条顶回来 */
+body.dark-theme div[style*="background:white"],
+body.dark-theme div[style*="background: white"],
+body.dark-theme div[style*="background:#fff"],
+body.dark-theme div[style*="background: #fff"],
+body.dark-theme div[style*="background:#f7f9f9"],
+body.dark-theme div[style*="background: #f7f9f9"],
+body.dark-theme div[style*="background:rgba(255,255,255"],
+body.dark-theme div[style*="background: rgba(255,255,255"] {
+    background: #ffffff !important; color: #191919 !important;
+}
+body.dark-theme div[style*="color:#536471"],
+body.dark-theme span[style*="color:#536471"] { color: #888888 !important; }
+
+/* ========== 8. 聊天页：底色 ========== */
+#view-chat, body.dark-theme #view-chat { background: #ededed !important; }
+.chat-messages, body.dark-theme .chat-messages {
+    gap: 4px !important; padding: 10px 12px 16px !important;
+}
+.chat-char-row, .chat-list-vertical,
+body.dark-theme .chat-char-row,
+body.dark-theme .chat-list-vertical {
+    background: #ffffff !important; border-bottom: 1px solid #e5e5e5 !important;
+}
+.chat-list-row, body.dark-theme .chat-list-row {
+    border-bottom: 1px solid #f0f0f0 !important; opacity: 1 !important;
+}
+.chat-list-row.active, body.dark-theme .chat-list-row.active { background: #ececec !important; }
+
+/* ========== 8.5 聊天顶栏（返回 + 对方昵称，开关在 外观 里） ==========
+   项目自己那条顶栏默认跟着主题走；这儿把它压成微信的样子：白底、细分隔线、
+   名字黑色加粗居中。没开那个开关的话这几条就是空跑。 */
+#gyChatHead.gych-bar, body.dark-theme #gyChatHead.gych-bar {
+    background: #ededed !important;
+    border-bottom: 1px solid #e5e5e5 !important;
+    padding: 10px 12px !important;
+}
+#gyChatHead .gych-name, body.dark-theme #gyChatHead .gych-name { color: #191919 !important; font-size: 17px !important; }
+#gyChatHead .gych-sub, body.dark-theme #gyChatHead .gych-sub { color: #7a7a7a !important; opacity: 1 !important; }
+#gyChatHead .gych-back, body.dark-theme #gyChatHead .gych-back { color: #191919 !important; }
+#gyChatHead .gych-back:hover, body.dark-theme #gyChatHead .gych-back:hover { background: rgba(0, 0, 0, .06) !important; }
+
+/* ========== 9. 气泡：我绿 TA 白（跟本 App 默认相反） ========== */
+.chat-bubble, body.dark-theme .chat-bubble {
+    border-radius: 6px !important;
+    padding: 9px 12px !important;
+    font-size: 15.5px !important;
+    line-height: 1.55 !important;
+    box-shadow: none !important;
+    overflow: visible !important;   /* 不放开的话下面那个小尖角会被裁掉 */
+    max-width: 100% !important;
+}
+/* 气泡最宽不超过聊天区的 70%，窗口一变它自己跟着变（百分比是照聊天区算的，不是屏幕） */
+.chat-bubble-wrapper, body.dark-theme .chat-bubble-wrapper { max-width: 70% !important; }
+.chat-bubble.me, body.dark-theme .chat-bubble.me {
+    background: #95ec69 !important; color: #191919 !important;
+    border: none !important; border-top-right-radius: 6px !important;
+}
+.chat-bubble.other, body.dark-theme .chat-bubble.other {
+    background: #ffffff !important; color: #191919 !important;
+    border: none !important; border-top-left-radius: 6px !important;
+}
+/* 小尖角：一个转 45° 的小方块，颜色跟气泡一样 */
+.chat-bubble::before {
+    content: ""; position: absolute; top: 13px;
+    width: 9px; height: 9px; transform: rotate(45deg);
+}
+.chat-bubble.me::before, body.dark-theme .chat-bubble.me::before { right: -4px; background: #95ec69 !important; }
+.chat-bubble.other::before, body.dark-theme .chat-bubble.other::before { left: -4px; background: #ffffff !important; }
+
+/* ========== 10. 头像 / 名字 / 时间 ========== */
+#view-chat .avatar, body.dark-theme #view-chat .avatar {
+    border-radius: 6px !important; border: none !important;
+    width: 40px !important; height: 40px !important;
+}
+/* 微信每条消息旁边**不写时间**，时间只看中间那条分隔条。
+   想让它回来，把 .chat-msg-time 这一行删掉。群聊里的名字不受影响。 */
+.chat-msg-time { display: none !important; }
+.chat-sender-name, body.dark-theme .chat-sender-name {
+    font-size: 11px !important; color: #9b9b9b !important; margin-bottom: 3px !important;
+}
+/* 「已读 / 未读」淡一点，微信没有这个 */
+.chat-bubble-wrapper > div[style*="color:#1d9bf0"],
+.chat-bubble-wrapper > div[style*="color: #1d9bf0"] {
+    color: #c4c4c4 !important; font-size: 10px !important;
+}
+
+/* ========== 11. 时间分隔条 / 系统提示 ========== */
+.chat-time-sep span, body.dark-theme .chat-time-sep span {
+    font-size: 12px !important; color: #b2b2b2 !important; padding: 2px 6px !important;
+}
+.chat-time-sep.full span, body.dark-theme .chat-time-sep.full span {
+    background: #d3d3d3 !important; color: #ffffff !important; border-radius: 3px !important;
+}
+.chat-system-msg span, body.dark-theme .chat-system-msg span {
+    font-size: 12px !important; color: #b2b2b2 !important; background: transparent !important;
+}
+
+/* ========== 12. 输入栏 ========== */
+.chat-input-area, body.dark-theme .chat-input-area {
+    background: #f7f7f7 !important; border-top: 1px solid #e3e3e3 !important;
+}
+.chat-input-row input, body.dark-theme .chat-input-row input {
+    border: none !important; border-radius: 6px !important;
+    background: #ffffff !important; color: #191919 !important;
+    padding: 10px 40px 10px 12px !important; box-shadow: none !important;
+}
+.chat-input-row input::placeholder { color: #c4c4c4 !important; }
+.chat-mic, body.dark-theme .chat-mic { color: #9b9b9b !important; }
+.chat-mic:hover, body.dark-theme .chat-mic:hover { color: #576b95 !important; }
+.chat-more, body.dark-theme .chat-more {
+    background: #ffffff !important; border: 1px solid #e5e5e5 !important; color: #576b95 !important;
+}
+
+/* ========== 13. 引用 / 角色发的图卡 ========== */
+.chat-quote-bubble, body.dark-theme .chat-quote-bubble {
+    background: rgba(0, 0, 0, .05) !important;
+    border-left: 3px solid rgba(0, 0, 0, .12) !important;
+    border-radius: 3px !important; color: #7a7a7a !important; font-size: 13px !important;
+}
+.gypic-card, body.dark-theme .gypic-card {
+    background: #ffffff !important; border: 1px solid #e5e5e5 !important; border-radius: 6px !important;
+}
+.gypic-desc, body.dark-theme .gypic-desc { color: #191919 !important; }
+
+/* ========== 13.5 发帖：那颗悬浮 ➕ 变成右上角的相机 ==========
+   微信没有悬浮按钮，发朋友圈按的是右上角那个相机。
+   这儿不删按钮、也不加新按钮——就是把项目原来那颗 ➕ 挪到右上角、
+   换成相机图标（那个 ➕ 字符用 font-size:0 藏掉，图标是 CSS 背景图）。
+   点它还是原来的发帖弹窗，一行 JS 都没动。
+   ⚠️ 它本来可以拖着走；钉死之后拖不动了，点还是能点。
+   位置：桌面端在搜索图标左边一格，手机端在顶栏底下。 */
+.fab-btn, body.dark-theme .fab-btn {
+    position: fixed !important;
+    top: 10px !important; right: 64px !important;
+    bottom: auto !important; left: auto !important;
+    width: 40px !important; height: 40px !important;
+    background-color: #ffffff !important;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23191919' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M22.5 19a2 2 0 0 1-2 2h-17a2 2 0 0 1-2-2V8.5a2 2 0 0 1 2-2h3.2l1.8-3h6l1.8 3h3.2a2 2 0 0 1 2 2z'/%3E%3Ccircle cx='12' cy='13.2' r='3.9'/%3E%3C/svg%3E") !important;
+    background-repeat: no-repeat !important;
+    background-position: center !important;
+    background-size: 22px 22px !important;
+    border: 1px solid #e5e5e5 !important;
+    border-radius: 999px !important;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, .08) !important;
+    font-size: 0 !important;              /* 把原来那个 ➕ 字符藏掉 */
+    color: transparent !important;
+    z-index: 1500 !important;
+    transform: none !important;
+    transition: background-color .15s ease !important;
+}
+.fab-btn:active, body.dark-theme .fab-btn:active {
+    transform: none !important; background-color: #f2f2f2 !important;
+}
+/* 桌面端相机和搜索是浮在正文上头的，给时间线让出这一行，
+   不然第一条帖子右上角那颗 ⋯ 会被压在底下点不到 */
+/* ⚠️ 正文栏只有 720px，相机和搜索落在右边空出来的地方，什么都不挡，
+   所以桌面端不用再给时间线让位。窗口窄到正文快贴到右边时才让出这一行。 */
+@media (min-width: 901px) and (max-width: 1099px) {
+    body:not(.gymo-on) #feedSection { padding-top: 54px !important; }
+}
+/* 手机端：直接坐进顶栏右边那排图标里，当成第四颗图标（微信就是这样）。
+   顶栏原来那三颗往左让 49px，相机补在它们右边，不飘在正文上挡东西。 */
+@media (max-width: 900px) {
+    .mtb-right, body.dark-theme .mtb-right { padding-right: 49px !important; }
+    .fab-btn, body.dark-theme .fab-btn {
+        right: 12px !important;
+        top: calc(var(--app-safe-top, env(safe-area-inset-top, 0px)) + 9px) !important;
+        width: 34px !important; height: 34px !important;
+        background-color: transparent !important;
+        background-size: 23px 23px !important;
+        border: 0 !important; box-shadow: none !important;
+        z-index: 1700 !important;
+    }
+    .fab-btn:active, body.dark-theme .fab-btn:active {
+        background-color: rgba(0, 0, 0, .06) !important;
+    }
+}
+
+/* ========== 14. 杂项：链接色、开关、滚动条 ========== */
+a, body.dark-theme a { color: #576b95 !important; }
+input[type="checkbox"], input[type="radio"] { accent-color: #07c160 !important; }
+input[type="range"] { accent-color: #07c160 !important; }
+::-webkit-scrollbar-thumb,
+body.dark-theme ::-webkit-scrollbar-thumb { background-color: rgba(0, 0, 0, .18) !important; }

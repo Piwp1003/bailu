@@ -1,0 +1,37 @@
+# ============ 构建产物 / 依赖，不要传 ============
+node_modules/
+桌面版/node_modules/
+桌面版/dist/
+桌面版/build/
+桌面版/app/
+dist/
+build/
+*.exe
+*.asar
+
+# ============ 本地数据 / 日志 ============
+GuyuData/
+启动日志.txt
+*.log
+
+# ============ 备份文件（本地留着就行） ============
+_备份/
+*_备份_*
+ziOV5ej3
+*.bak
+
+# ============ 已废弃 / 重复的文件 ============
+manifest.json
+启动页/android12-icon.png
+启动页/hdpi.png
+启动页/ldpi.png
+启动页/mdpi.png
+启动页/splash.9.png
+启动页/xhdpi.png
+启动页/xxhdpi.png
+启动页/xxxhdpi.png
+
+# ============ 系统垃圾 ============
+.DS_Store
+Thumbs.db
+desktop.ini
