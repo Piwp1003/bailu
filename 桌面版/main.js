@@ -7,7 +7,7 @@
 //   3. localforage / mammoth 这两个库改成本地打包，断网也能启动
 // =====================================================================================
 
-const { app, BrowserWindow, Menu, shell, dialog } = require('electron');
+const { app, BrowserWindow, Menu, shell, dialog, ipcMain, screen } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const os = require('os');
@@ -137,6 +137,97 @@ function saveWindowState(win) {
 // ------------------------------------------------------------------
 let mainWindow = null;
 
+// ------------------------------------------------------------------
+// 🧸 桌面上的 TA（配合插件「桌面上的 TA」）
+// 页面里通过 window.gyDesk 控制一个透明、置顶、无边框的小窗口，小 TA 就待在电脑桌面上。
+// 小 TA 开着的时候，点主窗口的 × 只是把窗口藏起来（程序还在跑，TA 还能冒泡），
+// 要真的退出：右键小 TA →「退出」。
+// preload 不单独放文件（打包清单不用改）：启动时写到用户数据目录里。
+// ------------------------------------------------------------------
+let petWin = null, petOpts = null, quitting = false;
+const MAIN_PRELOAD = `const { contextBridge, ipcRenderer } = require('electron');
+contextBridge.exposeInMainWorld('gyDesk', {
+  isDesk: true,
+  petShow: o => ipcRenderer.send('gy-pet', 'show', o),
+  petHide: () => ipcRenderer.send('gy-pet', 'hide'),
+  petSay: t => ipcRenderer.send('gy-pet', 'say', String(t || '')),
+  onPet: cb => ipcRenderer.on('gy-pet-ev', (e, ev) => { try { cb(ev); } catch (er) {} })
+});`;
+const PET_PRELOAD = `const { contextBridge, ipcRenderer } = require('electron');
+contextBridge.exposeInMainWorld('pet', {
+  moveBy: (dx, dy) => ipcRenderer.send('gy-pet-in', 'move', { dx, dy }),
+  done: () => ipcRenderer.send('gy-pet-in', 'moved'),
+  click: () => ipcRenderer.send('gy-pet-in', 'click'),
+  menu: () => ipcRenderer.send('gy-pet-in', 'menu'),
+  hover: on => ipcRenderer.send('gy-pet-in', 'hover', !!on),
+  on: cb => ipcRenderer.on('gy-pet-do', (e, a, v) => cb(a, v))
+});`;
+function writePreloads() {
+  const dir = app.getPath('userData');
+  const a = path.join(dir, 'gy-preload.js'), b = path.join(dir, 'gy-pet-preload.js');
+  try { fs.mkdirSync(dir, { recursive: true }); fs.writeFileSync(a, MAIN_PRELOAD); fs.writeFileSync(b, PET_PRELOAD); } catch (e) { logBoot('写 preload 失败: ' + e.message); }
+  return { main: a, pet: b };
+}
+let PRELOADS = null;
+const PET_HTML = `<!doctype html><html><head><meta charset="utf-8"><style>
+html,body{margin:0;background:transparent;overflow:hidden;user-select:none;font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif}
+#w{position:absolute;right:10px;bottom:10px;display:flex;flex-direction:column;align-items:flex-end}
+#b{max-width:230px;padding:8px 12px;margin-bottom:8px;border-radius:16px 16px 4px 16px;background:rgba(255,255,255,.95);color:#1d1d1f;font-size:13px;line-height:1.5;box-shadow:0 8px 24px rgba(0,0,0,.18);opacity:0;transform:translateY(6px) scale(.9);transform-origin:bottom right;transition:all .35s cubic-bezier(.2,1.2,.3,1)}
+#b.on{opacity:1;transform:none}
+#a{width:var(--s,64px);height:var(--s,64px);border-radius:50%;overflow:hidden;background:#fff center/cover no-repeat;box-shadow:0 8px 20px rgba(0,0,0,.25),0 0 0 3px #fff;cursor:grab;display:flex;align-items:center;justify-content:center;font-size:26px;color:#555;animation:bob 3.2s ease-in-out infinite}
+#a.free{border-radius:0;box-shadow:none;background-color:transparent;background-size:contain;filter:drop-shadow(0 6px 10px rgba(0,0,0,.25))}
+@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
+</style></head><body><div id="w"><div id="b"></div><div id="a"></div></div><script>
+const a=document.getElementById('a'),b=document.getElementById('b');let d=null,mv=false,ht=null;
+a.addEventListener('mouseenter',()=>pet.hover(true));document.getElementById('w').addEventListener('mouseleave',()=>{if(!d)pet.hover(false)});
+a.addEventListener('pointerdown',e=>{if(e.button===2)return;d={x:e.screenX,y:e.screenY};mv=false;a.setPointerCapture(e.pointerId)});
+a.addEventListener('pointermove',e=>{if(!d)return;const dx=e.screenX-d.x,dy=e.screenY-d.y;if(!mv&&Math.abs(dx)+Math.abs(dy)<4)return;mv=true;d={x:e.screenX,y:e.screenY};pet.moveBy(dx,dy)});
+a.addEventListener('pointerup',()=>{if(!d)return;d=null;if(mv)pet.done();else pet.click()});
+a.addEventListener('contextmenu',e=>{e.preventDefault();pet.menu()});
+pet.on((k,v)=>{if(k==='set'){document.body.style.setProperty('--s',(v.size||64)+'px');a.className=v.shape==='free'?'free':'';if(v.img){a.style.backgroundImage='url("'+v.img.replace(/"/g,'%22')+'")';a.textContent=''}else{a.style.backgroundImage='';a.textContent=v.letter||'T'}}
+if(k==='say'){b.textContent=v;b.classList.add('on');clearTimeout(ht);ht=setTimeout(()=>b.classList.remove('on'),Math.max(4000,v.length*280))}});
+</script></body></html>`;
+function petSize(o) { const s = Math.max(36, Math.min(320, +(o && o.size) || 64)); return { w: Math.max(260, s + 40), h: s + 120 }; }
+function petShow(o) {
+  petOpts = o || {};
+  const sz = petSize(petOpts);
+  if (!petWin || petWin.isDestroyed()) {
+    const wa = screen.getPrimaryDisplay().workArea;
+    const x = Number.isFinite(petOpts.x) ? petOpts.x : wa.x + wa.width - sz.w - 20, y = Number.isFinite(petOpts.y) ? petOpts.y : wa.y + wa.height - sz.h - 20;
+    petWin = new BrowserWindow({ title: 'TA', width: sz.w, height: sz.h, x, y, transparent: true, frame: false, resizable: false, alwaysOnTop: true, skipTaskbar: true, hasShadow: false, focusable: true, show: false, backgroundColor: '#00000000',
+      webPreferences: { preload: PRELOADS.pet, contextIsolation: true, nodeIntegration: false } });
+    petWin.setAlwaysOnTop(true, 'floating');
+    petWin.setIgnoreMouseEvents(true, { forward: true });
+    petWin.loadURL('data:text/html;charset=utf-8,' + encodeURIComponent(PET_HTML));
+    petWin.webContents.on('did-finish-load', () => { petWin.webContents.send('gy-pet-do', 'set', petOpts); petWin.showInactive(); });
+    petWin.on('closed', () => { petWin = null; });
+  } else { petWin.setSize(sz.w, sz.h); petWin.webContents.send('gy-pet-do', 'set', petOpts); petWin.showInactive(); }
+}
+function toMain(ev) { if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('gy-pet-ev', ev); }
+function showMain() { if (!mainWindow || mainWindow.isDestroyed()) return; if (mainWindow.isMinimized()) mainWindow.restore(); mainWindow.show(); mainWindow.focus(); }
+ipcMain.on('gy-pet', (e, what, v) => {
+  if (what === 'show') petShow(v);
+  if (what === 'hide') { if (petWin && !petWin.isDestroyed()) petWin.close(); petWin = null; }
+  if (what === 'say' && petWin && !petWin.isDestroyed()) petWin.webContents.send('gy-pet-do', 'say', v);
+});
+ipcMain.on('gy-pet-in', (e, what, v) => {
+  if (!petWin || petWin.isDestroyed()) return;
+  if (what === 'hover') petWin.setIgnoreMouseEvents(!v, { forward: true });
+  if (what === 'move') { const [x, y] = petWin.getPosition(); petWin.setPosition(Math.round(x + v.dx), Math.round(y + v.dy)); }
+  if (what === 'moved') { const [x, y] = petWin.getPosition(); toMain({ type: 'moved', x, y }); }
+  if (what === 'click') { showMain(); toMain({ type: 'click' }); }
+  if (what === 'menu') {
+    Menu.buildFromTemplate([
+      { label: '打开白露', click: () => { showMain(); toMain({ type: 'click' }); } },
+      { label: '小 TA 设置', click: () => { showMain(); toMain({ type: 'menu' }); } },
+      { label: '先收起小 TA', click: () => { if (petWin) petWin.close(); } },
+      { type: 'separator' },
+      { label: '退出白露', click: () => { quitting = true; app.quit(); } }
+    ]).popup({ window: petWin });
+  }
+});
+app.on('before-quit', () => { quitting = true; });
+
 function createWindow() {
   const state = loadWindowState();
 
@@ -165,6 +256,8 @@ function createWindow() {
       spellcheck: false,
       // 🎧「一起听 · 一起看」要在应用里开网易云 / QQ 音乐 / B 站的官方网页（js/75）
       webviewTag: true,
+      // 🧸 给页面一个 window.gyDesk（只有控制桌面小 TA 的几个方法）
+      preload: (PRELOADS = PRELOADS || writePreloads()).main,
     },
   });
 
@@ -368,7 +461,11 @@ function createWindow() {
 
   // 最大化前记一下还原尺寸，不然下次启动会以最大化时的尺寸当默认窗口大小
   mainWindow.on('maximize', () => { mainWindow.__restoreBounds = mainWindow.getNormalBounds(); });
-  mainWindow.on('close', () => saveWindowState(mainWindow));
+  mainWindow.on('close', e => {
+    saveWindowState(mainWindow);
+    // 🧸 小 TA 在桌面上时：× 只是藏起窗口，程序接着跑（右键小 TA →「退出」才真退出）
+    if (!quitting && petWin && !petWin.isDestroyed()) { e.preventDefault(); mainWindow.hide(); }
+  });
   mainWindow.on('closed', () => { mainWindow = null; });
 
   // 站外链接一律丢给系统浏览器，不在应用窗口里打开

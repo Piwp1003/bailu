@@ -32,6 +32,7 @@
     /* ================= 开场动画 ================= */
     // 小手机风格的开场：一块柔和的壁纸 + 状态栏，白露图标弹出来，名字和一句话像通知一样滑下来，最后像点开 App 一样放大淡出
     function intro(force) {
+        if (!force && window.__gyxIntroOwn) return;   // 装了「开场动画合集」插件并打开时，由插件来放
         if (!force && (!+cfg().introOn || !has('开场'))) return;
         if (!force && navigator.webdriver) return;   // 自动化测试里不挡屏幕
         if (document.getElementById('bailuIntro')) return;

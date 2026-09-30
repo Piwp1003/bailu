@@ -101,7 +101,7 @@
     <!-- 📌 版本号：**只改下面这一个数字**。样式、所有 js、离线缓存（service-worker）、设置页最底下显示的版本号，全都跟着它走。
          浏览器是按"完整URL字符串"缓存的，改完不 +1 就会一直用旧文件——以前要改六十多处，漏一处就出事（版本号卡在 151 就是这么来的）。 -->
     <script>
-    var GY_VERSION = 204;
+    var GY_VERSION = 206;
     // 按顺序把文件挂上（document.write 跟直接写 <script src> 效果一样：按顺序、同步执行）
     function gyLoad(list) {
         list.forEach(function (p) {
@@ -111,6 +111,10 @@
         });
     }
     gyLoad(['./style.css', './wechat-mode.css', './js/vendor/localforage.min.js', './js/00-bailu-shim.js', './js/vendor/mammoth.browser.min.js']);
+    </script>
+    <!-- 🔌 插件的「开机钩子」：有些插件（比如开场动画合集）要在页面一打开、别的都还没加载时就跑，代码存在 localStorage 的 gyEarly 里 -->
+    <script>
+    try { (function () { var e = JSON.parse(localStorage.getItem('gyEarly') || '{}') || {}; for (var k in e) { try { (new Function(e[k]))(); } catch (er) { console.warn('[开机钩子] ' + k, er); } } })(); } catch (e) {}
     </script>
 </head>
 <body>
