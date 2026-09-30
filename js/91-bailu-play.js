@@ -30,28 +30,42 @@
     async function setKV(k, v) { try { if (store()) await store().setItem(k, v); } catch (e) {} }
 
     /* ================= 开场动画 ================= */
-    function intro() {
-        if (!+cfg().introOn || !has('开场')) return;
-        if (navigator.webdriver) return;   // 自动化测试里不挡屏幕
-        const line = draw('开场', null, 1)[0]; if (!line) return;
+    // 小手机风格的开场：一块柔和的壁纸 + 状态栏，白露图标弹出来，名字和一句话像通知一样滑下来，最后像点开 App 一样放大淡出
+    function intro(force) {
+        if (!force && (!+cfg().introOn || !has('开场'))) return;
+        if (!force && navigator.webdriver) return;   // 自动化测试里不挡屏幕
+        if (document.getElementById('bailuIntro')) return;
+        const line = draw('开场', null, 1)[0] || '白露|今天也在等你';
         const [t1, t2] = String(line).split(/[|｜]/);
-        const ov = document.createElement('div'); ov.id = 'bailuIntro';
-        let stars = ''; for (let i = 0; i < 40; i++) stars += `<i style="left:${Math.random() * 100}%;top:${Math.random() * 100}%;animation-delay:${(Math.random() * 3).toFixed(2)}s;transform:scale(${rnd(0.4, 1.2).toFixed(2)})"></i>`;
-        ov.innerHTML = `<div class="bi-stars">${stars}</div><div class="bi-c"><div class="bi-t">${esc(t1 || '')}</div><div class="bi-s" data-t="${esc(t2 || '')}"></div><div class="bi-bar"><b></b></div></div>`;
+        const d = new Date(), hh = String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+        const wk = '日一二三四五六'[d.getDay()];
+        let phoneOn = document.body.classList.contains('gyphm'); try { phoneOn = phoneOn || localStorage.getItem('gyPhoneMode') === '1'; } catch (e) {}
+        const framed = phoneOn && innerWidth >= 700;   // 电脑上开着小手机：开场也装在一台手机里
+        const dark = document.body.classList.contains('pm-dark') || (window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches);
+        const ov = document.createElement('div'); ov.id = 'bailuIntro'; ov.className = (framed ? 'framed' : '') + (dark ? ' dark' : '');
+        let dew = ''; for (let i = 0; i < 14; i++) dew += `<i style="left:${(Math.random() * 100).toFixed(1)}%;animation-delay:${(Math.random() * 2.4).toFixed(2)}s;animation-duration:${(2.6 + Math.random() * 2).toFixed(2)}s;transform:scale(${rnd(0.5, 1.1).toFixed(2)})"></i>`;
+        const who = (() => { try { const c = chars()[0]; return c ? (c.remark || c.name) : ''; } catch (e) { return ''; } })();
+        ov.innerHTML = `<div class="bi-ph"><div class="bi-wall"><b class="o1"></b><b class="o2"></b><b class="o3"></b></div><div class="bi-dew">${dew}</div>
+            <div class="bi-sb"><span>${hh}</span><span class="r"><svg viewBox="0 0 18 12" width="17" height="11"><rect x="0" y="8" width="3" height="4" rx="1"/><rect x="5" y="5.5" width="3" height="6.5" rx="1"/><rect x="10" y="3" width="3" height="9" rx="1"/><rect x="15" y="0" width="3" height="12" rx="1"/></svg><svg viewBox="0 0 26 12" width="24" height="11"><rect x=".5" y=".5" width="22" height="11" rx="3.2" fill="none" stroke="currentColor" opacity=".45"/><rect x="2.2" y="2.2" width="16" height="7.6" rx="1.8"/><rect x="23.6" y="4" width="1.6" height="4" rx=".8" opacity=".45"/></svg></span></div>
+            <div class="bi-date">${d.getMonth() + 1}月${d.getDate()}日 星期${wk}</div>
+            <div class="bi-c"><div class="bi-ic"><img src="./icons/icon-192.png" alt=""></div><div class="bi-t">${esc(t1 || '白露')}</div><div class="bi-dots"><i></i><i></i><i></i></div></div>
+            <div class="bi-nt"><div class="bi-nh"><img src="./icons/icon-192.png" alt=""><span>白露${who ? ' · ' + esc(who) : ''}</span><em>现在</em></div><div class="bi-s"></div></div>
+            <div class="bi-hint">轻触进入</div><div class="bi-home"></div></div>`;
         document.body.appendChild(ov);
-        ov.addEventListener('click', () => close());
-        // 副标题：乱码一点点变成真字
-        const el = ov.querySelector('.bi-s'), target = String(t2 || ''), pool = '✦✧·♡░▒▓〇口日月木水火土';
-        let step = 0;
-        const iv = setInterval(() => {
-            step++;
-            const done = Math.floor(step / 2);
-            el.textContent = target.split('').map((ch, i) => i < done ? ch : (ch === ' ' ? ' ' : pick(pool.split('')))).join('');
-            if (done >= target.length) clearInterval(iv);
-        }, 45);
-        const close = () => { clearInterval(iv); if (!ov.parentNode) return; ov.classList.add('out'); setTimeout(() => ov.remove(), 600); };
-        setTimeout(close, 2600 + target.length * 60);
+        const el = ov.querySelector('.bi-s'), target = String(t2 || ''), pool = '✦✧·°∘○◌'.split('');
+        let iv = null, done = false;
+        const close = () => { if (done) return; done = true; clearInterval(iv); ov.classList.add('out'); setTimeout(() => ov.remove(), 650); };
+        ov.addEventListener('click', close);
+        // 通知滑下来之后，那句话一个字一个字「显影」出来
+        setTimeout(() => {
+            ov.classList.add('nt-on');
+            if (!target) { el.textContent = '今天也在等你'; return; }
+            let step = 0;
+            iv = setInterval(() => { step++; const k = Math.floor(step / 2); el.textContent = target.split('').map((ch, i) => i < k ? ch : (i < k + 3 ? pick(pool) : '')).join(''); if (k >= target.length) { clearInterval(iv); el.textContent = target; } }, 42);
+        }, 1150);
+        setTimeout(close, 3000 + target.length * 55);
     }
+    window.bailuIntroPlay = () => intro(true);
 
     /* ================= 聊天顶上的格言 ================= */
     let mottoFor = null;
@@ -420,17 +434,41 @@
     }
 
     const CSS = `
-#bailuIntro{position:fixed;inset:0;z-index:200000;background:radial-gradient(ellipse at 50% 30%,#2b2f4a,#0d0f1a 70%);color:#fff;display:flex;align-items:center;justify-content:center;transition:opacity .6s;cursor:pointer}
-#bailuIntro.out{opacity:0}
-#bailuIntro .bi-stars i{position:absolute;width:3px;height:3px;border-radius:50%;background:#fff;box-shadow:0 0 6px #fff;animation:biTw 2.4s infinite ease-in-out}
-@keyframes biTw{0%,100%{opacity:.15}50%{opacity:1}}
-#bailuIntro .bi-c{position:relative;text-align:center;padding:0 24px}
-#bailuIntro .bi-t{font-size:clamp(34px,9vw,64px);letter-spacing:.12em;font-family:"Noto Serif SC",serif;animation:biIn 1.1s cubic-bezier(.34,1.56,.64,1) both;text-shadow:0 0 18px rgba(170,190,255,.55)}
-#bailuIntro .bi-s{margin-top:14px;font-size:15px;letter-spacing:.2em;opacity:.85;min-height:1.4em}
-#bailuIntro .bi-bar{margin:26px auto 0;width:140px;height:2px;background:rgba(255,255,255,.15);border-radius:2px;overflow:hidden}
-#bailuIntro .bi-bar b{display:block;height:100%;width:0;background:linear-gradient(90deg,#9fb4ff,#ffc4e1);animation:biBar 2.4s ease forwards}
-@keyframes biIn{from{opacity:0;transform:translateY(16px) scale(.92);filter:blur(6px)}to{opacity:1;transform:none;filter:none}}
-@keyframes biBar{to{width:100%}}
+#bailuIntro{position:fixed;inset:0;z-index:200000;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:opacity .6s ease,backdrop-filter .6s;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","PingFang SC","HarmonyOS Sans SC","Microsoft YaHei",sans-serif;--bt:#1d1d1f;--bs:#86868b;--bg1:#eef3fb;--bg2:#f8f4fb;--gl:rgba(255,255,255,.62);--glb:rgba(255,255,255,.7)}
+#bailuIntro.dark{--bt:#f5f5f7;--bs:#98989d;--bg1:#0e1320;--bg2:#171523;--gl:rgba(44,44,48,.62);--glb:rgba(255,255,255,.08)}
+#bailuIntro.framed{background:rgba(10,12,20,.28);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px)}
+#bailuIntro .bi-ph{position:relative;width:100%;height:100%;overflow:hidden;color:var(--bt);background:linear-gradient(165deg,var(--bg1),var(--bg2))}
+#bailuIntro.framed .bi-ph{width:min(390px,46vh);height:min(844px,calc(100vh - 48px));aspect-ratio:390/844;border-radius:54px;box-shadow:0 0 0 11px #1b1b1d,0 0 0 13px #3a3a3e,0 40px 90px rgba(0,0,0,.45);animation:biPh .7s cubic-bezier(.2,.9,.3,1.2) both}
+@keyframes biPh{from{transform:scale(.94) translateY(20px);opacity:0}to{transform:none;opacity:1}}
+#bailuIntro .bi-wall b{position:absolute;border-radius:50%;filter:blur(60px);opacity:.75;animation:biFloat 9s ease-in-out infinite alternate}
+#bailuIntro .bi-wall .o1{width:70%;height:42%;left:-18%;top:-6%;background:#b9d3f7}
+#bailuIntro .bi-wall .o2{width:62%;height:40%;right:-20%;top:30%;background:#e7d3f3;animation-delay:-3s}
+#bailuIntro .bi-wall .o3{width:80%;height:40%;left:6%;bottom:-16%;background:#cfe7e2;animation-delay:-6s}
+#bailuIntro.dark .bi-wall b{opacity:.35}
+@keyframes biFloat{from{transform:translate(0,0) scale(1)}to{transform:translate(6%,4%) scale(1.12)}}
+#bailuIntro .bi-dew i{position:absolute;top:-12px;width:6px;height:9px;border-radius:50% 50% 50% 50%/60% 60% 40% 40%;background:linear-gradient(180deg,rgba(255,255,255,.95),rgba(160,195,240,.55));box-shadow:0 0 6px rgba(150,190,240,.5);animation:biDew linear infinite;opacity:0}
+@keyframes biDew{0%{transform:translateY(0);opacity:0}12%{opacity:.9}100%{transform:translateY(105vh);opacity:0}}
+#bailuIntro .bi-sb{position:absolute;left:0;right:0;top:0;height:50px;padding:0 30px;display:flex;align-items:center;justify-content:space-between;font-size:15px;font-weight:600;letter-spacing:.02em}
+#bailuIntro .bi-sb .r{display:flex;gap:6px;align-items:center}#bailuIntro .bi-sb svg{fill:currentColor}
+#bailuIntro .bi-date{position:absolute;left:0;right:0;top:64px;text-align:center;font-size:15px;color:var(--bs);font-weight:500;animation:biFade .8s .1s both}
+#bailuIntro .bi-c{position:absolute;left:0;right:0;top:34%;display:flex;flex-direction:column;align-items:center;gap:14px}
+#bailuIntro .bi-ic{width:96px;height:96px;border-radius:24px;overflow:hidden;background:#fff;box-shadow:0 18px 40px rgba(40,80,140,.22),0 2px 6px rgba(0,0,0,.06);animation:biPop .9s cubic-bezier(.34,1.56,.64,1) .15s both}
+#bailuIntro .bi-ic img{width:100%;height:100%;display:block}
+#bailuIntro .bi-t{font-size:30px;font-weight:600;letter-spacing:.14em;animation:biUp .8s cubic-bezier(.2,.9,.3,1) .45s both}
+#bailuIntro .bi-dots{display:flex;gap:6px;animation:biFade .5s .7s both}#bailuIntro .bi-dots i{width:6px;height:6px;border-radius:50%;background:var(--bs);animation:biDot 1.2s infinite}#bailuIntro .bi-dots i:nth-child(2){animation-delay:.18s}#bailuIntro .bi-dots i:nth-child(3){animation-delay:.36s}
+#bailuIntro.nt-on .bi-dots{opacity:0;transition:opacity .3s}
+@keyframes biDot{0%,100%{opacity:.25;transform:translateY(0)}40%{opacity:1;transform:translateY(-3px)}}
+#bailuIntro .bi-nt{position:absolute;left:14px;right:14px;top:92px;max-width:400px;margin:0 auto;padding:11px 14px 13px;border-radius:22px;background:var(--gl);border:1px solid var(--glb);backdrop-filter:blur(24px) saturate(1.6);-webkit-backdrop-filter:blur(24px) saturate(1.6);box-shadow:0 10px 30px rgba(0,0,0,.08);transform:translateY(-160%);opacity:0;transition:transform .7s cubic-bezier(.2,1.1,.3,1),opacity .4s}
+#bailuIntro.nt-on .bi-nt{transform:none;opacity:1}
+#bailuIntro .bi-nh{display:flex;align-items:center;gap:7px;font-size:12.5px;color:var(--bs);margin-bottom:5px}#bailuIntro .bi-nh img{width:18px;height:18px;border-radius:5px}#bailuIntro .bi-nh em{font-style:normal;margin-left:auto}
+#bailuIntro .bi-s{font-size:15.5px;line-height:1.55;min-height:1.55em;letter-spacing:.03em;word-break:break-all}
+#bailuIntro .bi-hint{position:absolute;left:0;right:0;bottom:44px;text-align:center;font-size:13px;color:var(--bs);animation:biFade 1s 1.4s both,biBreath 2.4s 2.4s ease-in-out infinite}
+#bailuIntro .bi-home{position:absolute;left:50%;bottom:12px;width:134px;height:5px;margin-left:-67px;border-radius:3px;background:var(--bt);opacity:.8}
+@keyframes biPop{from{opacity:0;transform:scale(.4)}to{opacity:1;transform:none}}
+@keyframes biUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+@keyframes biFade{from{opacity:0}to{opacity:1}}
+@keyframes biBreath{0%,100%{opacity:.45}50%{opacity:1}}
+#bailuIntro.out{opacity:0;pointer-events:none}#bailuIntro.out .bi-ph{transform:scale(1.08);filter:blur(4px);transition:transform .6s cubic-bezier(.4,0,.2,1),filter .6s}
 #bailuMotto{text-align:center;font-size:12px;color:#8899a6;padding:5px 12px;letter-spacing:.06em;cursor:pointer;font-family:"Noto Serif SC",serif;flex-shrink:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #bailuPlayOv{position:fixed;inset:0;z-index:100000;background:rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center;padding:16px}
 #bailuPlayOv .bp-box{background:#fff;color:#111;border-radius:18px;width:min(620px,100%);max-height:90vh;overflow:auto;padding:16px 18px;box-sizing:border-box;box-shadow:0 20px 60px rgba(0,0,0,.25)}

@@ -856,7 +856,7 @@
             + sec('TA 做事') + row('obey', '你让 TA 做事，TA 照做', 0, 100, 1, '%') + row('accept', '答应邀请 / 接电话', 0, 100, 1, '%') + row('activity', '自主模式里「做点什么」', 0, 100, 1, '%')
             + row('nextMin', '自主模式：最快多久再想想', 1, null, 1, '分钟') + row('nextMax', '自主模式：最慢多久再想想', 1, null, 1, '分钟')
             + sec('氛围') + row('callP', '随机来电的概率（每次掷）', 0, 100, 1, '%') + row('callMin', '来电：最快多久掷一次', 1, null, 1, '分钟') + row('callMax', '来电：最慢多久掷一次', 1, null, 1, '分钟')
-            + row('moodSkip', 'TA 某天不记心情', 0, 100, 1, '%') + (own ? '' : row('introOn', '开场动画（1 开 0 关）', 0, 1) + row('mottoOn', '聊天顶上的格言（1 开 0 关）', 0, 1))
+            + row('moodSkip', 'TA 某天不记心情', 0, 100, 1, '%') + (own ? '' : row('introOn', '开场动画（1 开 0 关）', 0, 1) + '<div class="bl-tip"><i onclick="bailuIntroPlay()" style="cursor:pointer;color:#1d9bf0;font-style:normal">▶ 预览开场</i></div>' + row('mottoOn', '聊天顶上的格言（1 开 0 关）', 0, 1))
             + sec('字卡怎么挑') + row('keyP', '你说到关键词：用那张来回', 0, 100, 1, '%') + row('condP', '符合此刻条件的字卡优先', 0, 100, 1, '%') + row('voiceP', '打电话时用你上传的语音', 0, 100, 1, '%');
     }
     function paint() {
