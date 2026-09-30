@@ -16,8 +16,8 @@ await page.goto(fileUrl(path.join(root, 'index.html')));
 await page.waitForFunction(() => window.__guyuBooted && window.gyWmOpen, { timeout: 20000 });
 await page.waitForTimeout(1000);
 await page.evaluate(() => {
-  myCharacters.length = 0; myCharacters.push({ id: 9901, name: '顾言', worldbooks: [] });
-  globalChats['9901'] = [];
+  myCharacters.length = 0; myCharacters.push({ id: 9901, name: '顾言', worldbooks: [] }, { id: 9902, name: '沈之遥', worldbooks: [] });
+  globalChats['9901'] = []; globalChats['9902'] = [];
   window.__sent = []; window.sendProactiveChatMessage = async c => { window.__sent.push(getBoxPrompt(c)); };
 });
 
@@ -37,7 +37,7 @@ check('B 站 / YouTube / 腾讯视频 / 优酷 / Spotify 链接 → 各家官方
 // ---- 打开小窗 ----
 await page.evaluate(() => { switchMainView('chat'); switchChatSession('9901'); });
 await page.waitForTimeout(300);
-check('聊天栏有 🎧，点开「一起听 · 一起看」，默认和当前聊天的人一起', await page.evaluate(() => { document.getElementById('gyWmBtn').click(); const el = document.getElementById('gyWm'); return getComputedStyle(el).display !== 'none' && document.querySelector('#gyWm .who').value === '9901'; }));
+check('聊天栏有 🎧，点开「一起听 · 一起看」，默认和当前聊天的人一起', await page.evaluate(() => { document.getElementById('gyWmBtn').click(); const el = document.getElementById('gyWm'); return getComputedStyle(el).display !== 'none' && /顾言/.test(document.querySelector('#gyWm .who').textContent); }));
 const home = await page.evaluate(() => { gyWmHome(); return document.getElementById('gyWmBody').innerText; });
 check('网站列表：网易云、QQ 音乐、酷狗、酷我、B 站、腾讯视频、爱奇艺、优酷……', ['网易云音乐', 'QQ 音乐', '酷狗音乐', '酷我音乐', '咪咕音乐', '哔哩哔哩', '腾讯视频', '爱奇艺', '优酷', '芒果 TV', 'YouTube', '抖音'].every(n => home.includes(n)), home.slice(0, 200));
 // 贴分享文案
@@ -61,6 +61,18 @@ await page.evaluate(() => window.__gyWmCb(JSON.stringify({ title: '稻香', arti
 const r3 = await page.evaluate(() => ({ np: document.getElementById('gyWmNp').innerText, info: gymNowInfo(), note: globalChats['9901'].slice(-1)[0].text }));
 check('读到网页里正在放的：底栏显示进度，聊天记一笔', /稻香/.test(r3.np) && /0:42 \/ 3:43/.test(r3.np) && /稻香/.test(r3.note), JSON.stringify(r3));
 check('音乐盒没在放时，灵动岛 / 音乐小组件显示网站里正在放的', r3.info && r3.info.title === '稻香' && r3.info.playing, JSON.stringify(r3.info));
+// 好几个人一起听；换歌就搭话，没有冷却
+const multi = await page.evaluate(async () => {
+  gyWmWith('9902'); gyWmReact(100); window.__sent = [];
+  window.__gyWmCb(JSON.stringify({ title: '七里香', artist: '周杰伦', playing: true, kind: 'audio' }));
+  await new Promise(r => setTimeout(r, 50));
+  window.__gyWmCb(JSON.stringify({ title: '夜曲', artist: '周杰伦', playing: true, kind: 'audio' }));
+  await new Promise(r => setTimeout(r, 50));
+  const c2 = getBoxPrompt(myCharacters[1]);
+  gyWmReact(30); gyWmWith('9902');
+  return { sent: window.__sent.length, n1: globalChats['9901'].filter(m => /夜曲/.test(m.text)).length, n2: globalChats['9902'].filter(m => /夜曲/.test(m.text)).length, c2: /一起的还有 顾言/.test(c2) && /夜曲/.test(c2) };
+});
+check('好几个人一起听：每个人的聊天都记一笔，TA 们都知道还有谁在；换歌就能搭话，不限次数', multi.sent === 4 && multi.n1 === 1 && multi.n2 === 1 && multi.c2, JSON.stringify(multi));
 // 读网页的脚本本身：在一个有 mediaSession + audio 的页面上跑一遍
 const pr = await page.evaluate(async () => {
   navigator.mediaSession.metadata = new MediaMetadata({ title: '晴天', artist: '周杰伦' });

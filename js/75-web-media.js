@@ -74,7 +74,9 @@
     /* ---------- 状态 ---------- */
     const W = Object.assign({ open: false, min: false, url: '', site: '', with: '', x: null, y: null, w: 420, h: 560, react: 30 }, LS.get('gyWm', {}));
     let NOW = { title: '', artist: '', cover: '', playing: false, t: 0, d: 0, kind: '', manual: false };
-    const saveW = () => LS.set('gyWm', { url: W.url, site: W.site, with: W.with, x: W.x, y: W.y, w: W.w, h: W.h, react: W.react });
+    W.withs = Array.isArray(W.withs) ? W.withs.map(String) : (W.with ? [String(W.with)] : []);
+    const saveW = () => LS.set('gyWm', { url: W.url, site: W.site, withs: W.withs, x: W.x, y: W.y, w: W.w, h: W.h, react: W.react });
+    const withChars = () => W.withs.map(id => charOf(id)).filter(Boolean);
     window.gyWmNow = () => (W.open || NOW.manual) && NOW.title ? Object.assign({}, NOW) : null;
     const fmt = s => { s = Math.max(0, Math.floor(+s || 0)); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); };
     const siteName = k => (SITES.find(s => s[0] === k) || [0, '网页'])[1];
@@ -84,10 +86,11 @@
         let el = document.getElementById('gyWm');
         if (el) return el;
         el = document.createElement('div'); el.id = 'gyWm';
-        el.innerHTML = `<div class="hd"><b class="t">🎧 一起听 · 一起看</b><select class="who" onchange="gyWmWith(this.value)"></select>
+        el.innerHTML = `<div class="hd"><b class="t">🎧 一起听 · 一起看</b><span class="who" onclick="gyWmWhoPanel()">和谁一起？</span>
             <span class="ic" title="网站" onclick="gyWmHome()">⌂</span><span class="ic" title="后退" onclick="gyWmNav('back')">‹</span><span class="ic" title="刷新" onclick="gyWmNav('reload')">↻</span>
             <span class="ic" title="缩小" onclick="gyWmMin(true)">▁</span><span class="ic" title="关掉" onclick="gyWmClose()">✕</span></div>
             <div class="bar"><input class="url" placeholder="网址 / 分享链接，回车打开" onkeydown="if(event.key==='Enter')gyWmGo(this.value)"><span class="ic" onclick="gyWmGo(this.previousElementSibling.value)">→</span></div>
+            <div class="whos" id="gyWmWhos" style="display:none"></div>
             <div class="bd" id="gyWmBody"></div>
             <div class="ft"><span class="np" id="gyWmNp">还没在放</span><span class="ctl"><i onclick="gyWmCtl('toggle')" title="暂停 / 继续">⏯</i><i onclick="gyWmCtl('next')" title="下一首">⏭</i></span><b onclick="gyWmTalk()">让 TA 说说</b></div>
             <i class="rz" title="拖动改大小"></i>`;
@@ -107,7 +110,7 @@
     }
     function drag(el) {
         const hd = el.querySelector('.hd'); let d = null;
-        hd.addEventListener('pointerdown', e => { if (e.target.closest('.ic,select')) return; d = { x: e.clientX - W.x, y: e.clientY - W.y, id: e.pointerId }; el.classList.add('drag'); try { hd.setPointerCapture(e.pointerId); } catch (er) {} });
+        hd.addEventListener('pointerdown', e => { if (e.target.closest('.ic,select,.who')) return; d = { x: e.clientX - W.x, y: e.clientY - W.y, id: e.pointerId }; el.classList.add('drag'); try { hd.setPointerCapture(e.pointerId); } catch (er) {} });
         hd.addEventListener('pointermove', e => { if (!d || e.pointerId !== d.id) return; W.x = e.clientX - d.x; W.y = e.clientY - d.y; place(); });
         const up = () => { if (!d) return; d = null; el.classList.remove('drag'); saveW(); };
         hd.addEventListener('pointerup', up); hd.addEventListener('pointercancel', up);
@@ -115,18 +118,24 @@
     function resize(el) {
         const g = el.querySelector('.rz'); let d = null;
         g.addEventListener('pointerdown', e => { d = { x: e.clientX, y: e.clientY, w: el.offsetWidth, h: el.offsetHeight, id: e.pointerId }; el.classList.add('drag'); try { g.setPointerCapture(e.pointerId); } catch (er) {} e.preventDefault(); });
-        g.addEventListener('pointermove', e => { if (!d || e.pointerId !== d.id) return; W.w = Math.max(280, d.w + e.clientX - d.x); W.h = Math.max(260, d.h + e.clientY - d.y); place(); });
+        g.addEventListener('pointermove', e => { if (!d || e.pointerId !== d.id) return; W.w = Math.max(160, d.w + e.clientX - d.x); W.h = Math.max(120, d.h + e.clientY - d.y); place(); });
         const up = () => { if (!d) return; d = null; el.classList.remove('drag'); saveW(); };
         g.addEventListener('pointerup', up); g.addEventListener('pointercancel', up);
     }
     function whoSel() {
         const s = document.querySelector('#gyWm .who'); if (!s) return;
-        s.innerHTML = `<option value="">和谁一起？</option>` + chars().map(c => `<option value="${esc(c.id)}"${String(c.id) === String(W.with) ? ' selected' : ''}>和 ${esc(c.remark || c.name)}</option>`).join('');
+        const L = withChars();
+        s.textContent = L.length ? '和 ' + L.map(c => c.remark || c.name).join('、') + ' ▾' : '和谁一起？▾';
+        const p = document.getElementById('gyWmWhos');
+        if (p) p.innerHTML = `<div class="ch">${chars().map(c => `<span class="${W.withs.includes(String(c.id)) ? 'on' : ''}" onclick="gyWmWith('${esc(c.id)}')">${esc(c.remark || c.name)}</span>`).join('')}</div>
+            <label class="rc">换歌 / 换视频时 TA 们搭话的概率 <input type="range" min="0" max="100" value="${+W.react || 0}" oninput="gyWmReact(this.value)"><b id="gyWmReactV">${+W.react || 0}%</b></label>`;
     }
+    window.gyWmWhoPanel = function (on) { const p = document.getElementById('gyWmWhos'); if (!p) return; p.style.display = (on != null ? on : p.style.display === 'none') ? '' : 'none'; whoSel(); };
+    window.gyWmReact = v => { W.react = Math.max(0, Math.min(100, +v || 0)); const b = document.getElementById('gyWmReactV'); if (b) b.textContent = W.react + '%'; saveW(); };
     window.gyWmOpen = function (url, withId) {
         const el = mount(); W.open = true; W.min = false;
-        if (withId != null) W.with = String(withId);
-        else if (!W.with && typeof currentChatSessionId !== 'undefined' && charOf(currentChatSessionId)) W.with = String(currentChatSessionId);
+        if (withId != null) { if (!W.withs.includes(String(withId))) W.withs.push(String(withId)); }
+        else if (!W.withs.length && typeof currentChatSessionId !== 'undefined' && charOf(currentChatSessionId)) W.withs.push(String(currentChatSessionId));
         el.style.display = 'flex'; document.getElementById('gyWmPill').style.display = 'none';
         whoSel(); place();
         if (url) window.gyWmGo(url); else if (W.url) window.gyWmGo(W.url, true); else window.gyWmHome();
@@ -144,7 +153,12 @@
         p.style.display = W.min ? 'flex' : 'none'; paintPill();
         if (ENV === 'apk') { if (W.min) apkHide(); else { apkShow(); apkPlace(); } }
     };
-    window.gyWmWith = v => { W.with = v; saveW(); if (v && NOW.title) noteToChat(true); };
+    // 点一下加进来 / 再点一下拿掉；想几个人一起都行
+    window.gyWmWith = v => {
+        v = String(v || ''); if (!v) return;
+        const i = W.withs.indexOf(v); if (i >= 0) W.withs.splice(i, 1); else { W.withs.push(v); if (NOW.title) noteToChat(true, [v]); }
+        saveW(); whoSel();
+    };
     window.gyWmHome = function () {
         const b = document.getElementById('gyWmBody'); if (!b) return;
         apkHide();
@@ -237,7 +251,7 @@
         const key = r.title + '|' + r.artist;
         NOW = Object.assign({}, r, { manual: false, site: W.site });
         paintNp();
-        if (key !== lastKey) { const first = !lastKey; lastKey = key; if (!first || W.with) noteToChat(false); }
+        if (key !== lastKey) { const first = !lastKey; lastKey = key; if (!first || W.withs.length) noteToChat(false); }
     }
     window.gyWmCtl = async function (a) {
         const wv = document.querySelector('#gyWmBody webview');
@@ -255,35 +269,37 @@
     /* ---------- 和 TA 的联动 ---------- */
     const kindWord = () => (NOW.kind === 'video' || (SITES.find(s => s[0] === (NOW.site || W.site)) || [])[3] === 'video') ? '看' : '听';
     window.__gyWebMediaCtxFor = function (charId) {
-        if (!NOW.title || String(W.with) !== String(charId) || !(W.open || NOW.manual)) return '';
+        if (!NOW.title || !W.withs.includes(String(charId)) || !(W.open || NOW.manual)) return '';
         const who = (() => { const c = charOf(charId); return typeof userDisplayName === 'function' && c ? userDisplayName(c) : '对方'; })();
-        return `【你们正在一起${kindWord()}】${siteName(NOW.site || W.site) !== '网页' ? siteName(NOW.site || W.site) + '上的' : ''}《${NOW.title}》${NOW.artist ? '（' + NOW.artist + '）' : ''}，${NOW.playing ? '正在放' : '暂停着'}${NOW.d ? '，放到 ' + fmt(NOW.t) + ' / ' + fmt(NOW.d) : ''}。你和${who}一边${kindWord()}一边聊天，可以自然地聊到它（喜不喜欢、想起了什么、接下来想${kindWord()}什么），别每句都提。`;
+        const others = withChars().filter(c => String(c.id) !== String(charId)).map(c => c.remark || c.name);
+        return `【你们正在一起${kindWord()}${others.length ? '（一起的还有 ' + others.join('、') + '）' : ''}】${siteName(NOW.site || W.site) !== '网页' ? siteName(NOW.site || W.site) + '上的' : ''}《${NOW.title}》${NOW.artist ? '（' + NOW.artist + '）' : ''}，${NOW.playing ? '正在放' : '暂停着'}${NOW.d ? '，放到 ' + fmt(NOW.t) + ' / ' + fmt(NOW.d) : ''}。你和${who}一边${kindWord()}一边聊天，可以自然地聊到它（喜不喜欢、想起了什么、接下来想${kindWord()}什么），别每句都提。`;
     };
     function hookCtx() { try { if (typeof GY_BOX_CTX !== 'undefined' && Array.isArray(GY_BOX_CTX) && !GY_BOX_CTX.some(x => x[0] === '__gyWebMediaCtxFor')) GY_BOX_CTX.push(['__gyWebMediaCtxFor', '一起听 · 一起看']); } catch (e) {} }
     // 换歌：聊天里记一笔；隔一阵 TA 会主动说两句
-    function noteToChat(force) {
-        const c = charOf(W.with); if (!c || !NOW.title || typeof globalChats === 'undefined') return;
-        const sid = String(c.id); if (!globalChats[sid]) globalChats[sid] = [];
-        globalChats[sid].push({ sender: 'system', text: `🎧 一起${kindWord()}：《${NOW.title}》${NOW.artist ? ' - ' + NOW.artist : ''}`, timestamp: Date.now() });
+    function noteToChat(force, only) {
+        if (!NOW.title || typeof globalChats === 'undefined') return;
+        (only ? only.map(charOf).filter(Boolean) : withChars()).forEach(c => {
+            const sid = String(c.id); if (!globalChats[sid]) globalChats[sid] = [];
+            globalChats[sid].push({ sender: 'system', text: `🎧 一起${kindWord()}：《${NOW.title}》${NOW.artist ? ' - ' + NOW.artist : ''}`, timestamp: Date.now() });
+            try { if (String(currentChatSessionId) === sid) renderChatMessages(); } catch (e) {}
+            if (force || Math.random() * 100 < (+W.react || 0)) talk(c, false);
+        });
         try { saveAllData(); } catch (e) {}
-        try { if (String(currentChatSessionId) === sid) renderChatMessages(); } catch (e) {}
-        if (force || (Date.now() - lastTalk > 4 * 60000 && Math.random() * 100 < (+W.react || 0))) talk(c, false);
     }
-    let NUDGE = null;
-    const nudgeCtx = charId => (NUDGE && String(NUDGE.id) === String(charId)) ? `\n【这次主动开口的由头】${NUDGE.why}` : '';
+    const NUDGE = {};
+    const nudgeCtx = charId => NUDGE[String(charId)] ? `\n【这次主动开口的由头】${NUDGE[String(charId)]}` : '';
     window.__gyWebMediaNudgeFor = nudgeCtx;
     function hookNudge() { try { if (typeof GY_BOX_CTX !== 'undefined' && !GY_BOX_CTX.some(x => x[0] === '__gyWebMediaNudgeFor')) GY_BOX_CTX.push(['__gyWebMediaNudgeFor', '一起听 · 由头']); } catch (e) {} }
     async function talk(c, manual) {
         if (typeof sendProactiveChatMessage !== 'function') return;
-        lastTalk = Date.now();
-        NUDGE = { id: c.id, why: manual ? `${uname()}让你说说正在一起${kindWord()}的《${NOW.title}》` : `刚刚换到了《${NOW.title}》，你想说两句` };
-        try { await sendProactiveChatMessage(c); } catch (e) {} finally { NUDGE = null; }
+        NUDGE[String(c.id)] = manual ? `${uname()}让你说说正在一起${kindWord()}的《${NOW.title}》` : `刚刚换到了《${NOW.title}》，你想说两句`;
+        try { await sendProactiveChatMessage(c); } catch (e) {} finally { delete NUDGE[String(c.id)]; }
     }
     const uname = () => (typeof currentUser !== 'undefined' && currentUser && currentUser.name) || '对方';
     window.gyWmTalk = function () {
-        const c = charOf(W.with); if (!c) { toast('先选「和谁一起」'); return; }
+        const L = withChars(); if (!L.length) { toast('先选「和谁一起」'); window.gyWmWhoPanel(true); return; }
         if (!NOW.title) { toast('还不知道在放什么', '放起来，或者手动告诉 TA'); return; }
-        talk(c, true); toast('🎧 ' + (c.remark || c.name) + ' 在想怎么说…');
+        L.forEach(c => talk(c, true)); toast('🎧 ' + L.map(c => c.remark || c.name).join('、') + ' 在想怎么说…');
     };
     // 小岛 / 音乐小组件：音乐盒没在放的时候，显示网站里正在放的
     function hookNowInfo() {
@@ -323,7 +339,8 @@
 #gyWm{position:fixed;z-index:9000;display:none;flex-direction:column;background:#fff;color:#111;border-radius:16px;box-shadow:0 18px 50px rgba(0,0,0,.28),0 0 0 1px rgba(0,0,0,.06);overflow:hidden}
 #gyWm.mini{display:none!important}#gyWm.drag webview,#gyWm.drag iframe{pointer-events:none}
 #gyWm .hd{display:flex;align-items:center;gap:6px;padding:8px 10px;background:#f6f6f8;cursor:grab;touch-action:none;user-select:none}
-#gyWm .hd .t{font-size:13px;white-space:nowrap}#gyWm .hd .who{margin-left:auto;font-size:12px;padding:3px 6px;border-radius:8px;border:1px solid #ddd;background:#fff;max-width:110px}
+#gyWm .hd .t{font-size:13px;white-space:nowrap}#gyWm .hd .who{margin-left:auto;font-size:12px;padding:3px 8px;border-radius:8px;border:1px solid #ddd;background:#fff;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer}
+#gyWm .whos{padding:6px 10px;border-bottom:1px solid #eee;font-size:12.5px}#gyWm .whos .ch{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:6px}#gyWm .whos .ch span{padding:3px 10px;border-radius:999px;background:#f2f2f4;cursor:pointer}#gyWm .whos .ch span.on{background:#111;color:#fff}#gyWm .whos .rc{display:flex;align-items:center;gap:6px;color:#666}#gyWm .whos .rc input{flex:1}
 #gyWm .ic{cursor:pointer;width:24px;height:24px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:14px;color:#555}#gyWm .ic:hover{background:#e9e9ee}
 #gyWm .bar{display:flex;gap:6px;padding:6px 10px;border-bottom:1px solid #f0f0f0}#gyWm .bar .url{flex:1;min-width:0;border:1px solid #e5e5e5;border-radius:9px;padding:5px 9px;font-size:12.5px}
 #gyWm .bd{flex:1;min-height:0;overflow:auto;display:flex;flex-direction:column;gap:8px;padding:0}
