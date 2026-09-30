@@ -28,7 +28,31 @@ git commit -m "白露 更新"
 git branch -M main
 echo.
 echo 第一次上传会弹出 GitHub 登录，在浏览器里登录授权就好。
+set TRY=0
+:again
+set /a TRY+=1
 git push -u origin main
+if not errorlevel 1 goto ok
+echo 网上仓库里可能已经有东西了，先合到一起（以你电脑上的为准）……
+git pull origin main --allow-unrelated-histories --no-rebase --no-edit -X ours
+git push -u origin main
+if not errorlevel 1 goto ok
+if %TRY% LSS 3 ( echo 连 GitHub 断了，等 3 秒再试第 %TRY% 次…… & timeout /t 3 >nul & goto again )
 echo.
-if errorlevel 1 ( echo 上传没成功，把上面的红字/英文截图给我看看。 ) else ( echo 上传好啦！以后改了东西再双击我一次就同步上去。 )
+echo 还是连不上 GitHub（国内网络经常这样）。
+echo 如果你开着加速器 / 梯子，输入它的端口号：Clash 一般是 7890，v2rayN 一般是 10809。
+set /p PORT=端口号（没开就直接回车）： 
+if "%PORT%"=="" goto fail
+git config http.proxy http://127.0.0.1:%PORT%
+git config https.proxy http://127.0.0.1:%PORT%
+set TRY=0
+set PORT=
+goto again
+:fail
+echo 上传没成功，把上面的红字/英文截图给我看看。
+pause
+exit /b
+:ok
+echo.
+echo 上传好啦！以后改了东西再双击我一次就同步上去。
 pause
