@@ -314,7 +314,7 @@ function gyStripReasoningFromResponse(data) {
 
 async function sendChatRequest(api, content, extraBody) {
     // 💭 收纳盒：功能名必须在第一个 await 之前取（原因见 recordTokenUsage 上面的说明）
-    const __vaultFeat = reasoningVaultOn ? gyDetectFeature() : null;
+    const __vaultFeat = gyReasonCaptureOn() ? gyDetectFeature() : null;
     // __keepReasoning 是给小说/续写用的内部标记，不能真的发给 API，取出来就删掉
     let keepReasoning = false;
     if (extraBody && extraBody.__keepReasoning) {
@@ -542,7 +542,7 @@ async function streamCompletionText(api, promptContent, onDelta, images = null, 
                 const plainText = asPlain && asPlain.choices && asPlain.choices[0] &&
                     ((asPlain.choices[0].message && asPlain.choices[0].message.content) || asPlain.choices[0].text);
                 if (plainText && String(plainText).trim()) {
-                    if (reasoningVaultOn) { const __p = gyCollectReasoning(String(plainText)); gyVaultDiag(__gyFeature, String(plainText), __p, api, '流式·整段'); gyVaultCapture(__p, __gyFeature, api.__gyReqKey, api.model, 'stream'); }
+                    if (gyReasonCaptureOn()) { const __p = gyCollectReasoning(String(plainText)); gyVaultDiag(__gyFeature, String(plainText), __p, api, '流式·整段'); gyVaultCapture(__p, __gyFeature, api.__gyReqKey, api.model, 'stream'); }
                     onDelta(String(plainText), true);
                     return { choices: [{ message: { content: String(plainText) } }] };
                 }
@@ -558,7 +558,7 @@ async function streamCompletionText(api, promptContent, onDelta, images = null, 
         // extractLeadingReasoning/processReasoningInText 处理，折叠展示/直接删除都按当前设置来。
         fullText = gyNormThought(fullText);
         const finalText = fullReasoning ? `<think>${fullReasoning}</think>${fullText}` : fullText;
-        if (reasoningVaultOn) { const __p = gyCollectReasoning(finalText); gyVaultDiag(__gyFeature, finalText, __p, api, fullReasoning ? '流式·推理通道' : '流式'); gyVaultCapture(__p, __gyFeature, api.__gyReqKey, api.model, 'stream'); }
+        if (gyReasonCaptureOn()) { const __p = gyCollectReasoning(finalText); gyVaultDiag(__gyFeature, finalText, __p, api, fullReasoning ? '流式·推理通道' : '流式'); gyVaultCapture(__p, __gyFeature, api.__gyReqKey, api.model, 'stream'); }
         recordTokenUsage(streamUsage ? { usage: streamUsage } : null, { inChars: gyContentChars(messages), outChars: finalText.length }, __gyFeature);
         onDelta(finalText, true);
         return { choices: [{ message: { content: finalText } }] };

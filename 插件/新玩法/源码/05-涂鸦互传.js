@@ -115,3 +115,6 @@ X.ctx(() => '【涂鸦】聊天里开头带 [涂鸦] 的是你们互相画的画
 X.today(() => { const L = G.filter(g => X.day(new Date(g.at)) === X.day()); return { title: '🎨 涂鸦', rows: L.length ? [{ t: L.length + ' 张', x: `今天互相画了 ${L.length} 张（你 ${L.filter(g => g.by === 'me').length} · TA ${L.filter(g => g.by !== 'me').length}）`, go: 'gyxDoodleOpen()' }] : [] }; }, 'gyxDoodle');
 X.mini({ id: 'gyxDoodle', icon: '🎨', title: '涂鸦互传', desc: '画一张发给 TA，TA 也会回你一张自己画的；能在同一张上接着画', onOpen: () => window.gyxDoodleOpen() });
 (async () => { G = await S.get('g', []); })();
+X.widget('gyxDoodleW', { n: '涂鸦', sizes: ['s', 'm'], tap: () => window.gyxDoodleOpen ? window.gyxDoodleOpen() : 0, r: w => { const g = G[0]; if (g && g.src) return `<div class="gw-dd"><img src="${X.esc(g.src)}"></div>`; return X.gw(w, '🎨', '涂鸦', ['画一张给 TA']); } }, 'gyxDoodle');
+X.css('gyxDdW', '.gw-dd{height:100%;border-radius:12px;overflow:hidden;background:#fff}.gw-dd img{width:100%;height:100%;object-fit:contain}');
+X.memArr({ k: 'gyxDoodle', ico: '🎨', n: '互相画过的涂鸦', d: '涂鸦的名字（图在涂鸦本里）', arr: () => G, text: x => x.title || '（没起名）', field: 'title', meta: x => (x.by === 'me' ? '你画的' : 'TA 画的') + ' · ' + new Date(x.at).toLocaleDateString(), save: () => S.set('g', G) }, 'gyxDoodle');

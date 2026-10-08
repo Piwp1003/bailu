@@ -529,7 +529,7 @@ function renderChatMessages() {
 // 这里手动把这些脚本"重新创建"一遍来强制执行。⚠️这意味着聊天内容里只要出现<script>标签就会真的运行，
 // 只有在"设置 → AI增强功能"里手动打开对应开关、并且信任你导入的角色卡来源时才应该开启。
 //
-// 🐛 根因修复：不少"手机截图/聊天美化"类角色卡HTML组件，是照搬SillyTavern里"每条消息用一个独立
+// 🐛 根因修复：不少"手机截图/聊天美化"类角色卡HTML组件，是照搬同类软件里"每条消息用一个独立
 // <iframe>文档渲染"的写法习惯，内部初始化逻辑全部挂在 document.addEventListener('DOMContentLoaded', fn)
 // 上——这个假设只有在"这段HTML/JS是被浏览器当成一份全新文档从头加载"时才成立。但本app不是用iframe
 // 渲染这些卡片的，而是把<script>直接重新创建、追加到当前这个早就"加载完毕"的页面里：'DOMContentLoaded'
@@ -1522,11 +1522,11 @@ ${multiReplyBlock}${(typeof aliveMoodFormatNote === 'function') ? aliveMoodForma
                 }
                 repText = applyRegexScripts(repText, 'ai_output', char.id);
                 repText = stripLeftoverMarkers(repText); // 漏网的内部标记不许进气泡（见 js/01 里的说明）
-                // MVU变量补丁块（酒馆"状态栏"预设常见格式）：识别+剥离，并把应用后的状态快照挂在这条消息上，
+                // MVU变量补丁块（同类软件"状态栏"预设常见格式）：识别+剥离，并把应用后的状态快照挂在这条消息上，
                 // 渲染时读快照画一个真正的状态栏卡片，而不是把原始JSON糊在气泡里。
                 const mvuResult = processMvuPatchInText(repText, sessionId);
                 repText = mvuResult.cleanText;
-                // 记忆召回块（酒馆"数据库"类预设常见格式）：同样识别+剥离，渲染成本地的召回面板。
+                // 记忆召回块（同类软件"数据库"类预设常见格式）：同样识别+剥离，渲染成本地的召回面板。
                 const recallResult = processRecallBlockInText(repText, sessionId);
                 repText = recallResult.cleanText;
 

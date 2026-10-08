@@ -207,7 +207,7 @@ function saveWorldbook() {
     const depthRoleRaw = document.getElementById('newWbDepthRole')?.value;
     const depthRole = (depthRoleRaw === 'user' || depthRoleRaw === 'assistant') ? depthRoleRaw : 'system';
     const depth = Math.max(0, parseInt(document.getElementById('newWbDepth')?.value) || 0);
-    // 次要关键词/触发节奏（仿SillyTavern World Info的sticky/cooldown/delay/概率触发），只在聊天里真正生效
+    // 次要关键词/触发节奏（仿照同类软件 World Info的sticky/cooldown/delay/概率触发），只在聊天里真正生效
     const secondaryKeywords = document.getElementById('newWbSecondaryKeywords')?.value.trim() || '';
     const secondaryLogic = document.getElementById('newWbSecondaryLogic')?.value || 'and_any';
     const stickyTurns = Math.max(0, parseInt(document.getElementById('newWbSticky')?.value) || 0);

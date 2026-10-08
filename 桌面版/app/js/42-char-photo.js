@@ -60,7 +60,7 @@
     ];
 
     let S = {
-        mode: 'card',        // 全局默认
+        mode: 'bank',        // 全局默认（白露：不接 API，默认从你喂的图库里挑）
         charMode: {},        // 角色id → 模式（覆盖全局）
         chan: 'free',
         url: '', key: '', model: 'dall-e-3', size: '1024x1024', tpl: '',

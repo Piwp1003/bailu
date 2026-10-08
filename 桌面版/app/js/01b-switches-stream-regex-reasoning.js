@@ -92,7 +92,7 @@ const AUTO_FEATURE_DEFS = [
     { key: 'mallCharSell',    label: '商城：角色自己上架东西卖',           desc: '角色会往货架上摆自己的东西——二手的、自己做的、多买的、用不上的，或者干脆是一份手艺（"帮你写一封信"）。商品名和描述都是 TA 自己的口吻，不是商家话术。上架什么本身就是一条人设信息。默认关；商城设置页里也能手动点一次（手动不看开关）。', cost: '触发一次一次调用，概率是随机购物的一半', defaultOff: true, group: '购物', where: '设置 → 🧩 小功能 → 商城 → 商品页' },
     { key: 'mallTimeline',    label: '商城：物流文案按世界观生成',           desc: '按收货人的世界书写四句物流跟踪文案，古代就是驿站快马，赛博就是无人机。关掉之后时间线照常走，只是四个节点用通用文案。', cost: '每笔订单一次调用（只在下单时生成一次，之后一直用）', group: '购物', where: '设置 → 🧩 小功能 → 商城 → 设置' },
     { key: 'mallReact',       label: '商城：快递到角色手上，TA 可能来找你说一句', desc: '包裹签收时角色自己判断要不要提这件事——惊喜、吐槽、道谢都可能，也可能什么都不说。只有"东西是买给角色的"才触发。', cost: '每个送到角色手上的包裹一次调用', group: '购物', where: '设置 → 🧩 小功能 → 商城 → 设置' },
-    { key: 'charAutonomy',    label: '角色自己决定要做什么', desc: '把某个角色切到「TA 自己决定」之后，TA 会结合日程、待办、小剧场记忆和此刻的处境，自己挑一件事去做——发推文、私聊你、写信、写日记、发论坛帖、评论别人、拍你一下、换个状态、划掉一条待办、拉别人演一场……也可能什么都不做。默认关着，不打开一次 API 都不会调。', cost: '决定一次一次调用，真动手了再加那个动作本身的一次', defaultOff: true, group: '背后', where: '角色资料页 → 切到「TA 自己决定」；效果散在全 app' }
+    { key: 'charAutonomy',    label: '角色自己决定要做什么', desc: '把某个角色切到「TA 自己决定」之后，TA 会结合日程、待办、小剧场记忆和此刻的处境，自己挑一件事去做——发推文、私聊你、写信、写日记、发论坛帖、评论别人、拍你一下、换个状态、划掉一条待办、拉别人演一场……也可能什么都不做。白露里做不做、做哪件全按「🤖 自主行动」里的权重随机决定，不花钱。', cost: '不花钱（白露不接 API）', defaultOff: true, group: '背后', where: '角色资料页 → 切到「TA 自己决定」；效果散在全 app' }
 ];
 // 📂 开关分类。以前 25 个开关是一条大长列表，从头翻到尾也不知道哪个管哪儿；
 //    现在按"这个开关管的是什么"分成 6 组，每组一句话说清它管的是哪一块。
@@ -422,7 +422,7 @@ async function streamCompletionText(api, promptContent, onDelta, images = null, 
     const __gyFeature = gyDetectFeature();   // 同上：必须在任何 await 之前取
     const isNativeApp = typeof window !== 'undefined' && window.plus && window.plus.net && window.plus.net.XMLHttpRequest;
     // 用户在设置里关掉了流式：走跟原生App壳子完全一样的那条路——发普通请求，
-    // 拿到完整文字后一次性回调一次。所有调用方（续写工作台、酒馆桥接的 generate）
+    // 拿到完整文字后一次性回调一次。所有调用方（续写工作台、同类软件桥接的 generate）
     // 都不用改，界面上的区别只是"没有逐字效果"，功能一样。
     const streamOff = (typeof enableStreaming !== 'undefined') && !enableStreaming;
     if (isNativeApp || streamOff) {
@@ -617,9 +617,9 @@ function extractStreamingReplies(text) {
     return out;
 }
 
-// ===================== 变量系统（兼容SillyTavern的聊天变量/全局变量）=====================
+// ===================== 变量系统（兼容同类软件的聊天变量/全局变量）=====================
 // chatVariables 按"作用域key"分桶存放，getVarScopeStore 保证桶不存在时自动建一个空对象，
-// 这样 {{getvar::x}} 在从没 setvar 过的情况下也不会报错，只是读到空字符串（跟ST行为一致）。
+// 这样 {{getvar::x}} 在从没 setvar 过的情况下也不会报错，只是读到空字符串（跟同类软件行为一致）。
 function getVarScopeStore(scopeId) {
     const key = scopeId || '__default__';
     if (!chatVariables[key]) chatVariables[key] = {};
@@ -627,7 +627,7 @@ function getVarScopeStore(scopeId) {
 }
 // 🆕 支持 {{getvar::神乐光.好感度}} 这种点号路径。
 //
-// 起因：酒馆的变量表是**任意嵌套的对象**（角色卡组件普遍这么写，
+// 起因：同类软件的变量表是**任意嵌套的对象**（角色卡组件普遍这么写，
 // insertOrAssignVariables({神乐光:{好感度:5}})），而白露原来的宏只能读一层扁平的 key，
 // 同一个变量名一边存着对象、一边被 String() 成 "[object Object]"，两套对不上。
 // 现在按 . 逐级往下取，取到最后一层再转字符串——嵌套结构原样保留，宏也能读到里面的值，
@@ -667,7 +667,7 @@ function macroGetVar(scopeId, name) {
 }
 function macroSetVar(scopeId, name, value) {
     macroVarPathSet(getVarScopeStore(scopeId), name, value);
-    return ''; // setvar是纯副作用宏，跟ST一样不在正文里输出任何东西
+    return ''; // setvar是纯副作用宏，跟同类软件一样不在正文里输出任何东西
 }
 // {{addvar::name::增量}} / {{incvar::name}} / {{decvar::name}} 共用的数值累加逻辑：
 // 变量当前值/增量只要有一个不是合法数字就当0处理，避免脏数据直接把整条prompt计算搞崩。
@@ -711,7 +711,7 @@ function applyMacros(text, char, scopeId) {
             const n = parseInt(sides) || 100;
             return String(Math.floor(Math.random() * n) + 1);
         })
-        // {{//这是注释}}：跟ST一样，注释宏整体替换成空字符串，用来在预设/世界书里写不希望进prompt的说明文字
+        // {{//这是注释}}：跟同类软件一样，注释宏整体替换成空字符串，用来在预设/世界书里写不希望进prompt的说明文字
         .replace(/\{\{\/\/[^}]*\}\}/g, '')
         // 副作用类变量宏要放在 getvar 前面处理：同一段prompt里"先setvar、后面别的地方getvar"是常见写法，
         // 这里用两次独立的.replace()整体扫描，等价于"先把所有写操作都应用一遍，再统一读"，结果更符合预期。
@@ -724,11 +724,11 @@ function applyMacros(text, char, scopeId) {
         .replace(/\{\{getglobalvar[:：]{2}([^}]+)\}\}/gi, (m, name) => macroGetGlobalVar(name.trim()));
 }
 
-// ===================== EJS模板引擎（兼容酒馆"提示词模板/ST-Prompt-Template"扩展的 <% %> 高级语法）=====================
+// ===================== EJS模板引擎（兼容同类软件"提示词模板/ST-Prompt-Template"扩展的 <% %> 高级语法）=====================
 // 只有文本里真的出现 <% 时才会进入EJS渲染——绝大多数人设/世界书/预设根本不会用这种高级语法，
 // 没必要每次生成prompt都额外过一遍模板引擎，这样对没用到这个功能的人完全零开销、零风险。
 // 世界书查找辅助：按"条目标题"在这个角色能用到的世界书里查（全局的 + 挂在这个角色身上的），
-// 找不到就返回空字符串——跟酒馆的getwi()语义一致（查不到不报错，静默返回空）。
+// 找不到就返回空字符串——跟同类软件的getwi()语义一致（查不到不报错，静默返回空）。
 function findWorldbookEntryByTitle(char, nameOrTitle) {
     if (!worldbooks || worldbooks.length === 0 || !nameOrTitle) return null;
     const localIds = new Set((char && char.worldbooks) || []);
@@ -764,9 +764,9 @@ function renderEjsTemplate(text, char, scopeId) {
     }
 }
 
-// ===================== 兼容层：window.TavernHelper（酒馆"酒馆助手/JS-Slash-Runner"的部分API兼容） =====================
-// ⚠️ 这不是酒馆助手的完整移植，只是照着它文档里最常用的那几个函数(变量读写/取聊天记录/取角色信息)
-// 做了个"尽量兼容调用方式"的简化实现——参数、返回值细节不一定跟原版100%一致，只是让"照着酒馆助手API写的脚本"
+// ===================== 兼容层：window.TavernHelper（同类软件"助手脚本/JS-Slash-Runner"的部分API兼容） =====================
+// ⚠️ 这不是助手脚本的完整移植，只是照着它文档里最常用的那几个函数(变量读写/取聊天记录/取角色信息)
+// 做了个"尽量兼容调用方式"的简化实现——参数、返回值细节不一定跟原版100%一致，只是让"照着助手脚本API写的脚本"
 // 有更大机会在这里也能跑起来，跑不起来的复杂功能(比如触发slash命令、iframe通信)不在这个兼容范围内。
 // 这里只是"定义了这些函数"，本身不会执行任何东西——真正的风险点在"允许脚本执行"这个开关控制的
 // executeInjectedScripts()，那边才是把消息/帖子里的<script>标签变成真的会跑起来的代码。
@@ -784,7 +784,7 @@ function setvar(name, value) {
 // 而是直接裸调用 getChatMessages(...)/setChatMessages(...)——之前只在 window.TavernHelper 对象上挂了
 // getChatMessages 一个只读版本，裸的全局函数、以及可写的 setChatMessages 都没有，模板脚本一旦调用
 // 就直接报 "xxx is not defined" 崩掉，通常是在某个展开/交互按钮的onclick里，导致点了卡片没反应/展不开。
-// message_id 用"在当前聊天数组里的下标"表示，支持负数（-1=最后一条，兼容SillyTavern的习惯写法）。
+// message_id 用"在当前聊天数组里的下标"表示，支持负数（-1=最后一条，兼容同类软件的习惯写法）。
 function getChatMessages(count) {
     const session = (typeof globalChats !== 'undefined' && globalChats[currentChatSessionId]) || [];
     const slice = typeof count === 'number' ? session.slice(-count) : session.slice();
@@ -836,7 +836,7 @@ window.TavernHelper = {
         if (!char) return Promise.resolve(null);
         return Promise.resolve({ id: char.id, name: char.name, persona: char.persona, bio: char.bio });
     },
-    // 酒馆助手真正的slash命令系统(比如/gen /sys这类)在这里没有对应实现，调用了只会警告一声、不会报错崩溃
+    // 助手脚本真正的slash命令系统(比如/gen /sys这类)在这里没有对应实现，调用了只会警告一声、不会报错崩溃
     triggerSlash: (cmd) => { console.warn('TavernHelper.triggerSlash 在白露里没有对应实现，已忽略：', cmd); return Promise.resolve(''); },
 };
 // 🛡️ 兜底代理：这个兼容层明确不是完整移植，角色卡模板难免会调用到没实现的函数（比如这次的setChatMessages）。
@@ -858,7 +858,7 @@ window.TavernHelper = new Proxy(window.TavernHelper, {
 // ===================== 正则替换脚本（Regex Scripts）=====================
 // 对AI输出/我方输入做文本清洗替换，比如过滤口头禅、统一格式、屏蔽敏感词等
 // 兼容两种正则写法：既支持裸的 pattern（比如手动填写的），也支持 /pattern/flags 这种JS字面量格式
-// （酒馆导出的正则脚本 findRegex 字段就是这种格式，比如 "/foo(bar)/gi"）
+// （同类软件导出的正则脚本 findRegex 字段就是这种格式，比如 "/foo(bar)/gi"）
 function parseRegexLiteral(str) {
     if (typeof str !== 'string') return { pattern: '', flags: 'g' };
     const m = str.match(/^\/(.*)\/([a-z]*)$/i);
@@ -942,7 +942,7 @@ function applyRegexScripts(text, target, charId) {
 
 // "仅影响界面显示"模式：不改动存档里的原文，只在渲染到屏幕的那一刻临时处理一下（renderMarkdownLite里调用），
 // 适合"清理思维链标签""美化显示格式"这类只是想让界面好看、但又想保留原始AI输出以备万一的场景。
-// depth 是"距离最新一条消息多少条"（最新=0），跟酒馆的"深度"概念一致。
+// depth 是"距离最新一条消息多少条"（最新=0），跟同类软件的"深度"概念一致。
 // 🐛 修复：角色卡自带的状态栏正则里，minDepth/maxDepth 用得非常多——
 //   · 高山仰止那张报纸状态栏是 maxDepth=0：**只在最新一楼**渲染
 //   · 蔚野那张仿IG状态栏是 maxDepth=1：只在最近两楼渲染
@@ -970,9 +970,9 @@ function applyDisplayOnlyRegex(text, charId, depth) {
 
 // "仅影响发给AI的内容"模式：不改动存档、不改动界面显示，只在把历史记录拼进下一次prompt时临时处理一下
 // （buildTimeAwareHistoryText/buildTimeAwareHistoryTurns里调用），适合"不想让AI看到某些内容但用户自己还想留着看"的场景。
-// depth是"距离最新一条消息多少条"（最新=0，越往前越大，跟酒馆自己的"深度"概念一致）——不传就当0处理
+// depth是"距离最新一条消息多少条"（最新=0，越往前越大，跟同类软件自己的"深度"概念一致）——不传就当0处理
 // （老代码没传depth的调用点，行为等价于"永远当作最新消息"，不会因为加了这个参数就破坏原有效果）。
-// 有些从酒馆导入的正则脚本专门用 minDepth/maxDepth 限定"只处理N条以前的旧消息"（比如隐藏很久之前的历史，
+// 有些从同类软件导入的正则脚本专门用 minDepth/maxDepth 限定"只处理N条以前的旧消息"（比如隐藏很久之前的历史，
 // 给AI省token，但最近几条不受影响），只有传了正确的depth这类脚本才能按预期只在该生效的范围内生效。
 function applyPromptOnlyRegex(text, depth, charId) {
     if (!regexScripts || regexScripts.length === 0) return text;
@@ -1098,8 +1098,8 @@ function unwrapAiEnvelopeText(raw) {
 }
 
 // ===================== 思维链识别与折叠展示 =====================
-// 酒馆自己就是这么设计的：不同模型/API吐思维链用的包裹标签五花八门(DeepSeek是<think>，Gemma用别的标记...)，
-// 酒馆没有写死几个标签名，而是做成"前缀+后缀"配置列表，命中哪条就按哪条解析——这里照搬同样的思路，
+// 同类软件自己就是这么设计的：不同模型/API吐思维链用的包裹标签五花八门(DeepSeek是<think>，Gemma用别的标记...)，
+// 同类软件没有写死几个标签名，而是做成"前缀+后缀"配置列表，命中哪条就按哪条解析——这里照搬同样的思路，
 // 内置几条从真实数据里见过的常见格式，用户也可以自己在设置里加新的前缀/后缀组合来匹配自己预设的写法。
 let reasoningFormats = [
     { id: 'rf_think', name: 'think', prefix: '<think>', suffix: '</think>', enabled: true },
@@ -1164,7 +1164,7 @@ function buildReasoningCollapseHtml(collapsedBlocks) {
 
 // 聊天、评论、推文、论坛、导入聊天记录……这些场景用这个：一律把思维链剥干净，不展示。
 //
-// 思维链的"可展开查看"只保留在【小说】和【续写工作台】两个地方（跟酒馆的做法一致）——
+// 思维链的"可展开查看"只保留在【小说】和【续写工作台】两个地方（跟同类软件的做法一致）——
 // 那两处走 extractReasoningForNovel，把折叠框单独存一个字段、渲染时拼在正文外面。
 //
 // 为什么别处不能折叠展示：collapse 模式是把 <details> 那段 HTML 直接拼到正文最前面再存档的，

@@ -585,7 +585,7 @@ async function runAutonomyTurn(char, manual) {
             const h = typeof window.gyTaHabitOf === 'function' ? window.gyTaHabitOf(char, k) : null;
             const lastTxt = last ? '上一次是' + (window.gyTaAgo ? window.gyTaAgo(last) : new Date(last).toLocaleDateString()) : '还从来没做过';
             let due = '';
-            if (h && !h.never && h.ms && last && Date.now() - last >= h.ms) due = `（你说过大概隔${window.gyTaFmtMs ? window.gyTaFmtMs(h.ms) : Math.round(h.ms / 3600000) + '小时'}一次——按你自己的习惯，差不多到了）`;
+            if (h && !h.never && h.ms && Date.now() - (last || h.at || Date.now()) >= h.ms) due = `（你说过大概隔${window.gyTaFmtMs ? window.gyTaFmtMs(h.ms) : Math.round(h.ms / 3600000) + '小时'}一次——按你自己的习惯，差不多到了）`;
             else if (h && !h.never && h.ms) due = `（你说过大概隔${window.gyTaFmtMs ? window.gyTaFmtMs(h.ms) : Math.round(h.ms / 3600000) + '小时'}一次）`;
             return `· ${n}：${lastTxt}${due}`;
         });

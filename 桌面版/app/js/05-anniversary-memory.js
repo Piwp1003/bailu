@@ -965,7 +965,7 @@ function importChatTxt(event) {
     reader.readAsText(file);
 }
 
-// ST的 send_date 常见是"April 26, 2026 6:06am"这种人写的格式（月份全称+逗号+12小时制，am/pm前面没有空格），
+// 同类软件的 send_date 常见是"April 26, 2026 6:06am"这种人写的格式（月份全称+逗号+12小时制，am/pm前面没有空格），
 // 浏览器原生 Date.parse 认不出这种没空格的写法会直接返回NaN——实测在 am/pm 前面补一个空格就能正常解析了，
 // 所以第一次解析失败时，再补个空格重试一次；两次都失败就说明格式实在太特殊，返回NaN让调用方自己兜底成当前时间。
 function tryParseSendDate(str) {
@@ -975,7 +975,7 @@ function tryParseSendDate(str) {
     parsed = Date.parse(spaced);
     return isNaN(parsed) ? NaN : parsed;
 }
-// 导入 SillyTavern 的原生聊天记录文件(.jsonl)：这是ST每个角色单独的聊天日志格式，逐行都是一个独立JSON对象——
+// 导入同类软件的原生聊天记录文件(.jsonl)：这是同类软件每个角色单独的聊天日志格式，逐行都是一个独立JSON对象——
 // 第一行是"头信息"(user_name/character_name/chat_metadata)，从第二行起才是一条条真正的消息。
 // 消息行格式：{name, is_user, is_system(可选), send_date, mes, extra:{display_text?}, swipe_id?, swipes?}。
 // 因为这个按钮是从"某个角色"的聊天选项弹窗里点开的，天然知道要导入到哪个角色身上，不用再额外选一次角色。
@@ -988,7 +988,7 @@ function importChatJsonl(event) {
             const rawLines = e.target.result.split('\n').map(l => l.trim()).filter(Boolean);
             if (rawLines.length === 0) { alert('这个文件是空的，没有可以导入的内容。'); return; }
 
-            // 第一行是头信息，不是消息——按ST的真实格式判断：包含 user_name / character_name / chat_metadata 这几个字段之一
+            // 第一行是头信息，不是消息——按同类软件的真实格式判断：包含 user_name / character_name / chat_metadata 这几个字段之一
             // 就当作头信息跳过；万一格式不标准（比如手动拼过的文件）导致第一行判断不出来，就干脆整份当消息处理，
             // 后面逐行解析失败的行会自动跳过，不会导致整个导入失败。
             let startIdx = 0;
@@ -1022,9 +1022,9 @@ function importChatJsonl(event) {
                 let sender;
                 if (msg.is_system) sender = 'system';
                 else if (msg.is_user) sender = 'me';
-                else sender = currentSummaryCharId; // 非用户、非系统消息，一律算这个角色说的（ST的单角色聊天文件本来就是这么对应的）
+                else sender = currentSummaryCharId; // 非用户、非系统消息，一律算这个角色说的（同类软件的单角色聊天文件本来就是这么对应的）
 
-                // send_date 这个字段在ST里格式很不统一：可能是"April 26, 2026 6:06am"这种人类可读格式，
+                // send_date 这个字段在同类软件里格式很不统一：可能是"April 26, 2026 6:06am"这种人类可读格式，
                 // 也可能是ISO字符串，甚至有些是数字形式的Unix毫秒时间戳——这里都试一遍，都解析不出来就用当前时间兜底。
                 let timestamp = Date.now();
                 if (typeof msg.send_date === 'number' && !isNaN(msg.send_date)) {
@@ -1040,12 +1040,12 @@ function importChatJsonl(event) {
 
             saveAllData();
             if (currentChatSessionId === currentSummaryCharId) renderChatMessages();
-            alert(`SillyTavern聊天记录导入完成！\n成功导入 ${importedCount} 条消息${skippedCount > 0 ? `，跳过了 ${skippedCount} 条无法识别的行` : ''}。`);
+            alert(`同类软件聊天记录导入完成！\n成功导入 ${importedCount} 条消息${skippedCount > 0 ? `，跳过了 ${skippedCount} 条无法识别的行` : ''}。`);
             closeModal('chatTxtModal');
             document.getElementById('importJsonlInput').value = '';
         } catch (err) {
             console.error('导入jsonl聊天记录失败：', err);
-            alert('导入失败：' + err.message + '\n请确认这是SillyTavern导出的.jsonl聊天文件。');
+            alert('导入失败：' + err.message + '\n请确认这是同类软件导出的.jsonl聊天文件。');
         }
     };
     reader.readAsText(file);
@@ -1099,7 +1099,7 @@ function switchChatSession(id) {
 // 首次打开和某个角色的聊天（没有任何历史消息）时，如果设置了开场白，就自动发出来当第一条消息。
 // 🐛 之前踩过两版坑：
 // 1）多开场白时弹选择框——曾经因为触发时机在"跳转进聊天界面"之前，视觉上像是"点联系人没反应，只弹了个选择框"；
-// 2）为了避开1，改成不管几个候选都直接用第一个——结果撞上不少酒馆卡的常见写法：first_mes本身写的是一份
+// 2）为了避开1，改成不管几个候选都直接用第一个——结果撞上不少同类软件卡的常见写法：first_mes本身写的是一份
 //    "开场白目录/索引"（列出所有分支剧情的标题+简介，本身不是真的开场白正文，要靠用户从"候选开场白"里手动挑一个
 //    真正的开场白），直接把这份索引当正文发出去，看起来就是"点开开场白还是一大段文字糊一脸"。
 // 现在 switchChatSession 里已经先做了 currentChatSessionId赋值+renderChatCharList()把界面切到聊天页，
@@ -1202,7 +1202,7 @@ async function restartChatWithGreeting(charId) {
     }
 }
 
-// 不少酒馆卡的候选开场白正文最前面会带 <!-- title: xxx --> / <!-- desc: xxx --> 这种HTML注释当"元数据标题/简介"
+// 不少同类软件卡的候选开场白正文最前面会带 <!-- title: xxx --> / <!-- desc: xxx --> 这种HTML注释当"元数据标题/简介"
 // （这正是这次踩坑的角色卡的写法——它的first_mes本身是把所有候选开场白的title/desc汇总成一份"目录页"）。
 // 挑选框如果直接把带注释语法的原始正文糊一脸，用户还是得从一堆"<!-- title: -->"里自己找有用信息——
 // 这里识别到就单独抽出来做成"标题+简介"展示，正文只留一段简短预览；没有这种注释头的普通开场白就还是老样子全文预览。

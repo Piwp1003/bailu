@@ -193,9 +193,9 @@
         // 设置目录里那一项改名
         document.querySelectorAll('#setIndex .set-entry').forEach(b => {
             if (/openSettingsPanel\('auto'\)/.test(b.getAttribute('onclick') || '')) {
-                const t = b.querySelector('.set-entry-title'); if (t) t.innerText = '全部开关';
-                const d = b.querySelector('.set-entry-desc'); if (d) d.innerText = '自动功能和小功能的开关，能搜';
-                const i = b.querySelector('.set-entry-ico'); if (i) i.innerText = '🎛️';
+                const t = b.querySelector('.set-entry-title'); if (t && t.innerText !== '全部开关') t.innerText = '全部开关';
+                const d = b.querySelector('.set-entry-desc'); if (d && d.innerText !== '自动功能和小功能的开关，能搜') d.innerText = '自动功能和小功能的开关，能搜';
+                const i = b.querySelector('.set-entry-ico'); if (i && i.innerText !== '🎛️') i.innerText = '🎛️';
                 // 放到最上面
                 const menu = b.parentElement; if (menu && menu.firstElementChild !== b) menu.insertBefore(b, menu.firstElementChild);
             }

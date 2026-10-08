@@ -148,10 +148,17 @@
             edit: w => `<div class="lbl">想固定一句自己的话（空着就每天随机）</div><input class="in" value="${esc((w.d && w.d.text) || '')}" oninput="gyPmWSet('${w.id}','text',this.value,1)">`
         };
         // ② 今日运势：按日期 + 你的名字算，一天一个样
-        const YI = ['早睡', '喝热水', '给 TA 发消息', '出门晒太阳', '吃甜的', '整理房间', '听一首老歌', '散步', '写日记', '拍照', '买花', '穿喜欢的衣服', '夸自己', '看一部电影', '早点起床', '洗个热水澡', '换新壁纸', '慢慢吃饭'];
-        const JI = ['熬夜', '空腹喝咖啡', '想太多', '翻旧账', '冲动消费', 'emo 太久', '赖床', '已读不回', '自我怀疑', '吃太撑', '跟自己较劲'];
+        const YI = ['早睡', '喝热水', '给 TA 发消息', '出门晒太阳', '吃甜的', '整理房间', '听一首老歌', '散步', '写日记', '拍照', '买花', '穿喜欢的衣服', '夸自己', '看一部电影', '早点起床', '洗个热水澡', '换新壁纸', '慢慢吃饭', '表白', '约会', '学点新东西', '断舍离', '存钱', '换个发型', '读几页书', '拉伸', '给朋友打电话', '做饭', '去没去过的店', '许愿', '整理相册', '晒被子', '泡脚', '喝奶茶', '写一封信', '看日落', '逛花市', '早点下班', '说出心里话', '抱抱自己'];
+        const JI = ['熬夜', '空腹喝咖啡', '想太多', '翻旧账', '冲动消费', 'emo 太久', '赖床', '已读不回', '自我怀疑', '吃太撑', '跟自己较劲', '吵架', '剪头发', '借钱给人', '刷手机到半夜', '口是心非', '拖延', '喝冰的', '比较', '做重大决定', '深夜点外卖', '逞强', '冷战', '忘带伞', '说反话'];
         const LUCK = [['雾霾蓝', '#8fa3b8'], ['奶油白', '#f1e7d0'], ['樱花粉', '#f3c9d0'], ['薄荷绿', '#bfe3d0'], ['燕麦色', '#d9c7a7'], ['经典黑', '#222'], ['香芋紫', '#c9b6de'], ['橘子汽水', '#ffb56b'], ['天空蓝', '#9cc8f0'], ['柠檬黄', '#f6e27f']];
-        const fortune = w => { const r = rng('f' + today() + ((typeof currentUser !== 'undefined' && currentUser.name) || '') + ((w.d && w.d.roll) || '')); const y = [...YI].sort(() => r() - .5).slice(0, 2), j = pick(JI, r), c = pick(LUCK, r), n = 1 + Math.floor(r() * 9), s = 3 + Math.floor(r() * 3); return { y, j, c, n, s }; };
+        const ITEMS = ['一支笔', '耳机', '一颗糖', '发圈', '钥匙扣', '雨伞', '书签', '小镜子', '保温杯', '明信片', '香水', '口红', '手链', '旧照片', '一朵花', '围巾', '硬币', '贴纸', '毛绒玩具', '一首歌'];
+        const DIRS = ['正东', '东南', '正南', '西南', '正西', '西北', '正北', '东北'];
+        const HOURS = ['子时 23–1 点', '丑时 1–3 点', '寅时 3–5 点', '卯时 5–7 点', '辰时 7–9 点', '巳时 9–11 点', '午时 11–13 点', '未时 13–15 点', '申时 15–17 点', '酉时 17–19 点', '戌时 19–21 点', '亥时 21–23 点'];
+        const WORDS = ['勇敢', '松弛', '温柔', '专注', '重逢', '惊喜', '放下', '靠近', '坦白', '慢下来', '被看见', '好运', '新开始', '心动', '收获', '安全感', '灵感', '和解', '坚持', '自由'];
+        const CRYS = [['粉晶', '招桃花、温柔待己'], ['白水晶', '净化、头脑清楚'], ['紫水晶', '安眠、稳定情绪'], ['黄水晶', '财运、自信'], ['黑曜石', '挡掉坏情绪'], ['月光石', '直觉、女性力量'], ['海蓝宝', '沟通顺利'], ['草莓晶', '心动、恋爱'], ['虎眼石', '行动力'], ['拉长石', '灵感、转机']];
+        // 🎲 默认一天一个样；点「↻ 再摇一次」就换一套（只影响今天）
+        const fortune = w => { const r = rng('f' + today() + ((typeof currentUser !== 'undefined' && currentUser.name) || '') + ((w.d && w.d.rollDay === today() && w.d.roll) || '')); const y = [...YI].sort(() => r() - .5).slice(0, 2), j = pick(JI, r), c = pick(LUCK, r), n = 1 + Math.floor(r() * 9), s = 1 + Math.floor(r() * 5); return { y, j, c, n, s, item: pick(ITEMS, r), dir: pick(DIRS, r), hour: pick(HOURS, r), word: pick(WORDS, r), cry: pick(CRYS, r), love: 1 + Math.floor(r() * 5), work: 1 + Math.floor(r() * 5), money: 1 + Math.floor(r() * 5) }; };
+        window.gyPmFortuneRoll = wid => { const w = X.findW(wid); if (!w) return; w.d = Object.assign({}, w.d || {}, { roll: Math.random().toString(36).slice(2, 8), rollDay: today() }); X.save(); paint(w); };
         /* 🔮 塔罗：78 张全牌（22 张大阿尔卡那 + 56 张小阿尔卡那），正位 / 逆位；
            抽出来先给「牌义」，想听更多就点「让 TA 解读」——用你设好的语言模型，按角色自己的口吻、结合你们最近的事来讲。 */
         const MAJ = [
@@ -184,7 +191,13 @@
             .concat(...SUITS.map((su, si) => RANKS.map((r, ri) => ({ id: 'S' + si + '_' + ri, name: su[0] + r[0], num: r[0], ic: su[1], up: `${su[2]}：${r[1]}`, rv: `${su[2]}：${r[1]}——但卡住了 / 用力过度 / 来得晚一点`, major: false }))));
         const cardOf = id => DECK.find(c => c.id === id);
         const drawN = n => { const pool = DECK.slice(), out = []; for (let k = 0; k < n && pool.length; k++) { const c = pool.splice(Math.floor(Math.random() * pool.length), 1)[0]; out.push({ id: c.id, rv: Math.random() < .35 }); } return out; };
-        const SPREADS = { one: ['今天'], three: ['过去', '现在', '未来'], love: ['你', 'TA', '你们之间'], choice: ['选 A', '选 B', '建议'] };
+        const SPREADS = { one: ['今天'], three: ['过去', '现在', '未来'], love: ['你', 'TA', '你们之间'], choice: ['选 A', '选 B', '建议'],
+            yesno: ['答案'], body: ['身', '心', '灵'], self: ['表面的你', '内在的你', '需要放下的', '需要拥抱的'],
+            rel5: ['你的心意', 'TA 的心意', '你们的现状', '阻碍', '走向'], month: ['第一周', '第二周', '第三周', '第四周'],
+            cross: ['现状', '阻碍', '根源', '过去', '目标', '不久的将来', '你的态度', '外在环境', '希望与恐惧', '最终结果'] };
+        const SPREAD_N = { one: '单张', three: '过去 · 现在 · 未来', love: '感情牌阵', choice: '二选一', yesno: '是 / 否', body: '身心灵', self: '自我探索', rel5: '关系五张', month: '这个月', cross: '凯尔特十字（10 张）' };
+        // 是 / 否：正位多半是「是」，逆位多半是「否」，大牌更肯定
+        const yesNo = x => { const c = cardOf(x.id); if (!c) return ''; if (x.rv) return c.major ? '否，而且很明确' : '偏向否 / 时机未到'; return c.major ? '是，放心去' : '偏向是'; };
         const tarotOf = w => (w.d && w.d.tarot && w.d.tarot.day === today()) ? w.d.tarot : null;
         const cardHtml = (x, pos, big) => { const c = cardOf(x.id); if (!c) return ''; return `<div class="tr-card${x.rv ? ' rv' : ''}${big ? ' big' : ''}"><em>${esc(pos || '')}</em><div class="face"><i>${c.num}</i><b>${c.ic}</b><span>${esc(c.name)}</span></div><small>${x.rv ? '逆位' : '正位'}</small></div>`; };
         window.gyPmTarot = function (wid, spread) {
@@ -196,7 +209,8 @@
                 set(w, 'tarot', t); paint(w);
             }
             const pos = SPREADS[t.spread] || SPREADS.one;
-            const meaning = t.cards.map((x, k) => { const c = cardOf(x.id); return c ? `<div class="tr-m"><b>${esc(pos[k] || '')} · ${esc(c.name)}${x.rv ? '（逆位）' : '（正位）'}</b><span>${esc(x.rv ? c.rv : c.up)}</span></div>` : ''; }).join('');
+            const yn = t.spread === 'yesno' ? `<div class="tr-m"><b>答案：${esc(yesNo(t.cards[0]))}</b></div>` : '';
+            const meaning = yn + t.cards.map((x, k) => { const c = cardOf(x.id); return c ? `<div class="tr-m"><b>${esc(pos[k] || '')} · ${esc(c.name)}${x.rv ? '（逆位）' : '（正位）'}</b><span>${esc(x.rv ? c.rv : c.up)}</span></div>` : ''; }).join('');
             const cs = chars();
             window.gyPmSheet(`<h4>🔮 塔罗</h4>
                 <div class="tr-row">${t.cards.map((x, k) => cardHtml(x, pos[k], t.cards.length === 1)).join('')}</div>
@@ -205,7 +219,8 @@
                 <div class="tr-read" id="gyPmTrRead">${t.read ? esc(t.read).replace(/\n/g, '<br>') + (t.by ? `<div class="by">—— ${esc(t.by)}</div>` : '') : '<span class="muted">点下面让人给你解读这一组牌（会用你设置里的语言模型）</span>'}</div>
                 <div class="chips">${cs.map(c => `<span class="chip" onclick="gyPmTarotRead('${w.id}','${esc(c.id)}')">让 ${esc(c.remark || c.name)} 解读</span>`).join('')}<span class="chip" onclick="gyPmTarotRead('${w.id}','')">占卜师来解读</span></div>
                 <div class="lbl">再抽一组</div>
-                <div class="chips"><span class="chip" onclick="gyPmTarot('${w.id}','one')">单张</span><span class="chip" onclick="gyPmTarot('${w.id}','three')">过去 · 现在 · 未来</span><span class="chip" onclick="gyPmTarot('${w.id}','love')">感情牌阵</span><span class="chip" onclick="gyPmTarot('${w.id}','choice')">二选一</span></div>
+                <div class="chips">${Object.keys(SPREADS).map(k => `<span class="chip${t.spread === k ? ' on' : ''}" onclick="gyPmTarot('${w.id}','${k}')">${SPREAD_N[k] || k}</span>`).join('')}</div>
+                <div class="chips"><span class="chip" onclick="gyPmCloseSheet();gyMystic&&gyMystic('lenormand')">🃏 雷诺曼</span><span class="chip" onclick="gyPmCloseSheet();gyMystic&&gyMystic('rune')">ᚱ 卢恩符文</span><span class="chip" onclick="gyPmCloseSheet();gyMystic&&gyMystic('iching')">☯ 易经起卦</span><span class="chip" onclick="gyPmCloseSheet();gyMystic&&gyMystic('more')">✨ 更多占卜</span></div>
                 <button class="it muted" onclick="gyPmCloseSheet()">好了</button>`);
         };
         window.gyPmTarotRead = async function (wid, cid) {
@@ -240,7 +255,7 @@
         WD.fortune = {
             n: '今日运势', sizes: ['s', 'm', 'l'],
             vars: [['', '签'], ['tarot', '塔罗']],
-            act: (w, a) => { if (a === 'tarot') window.gyPmTarot(w.id); },
+            act: (w, a) => { if (a === 'tarot') window.gyPmTarot(w.id); if (a === 'roll') window.gyPmFortuneRoll(w.id); if (a === 'more' && window.gyMystic) window.gyMystic('more'); },
             tap: w => {
                 if (V(w) === 'tarot' || w.size === 'l') { window.gyPmTarot(w.id); return; }
                 if (w.size === 's') { set(w, 'flip', !(w.d && w.d.flip)); paint(w); } else window.gyPmTarot(w.id);
@@ -253,10 +268,12 @@
                     const c0 = cardOf(t.cards[0].id);
                     return `<div class="wx-tr ${w.size}"><div class="cards">${tcard}</div>${w.size !== 's' ? `<div class="tx"><em>${T(w, 'th', '今日塔罗')}</em><b>${esc(c0.name)}${t.cards[0].rv ? ' · 逆位' : ''}</b><span>${esc(t.cards[0].rv ? c0.rv : c0.up)}</span><i>${t.read ? '已解读 · 点开看' : '点一下看解析'}</i></div>` : ''}</div>`;
                 }
-                if (w.size === 's' && w.d && w.d.flip) return `<div class="wx-ft s back"><em>${T(w, 'lc', '幸运色')}</em><i class="sw" style="background:${f.c[1]}"></i><b>${f.c[0]}</b><em>${T(w, 'ln', '幸运数字')} <b>${f.n}</b></em></div>`;
+                if (w.size === 's' && w.d && w.d.flip) return `<div class="wx-ft s back"><em>${T(w, 'lc', '幸运色')}</em><i class="sw" style="background:${f.c[1]}"></i><b>${f.c[0]}</b><em>${T(w, 'ln', '幸运数字')} <b>${f.n}</b></em><em>关键词 <b>${f.word}</b></em></div>`;
                 if (w.size === 's') return `<div class="wx-ft s"><em>${T(w, 'h', '今日运势')}</em><span class="st">${stars}</span><div class="yj"><p><i>宜</i>${f.y[0]}</p><p><i>宜</i>${f.y[1]}</p><p class="j"><i>忌</i>${f.j}</p></div></div>`;
-                const main = `<div class="l"><em>${T(w, 'h', '今日运势')}</em><span class="st">${stars}</span><div class="yj"><p><i>宜</i>${f.y.join(' · ')}</p><p class="j"><i>忌</i>${f.j}</p></div></div><div class="r"><i class="sw" style="background:${f.c[1]}"></i><b>${f.c[0]}</b><span>${T(w, 'ln', '幸运数字')} ${f.n}</span></div>`;
-                if (w.size === 'l') return `<div class="wx-ft l"><div class="wx-ft m">${main}</div><div class="tl"><em>${T(w, 'th', '今日塔罗')}</em>${t ? `<div class="cards">${tcard}</div>` : `<span class="draw" data-act="tarot">🔮 ${T(w, 'tp', '抽一张塔罗')}</span>`}</div></div>`;
+                const main = `<div class="l"><em>${T(w, 'h', '今日运势')}<span class="rl" data-act="roll" title="再摇一次">↻ 再摇</span></em><span class="st">${stars}</span><div class="yj"><p><i>宜</i>${f.y.join(' · ')}</p><p class="j"><i>忌</i>${f.j}</p><p class="xt">🍀 ${f.item} · ${f.dir}</p></div></div><div class="r"><i class="sw" style="background:${f.c[1]}"></i><b>${f.c[0]}</b><span>${T(w, 'ln', '幸运数字')} ${f.n}</span><span>「${f.word}」</span></div>`;
+                const bar = (n, lab) => `<p class="fb"><i>${lab}</i><u>${'●'.repeat(n)}${'○'.repeat(5 - n)}</u></p>`;
+                const extra = `<div class="fx">${bar(f.love, '爱情')}${bar(f.work, '事业')}${bar(f.money, '财运')}<p class="fb"><i>吉时</i>${f.hour}</p><p class="fb"><i>水晶</i>${f.cry[0]} · ${f.cry[1]}</p></div>`;
+                if (w.size === 'l') return `<div class="wx-ft l"><div class="wx-ft m">${main}</div>${extra}<div class="tl"><em>${T(w, 'th', '今日塔罗')}</em>${t ? `<div class="cards">${tcard}</div>` : `<span class="draw" data-act="tarot">🔮 ${T(w, 'tp', '抽一张塔罗')}</span>`}</div></div>`;
                 return `<div class="wx-ft m">${main}<em class="wx-rf trb" data-act="tarot" title="抽塔罗">🔮</em></div>`;
             }
         };
@@ -481,6 +498,11 @@
 .wx-tr.empty .back{width:48px;height:76px;border-radius:7px;background:repeating-linear-gradient(45deg,#2b2350 0 6px,#3a3070 6px 12px);box-shadow:inset 0 0 0 2px #c9a55c,0 6px 14px rgba(0,0,0,.18)}
 .wx-tr.empty em{font-style:normal;font-size:11px;color:var(--pm-sub);letter-spacing:1.5px}.wx-tr.empty b{font-size:13px}
 .wx-ft .trb{font-size:14px;background:transparent}
+.wx-ft .rl{margin-left:8px;font-size:10.5px;letter-spacing:0;padding:1px 7px;border-radius:9px;background:var(--pm-fill);color:var(--pm-sub);cursor:pointer;font-weight:500}
+.wx-ft .yj p.xt{font-size:11.5px;color:var(--pm-sub);margin-top:4px}
+.wx-ft.l{position:relative}.wx-ft .fx{display:grid;grid-template-columns:1fr 1fr;gap:2px 12px;font-size:12px}
+.wx-ft .fb{margin:0;display:flex;gap:6px;align-items:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.wx-ft .fb i{font-style:normal;font-size:11px;color:var(--pm-sub);min-width:26px}.wx-ft .fb u{text-decoration:none;color:#f28aa8;letter-spacing:1px}
+.tr-row{flex-wrap:wrap}
 .wx-ft.l{height:100%;display:flex;flex-direction:column;gap:12px}.wx-ft.l>.wx-ft.m{height:auto}
 .wx-ft.l .tl{flex:1;display:flex;flex-direction:column;gap:6px;border-top:.5px solid var(--pm-hair);padding-top:10px}
 .wx-ft.l .tl .cards{display:flex;gap:10px}

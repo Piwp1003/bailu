@@ -114,7 +114,20 @@ const CORE_ASSETS = [
     './js/74-period.js?v=' + V,
     './js/75-web-media.js?v=' + V,
     './js/90-bailu-cards.js?v=' + V,
-    './js/91-bailu-play.js?v=' + V
+    './js/91-bailu-play.js?v=' + V,
+    './js/78-file-access.js?v=' + V,
+    './js/79-feature-hub.js?v=' + V,
+    './js/80-backup-extra.js?v=' + V,
+    './js/81-ta-inner.js?v=' + V,
+    './js/82-group-plus.js?v=' + V,
+    './js/83-api-care.js?v=' + V,
+    './js/84-polish.js?v=' + V,
+    './js/85-pages.js?v=' + V,
+    './js/86-time-sense.js?v=' + V,
+    './js/87-time-place.js?v=' + V,
+    './js/88-prompt-lib.js?v=' + V,
+    './js/89-chat-think.js?v=' + V,
+    './js/92-bailu-builtin.js?v=' + V
 ];
 
 self.addEventListener('install', (event) => {

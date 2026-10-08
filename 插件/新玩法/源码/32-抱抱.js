@@ -53,3 +53,5 @@ X.css('gyxHgCss', `#gyxHugOv{position:fixed;inset:0;z-index:100007;background:li
 .hg-small{width:100%}.hg-small label{display:block;padding:8px 10px;border-radius:12px;background:rgba(255,255,255,.55);margin:5px 0;font-size:14px;cursor:pointer}.hg-small label.ok{text-decoration:line-through;opacity:.6}.hg-foot{text-align:center;font-size:12px}`);
 X.mini({ id: 'gyxHug', icon: '🫂', title: '抱抱', desc: '不开心时点一下：TA 抱抱你、陪你呼吸、给你写几句话', onOpen: () => window.gyxHugOpen() });
 (async () => { D = Object.assign(D, await S.get('d', {})); D.log = D.log || []; D.cfg = Object.assign({ voice: true }, D.cfg || {}); btn(); setInterval(btn, 3000); })();
+X.widget('gyxHugW', { n: '抱抱', sizes: ['s'], tap: () => window.gyxHugOpen(), r: w => X.gw(w, '🫂', '抱抱', [X.v('要抱抱吗', '我在', '过来抱一下')]) }, 'gyxHug');
+X.memArr({ k: 'gyxHug', ico: '🫂', n: '不开心的时候', d: '你点「抱抱」时说的话（TA 会记着多陪你）', arr: () => D.log, text: x => x.why || '（没说为什么）', field: 'why', save: () => S.set('d', D) }, 'gyxHug');

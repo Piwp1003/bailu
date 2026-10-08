@@ -59,8 +59,8 @@ const tag = BAILU ? '[白露]' : '[谷雨]';
 check(`${tag} 17 个插件都装上了，小功能里都有入口`, await page.evaluate(() => ['gyxIntro', 'gyxVary', 'gyxSwitch', 'gyxPet', 'gyxRadio', 'gyxStudy', 'gyxDream', 'gyxDoodle', 'gyxJournal', 'gyxWorld', 'gyxGrow', 'gyxCapsule', 'gyxPost', 'gyxLetter', 'gyxPromise', 'gyxWake', 'gyxDraft'].every(k => GY_MINI_FEATURES.some(f => f.id === k))));
 
 // 🧸 桌面上的 TA
-const pet = await page.evaluate(async () => { await new Promise(r => setTimeout(r, 300)); const e = document.getElementById('gyxPet'); const t = await gyxPetTalk(); e.click && e.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, clientX: 5, clientY: 5 })); e.dispatchEvent(new PointerEvent('pointerup', { bubbles: true })); return { vis: !!e && getComputedStyle(e).display !== 'none', t, b: document.getElementById('gyxPetB').textContent, chat: String(currentChatSessionId) }; });
-check(`${tag} 桌面上的 TA：角落里有小 TA，会冒泡说话，点一下去聊天`, pet.vis && pet.t && pet.b === pet.t && pet.chat === '9961', JSON.stringify(pet));
+const pet = await page.evaluate(async () => { await new Promise(r => setTimeout(r, 300)); const e = document.getElementById('gyxPet'); const t = await gyxPetTalk(); e.click && e.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, clientX: 5, clientY: 5 })); e.dispatchEvent(new PointerEvent('pointerup', { bubbles: true })); await new Promise(r => setTimeout(r, 300)); e.dispatchEvent(new MouseEvent('dblclick', { bubbles: true })); return { vis: !!e && getComputedStyle(e).display !== 'none', t, b: document.getElementById('gyxPetB').textContent, chat: String(currentChatSessionId) }; });
+check(`${tag} 桌面上的 TA：角落里有小 TA，会冒泡说话，双击去聊天（单击是理 TA，v209 起）`, pet.vis && pet.t && pet.b && pet.chat === '9961', JSON.stringify(pet));
 
 // 📻 深夜电台
 const rd = await page.evaluate(async () => { const ep = await gyxRadioMake(GYX.char(9961)); gyxRadioOpen(); await gyxRadioPlay(ep.id); const t = document.getElementById('gyxRdOv').innerText; document.getElementById('gyxRdOv').remove(); return { title: ep.title, n: ep.segs.length, t: t.slice(0, 200) }; });

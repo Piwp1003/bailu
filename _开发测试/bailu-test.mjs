@@ -13,6 +13,7 @@ const errs = []; page.on('pageerror', e => errs.push(e.message));
 page.on('dialog', d => d.accept());
 const net = [];
 await page.route(/^https?:\/\//, r => { net.push(r.request().url()); r.abort(); });
+await page.addInitScript(() => { window.__bailuNoBuiltin = true; });   // 这份测试从空字卡库开始（不导入内置一万条）
 await page.goto(fileUrl(path.join(root, 'index.html')));
 await page.waitForFunction(() => window.__guyuBooted && window.__bailuCardsLoaded && window.bailuCards, { timeout: 20000 });
 await page.waitForTimeout(2000);

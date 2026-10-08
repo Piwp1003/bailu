@@ -404,7 +404,7 @@ let showStatusInChat = false;
 // 切换分类会重新渲染列表、把不在当前分类下的世界书从DOM里隐藏掉——如果还是保存时才去读DOM :checked，
 // 那些"已经勾选但因为切换了分类筛选而暂时不在页面上"的世界书就会被当成没勾选，保存时就会丢失选择。
 let novelWbCategoryFilter = null, novelWbPendingSelection = new Set();
-let novelViewMode = 'outline'; // 故事编辑器当前子模式：'outline'=一键生成模式，'interactive'=互动续写模式（类酒馆聊天）
+let novelViewMode = 'outline'; // 故事编辑器当前子模式：'outline'=一键生成模式，'interactive'=互动续写模式（类同类软件聊天）
 let charFormWbCategoryFilter = null, charFormWbPendingSelection = new Set();
 
 let memoryAlbum = []; // 回忆相册/高光时刻收藏：[{id, type:'chat'|'post', charId, charName, text, timestamp, note}]
@@ -414,10 +414,10 @@ let enableChatScriptExecution = false; // 允许聊天消息里的<script>标签
 let embeddingModel = 'text-embedding-3-small'; // 向量记忆/资料库共用的 embedding 模型名
 let dataBank = []; // 角色专属资料库(RAG)：[{id, charId, title, chunks:[{text, embVec}], createdAt}]
 let plugins = []; // 插件系统：[{id, name, description, type:'prompt'|'action'|'macro'|'script', scope:'global'|charId, enabled, promptText, actionLabel, actionPrompt, macroName, macroValue, code}]
-// AI预设系统（仿SillyTavern的"Chat Completion 预设"）：每个预设是一整套可整体切换的提示词模块+采样参数。
+// AI预设系统（仿照同类软件的"Chat Completion 预设"）：每个预设是一整套可整体切换的提示词模块+采样参数。
 // [{id, name, enabled(同一时间只有一个预设enabled=true，切换时互斥), prompts:[{id,name,role,content,enabled}], samplerParams:{temperature?,top_p?,frequency_penalty?,presence_penalty?,top_k?}}]
 let aiPresets = [];
-// 多用户人设（仿SillyTavern的Persona管理）：保存多份"我"的资料快照，可随时另存/切换，
+// 多用户人设（仿照同类软件的Persona管理）：保存多份"我"的资料快照，可随时另存/切换，
 // 切换时会把快照里的字段整体覆盖进 currentUser（跟原有到处使用 currentUser.xxx 的代码完全兼容，不用改任何引用点）。
 // [{id, label, data:{name,handle,persona,bio,gender,avatarImg,bgImg,...currentUser的其它字段}}]
 let userPersonas = [];
@@ -547,7 +547,7 @@ let chatSummaryInterval = 20;   // 单聊：每N条消息自动总结一次
 let groupSummaryInterval = 50;  // 群聊：每N条消息自动总结一次
 let postMemoryInterval = 20;    // 推文记忆：每N条帖子自动总结一次
 
-// 💡 字数要求优先级声明：预设(AI预设系统)里的提示词模块可能自带自己的字数要求（比如某些酒馆预设的
+// 💡 字数要求优先级声明：预设(AI预设系统)里的提示词模块可能自带自己的字数要求（比如某些同类软件预设的
 // "文风模块"会写"控制在300-500字"），这段文字会跟着预设一起被塞进系统提示词里；而这里（聊天/推文/
 // 日记/信件/续写/论坛等）用户自己设置的字数上限，是在那之后另外拼接、发给AI的。两条字数指令同时出现在
 // 同一次请求里时，模型不一定100%听更靠后那条——这里统一加一句明确的优先级声明，附在每处"硬性字数上限"
@@ -608,7 +608,7 @@ let charReplyDelayEnabled = true;
 //
 // 这个开关现在管三个地方：
 //   1. 续写工作台（互动续写/小说）—— 逐字往正文里贴，最细的那种流式。
-//   2. 酒馆桥接的 generate（给角色卡里的脚本用）—— 同上，逐字回调。
+//   2. 同类软件桥接的 generate（给角色卡里的脚本用）—— 同上，逐字回调。
 //   3. 聊天 / 群聊 —— **按气泡**流式，不是按字。原因是聊天要求模型返回一整段
 //      {"replies":[...]} 的JSON，半截JSON贴到气泡里就是一堆乱码；但"数组里已经写完的
 //      那几条"是可以提前发出来的。所以这里一边收一边扫，扫到一个闭合的 {...} 就立刻发一条，
@@ -746,11 +746,11 @@ let clickEffectEnabled = false;
 let clickEffectStyle = 'paw';
 let clickEffectCustomImage = null; // 'custom' 模式下用的自定义图片，base64 dataURL
 
-// 🧮 聊天变量存储（兼容SillyTavern的 {{getvar::x}}/{{setvar::x::y}} 系列宏，以及EJS模板里调用的getvar/setvar函数）：
+// 🧮 聊天变量存储（兼容同类软件的 {{getvar::x}}/{{setvar::x::y}} 系列宏，以及EJS模板里调用的getvar/setvar函数）：
 // 按"作用域key"分桶——正常聊天传sessionId（角色id或群聊id"g_xxx"），没有sessionId的场景（比如群聊拉新人的欢迎语、
 // 评论区回复这类一次性生成）就退化用char.id兜底，保证宏至少有个稳定落点，不会每次生成都读到空值。
 let chatVariables = {}; // { [scopeId]: { 变量名: 值 } }
-// 全局变量（跨聊天共享），对应ST里的 {{getglobalvar::x}}/{{setglobalvar::x::y}}
+// 全局变量（跨聊天共享），对应同类软件里的 {{getglobalvar::x}}/{{setglobalvar::x::y}}
 let globalVariables = {};
 
 // 状态管理

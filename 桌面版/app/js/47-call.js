@@ -105,7 +105,12 @@
         try { if (window.speechSynthesis) speechSynthesis.cancel(); } catch (e) {}
     }
     async function speak(text) {
-        if (S.mode === 'text' || !text) return;
+        if (!text) return;
+        // 白露：你给 TA 上传过语音片段的，按概率放 TA 自己的声音（不管朗读开没开）
+        if (typeof window.bailuVoice === 'function') {
+            try { const u = await window.bailuVoice(C && C.char, text); if (u) { stopSound(); audio = new Audio(u); await audio.play().catch(() => {}); return; } } catch (e) {}
+        }
+        if (S.mode === 'text') return;
         if (S.tts === 'api' && S.url) {
             try {
                 const r = await fetch(S.url, {

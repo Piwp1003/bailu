@@ -1,0 +1,43 @@
+/* 🌅 每日一问：每天一个问题，你和 TA 各答各的——两个人都答完，才能看到对方的答案。攒下来是一本「问答日历」，翻到哪天都能看到那天你们各自怎么想。题库一百多题，也能自己加 */
+if (window.__gyxDaily) return; window.__gyxDaily = 1;
+X.feat('gyxDaily', { n: '🌅 每日一问', desc: '每天一个问题，两个人都答完才能看到对方的答案' });
+const S = X.store('daily');
+const BANK = ["今天最开心的一个瞬间是什么？", "最近一次被感动是因为什么？", "如果明天放假一整天，你想怎么过？", "你最喜欢我身上的哪个小习惯？", "小时候最想成为什么样的人？", "最近在听的一首歌是什么？", "你觉得我们最像的地方是什么？", "你最近一次哭是因为什么？", "如果可以瞬移，现在最想去哪？", "第一次跟我聊天时，你对我是什么印象？", "最想和我一起做的一件小事是什么？", "你觉得自己最可爱的时候是什么时候？", "最近有什么一直想买但没舍得买的东西？", "用三个词形容今天的自己", "睡前最常想的事情是什么？", "你害怕什么？", "你最喜欢的一个季节和理由", "有没有一句话对你影响很大？", "如果我们养一只宠物，你想养什么？", "吵架的时候你最希望我怎么做？", "你最拿手的一道菜是什么？", "最近一次心动是什么时候？", "你觉得幸福是什么样子的？", "如果可以回到过去一天，你选哪天？", "有什么事是你一直想说但没说出口的？", "你理想中的周末早晨是什么样的？", "你最想收到什么样的礼物？", "最近让你烦心的一件事是什么？", "你相信缘分吗？", "你最喜欢的一部电影是哪部？", "最近一次大笑是因为什么？", "你希望十年后的我们在做什么？", "你觉得我最需要改掉的一个小毛病是？", "你最喜欢我怎么叫你？", "下雨天你最想做什么？", "有哪个瞬间让你觉得「就是这个人了」？", "你最近在努力的一件事是什么？", "如果可以拥有一种超能力，你选什么？", "你最怀念的一个地方是哪里？", "你觉得自己是早起的人还是熬夜的人？", "今天有没有想我？什么时候？", "你喜欢热闹还是安静？", "你心情不好的时候最需要什么？", "你最近学会的一件新事情是什么？", "你最喜欢的零食是什么？", "你觉得什么样的约会最完美？", "有什么小事能让你瞬间开心起来？", "你会怎么跟别人介绍我？", "你小时候最喜欢玩的游戏是什么？", "有没有哪本书让你印象很深？", "你最想去旅行的城市是哪里？", "你觉得我生气的时候是什么样子？", "如果今天是世界末日，你会做什么？", "你最近一次被夸是什么时候？", "你觉得自己最大的优点是什么？", "你最喜欢的天气是什么样的？", "你有什么特别的小癖好？", "你最想对一年前的自己说什么？", "你最喜欢一天里的哪个时段？", "你最近一次觉得孤单是什么时候？", "你觉得我们之间最浪漫的一件事是什么？", "你会做饭吗？最想给我做什么？", "如果我们一起开一家店，你想开什么店？", "你最喜欢的颜色是什么？为什么？", "你觉得「家」是什么？", "你最近一次觉得自己很勇敢是什么时候？", "你最想学会的一项技能是什么？", "你平时怎么放松自己？", "你最受不了别人做什么？", "你心里有没有一个秘密基地？", "你最喜欢我们聊过的哪个话题？", "你觉得自己更像哪种动物？", "今天有什么想感谢的人或事吗？", "你最近最常说的一句话是什么？", "你最喜欢的一个节日是哪个？", "你觉得我最温柔的时候是什么时候？", "有没有一首歌让你想到我？", "你理想中的家是什么样子的？", "你觉得什么样的人最有魅力？", "你最近最想吃的东西是什么？", "你有没有很想见却一直没见的人？", "你最喜欢收到什么样的消息？", "你觉得我们第一次见面会是什么样？", "如果可以和任何一个人吃顿饭，你选谁？", "你最近一次失眠是因为什么？", "你最喜欢的一句情话是什么？", "你最想和我去看的一个风景是什么？", "你最近一次对自己很满意是什么时候？", "你觉得爱是什么？", "你小时候有什么外号？", "你最擅长安慰别人还是被安慰？", "你有没有什么「必须这样才舒服」的小坚持？", "你最喜欢的一种花是什么？", "你觉得我们之间最默契的一次是？", "你更喜欢日出还是日落？", "你最想把哪一天过一万遍？", "你现在身边最近的一样东西是什么？", "你最近一次给自己的小奖励是什么？", "你最喜欢我发给你的哪种消息？", "你觉得什么时候最想我？", "如果可以给今天打分，你打几分？为什么？", "你最想听我讲什么？", "你有没有什么一直坚持的小习惯？", "你觉得自己哪里变了？", "你最喜欢的一种味道是什么？", "如果我们吵架了，你会先开口吗？", "你觉得最浪漫的一句话是？", "你最近一次被吓到是因为什么？", "你最喜欢的一个童年回忆是什么？", "你想对现在的我说什么？"];
+let D = { days: {}, mine: [] };   // days[cid][YYYY-MM-DD] = {q, me, ta, mat, tat}
+const qOf = day => { const all = BANK.concat(D.mine || []); let h = 0; for (const ch of day) h = (h * 31 + ch.charCodeAt(0)) >>> 0; return all[h % all.length]; };
+const rec = (cid, day) => { const k = String(cid); D.days[k] = D.days[k] || {}; return (D.days[k][day] = D.days[k][day] || { q: qOf(day) }); };
+async function taAnswer(c, r) {
+    if (r.ta) return r.ta;
+    let a = X.bailu() ? null : await X.ask(`${X.who(c)}\n今天的「每日一问」：「${r.q}」\n用你自己的真实想法回答（你的身份、你的生活、你对她的感情），具体一点，30~100 字。只输出回答。`);
+    r.ta = X.plain(a || X.pick(X.cards(['每日一问', '聊天', '情话'], c, 2).concat(['这个问题……我想了很久，答案好像都跟你有关。', '我的答案很简单：你。', '等你答完我再告诉你——骗你的，我已经写好了，你先答。']))); r.tat = Date.now(); await S.set('d', D); return r.ta;
+}
+async function react(c, r) {
+    if (X.bailu()) return X.pick(X.cards(['情话'], c, 1).concat(['原来你是这么想的。', '我们的答案好像有点像诶。', '记住了，你的答案。']));
+    return X.plain(await X.ask(`${X.who(c)}\n今天的每日一问「${r.q}」。你答：「${r.ta}」。她答：「${r.me}」。看完她的答案说一两句（可以追问、可以被戳到、可以笑）。`) || '原来你是这么想的。');
+}
+window.gyxDailyAnswer = async (cid, day) => {
+    const c = X.char(cid) || X.cur(); day = day || X.day(); const r = rec(c.id, day), t = ((document.getElementById('gyxDyIn') || {}).value || '').trim(); if (!t) return null;
+    r.me = t; r.mat = Date.now(); await S.set('d', D); await taAnswer(c, r); r.re = await react(c, r); await S.set('d', D); window.gyxDailyOpen(c.id, day); return r;
+};
+window.gyxDailyNew = async () => { const t = ((document.getElementById('gyxDyNew') || {}).value || '').trim(); if (!t) return; D.mine.push(t); await S.set('d', D); X.toast('🌅 加进题库了', ''); window.gyxDailyOpen(); };
+window.gyxDailySkip = async cid => { const r = rec(cid, X.day()); if (r.me) return; const all = BANK.concat(D.mine || []); r.q = X.pick(all.filter(q => q !== r.q)); delete r.ta; await S.set('d', D); window.gyxDailyOpen(cid); };
+window.gyxDailyData = () => D;
+window.gyxDailyOpen = function (who, day) {
+    const c = X.char(who) || X.cur(); if (!c) return; const cid = String(c.id); day = day || X.day(); const r = rec(cid, day), all = D.days[cid] || {}, ks = Object.keys(all).filter(k => all[k].me).sort().reverse(), today = day === X.day();
+    X.panel('gyxDyOv', '🌅 每日一问', `<div class="gyx-row">${X.whoSel(cid, 'gyxDailyOpen')}<span class="gyx-tip">已经一起答了 ${ks.length} 天</span></div>
+        <div class="dy-card"><em>${day}${today ? ' · 今天' : ''}</em><b>${X.esc(r.q)}</b>
+        ${r.me ? `<div class="dy-a me"><span>你</span>${X.esc(r.me)}</div><div class="dy-a ta"><span>${X.esc(X.name(c))}</span>${X.esc(r.ta || '…')}</div>${r.re ? `<div class="gyx-tip">💬 ${X.esc(r.re)}</div>` : ''}`
+        : `<div class="dy-a ta lock"><span>${X.esc(X.name(c))}</span>${r.ta ? '🔒 TA 已经答了，你答完就能看到' : '🔒 你答完 TA 再答，然后一起揭晓'}</div><textarea id="gyxDyIn" class="gyx-in" rows="3" placeholder="写下你的答案……"></textarea><div class="gyx-row"><button class="gyx-btn" onclick="this.disabled=true;this.textContent='揭晓中…';gyxDailyAnswer('${cid}','${day}')">答好了，揭晓</button>${today ? `<button class="gyx-btn lite" onclick="gyxDailySkip('${cid}')">换一题</button>` : ''}</div>`}</div>
+        ${today ? '' : `<div class="gyx-row"><button class="gyx-btn lite" onclick="gyxDailyOpen('${cid}')">回到今天</button></div>`}
+        <div style="font-weight:700;margin:12px 0 4px">问答日历</div><div class="dy-cal">${ks.slice(0, 60).map(k => `<span onclick="gyxDailyOpen('${cid}','${k}')" title="${X.esc(all[k].q)}">${k.slice(5)}</span>`).join('') || '<span class="gyx-tip">还没答过</span>'}</div>
+        <details class="gyx-tip"><summary>往题库里加题（${(D.mine || []).length} 道是你加的）</summary><div class="gyx-row"><input id="gyxDyNew" class="gyx-who" style="flex:1" placeholder="你想问的问题"><button class="gyx-btn lite" onclick="gyxDailyNew()">加进去</button></div></details>`);
+};
+X.ctx(id => { const r = (D.days[String(id)] || {})[X.day()]; if (!r) return ''; return r.me ? `【今天的每日一问】「${r.q}」她答：${r.me}；你答：${r.ta || ''}。` : r.ta ? `【今天的每日一问】「${r.q}」你已经答了（${r.ta.slice(0, 40)}），她还没答。可以催她去答，别剧透你的答案。` : ''; }, 'gyxDaily');
+X.action({ key: 'gyx_daily', label: '先答了今天的每日一问，催她也去答', hint: '每日一问', need: c => { const r = (D.days[String(c.id)] || {})[X.day()]; return !r || (!r.ta && !r.me); },
+    run: async c => { const r = rec(c.id, X.day()); await taAnswer(c, r); X.notify(c, `🌅 ${X.esc(X.name(c))} ${X.v('答完了今天的每日一问', '已经交卷了，等你答', '答好了，在等你')}`, r.q, () => window.gyxDailyOpen(c.id)); return (await X.reach(c, `你答完了今天的每日一问「${r.q}」，催她也去答（别说你的答案，要她答完才能看）`)) ? '答了每日一问' : null; } }, 'gyxDaily');
+X.today(() => { const c = X.cur(); if (!c) return null; const r = rec(c.id, X.day()); return { title: '🌅 每日一问', rows: [{ t: r.me ? '已揭晓' : r.ta ? 'TA 答了' : '待答', x: X.esc(r.q), go: `gyxDailyOpen('${c.id}')` }] }; }, 'gyxDaily');
+X.widget('gyxDailyW', { n: '每日一问', sizes: ['s', 'm'], tap: () => window.gyxDailyOpen(), r: w => { const c = X.cur(); if (!c) return X.gw(w, '🌅', '每日一问', []); const r = rec(c.id, X.day()); return X.gw(w, '🌅', '每日一问', [r.me ? '已揭晓 ✓' : r.ta ? 'TA 答好了，等你' : '今天还没答', X.esc(r.q)]); } }, 'gyxDaily');
+X.mem({ k: 'gyxDaily', ico: '🌅', n: '每日一问', d: '每天的问题和你们俩的答案', items: c => { const all = D.days[String(c.id)] || {}; return Object.keys(all).filter(k => all[k].me).sort().reverse().map(k => Object.assign(all[k], { day: k })); }, text: x => x.q + '｜我：' + (x.me || '') + '｜TA：' + (x.ta || ''), edit: (x, v) => { const m = v.match(/^(.*?)｜我：(.*?)｜TA：(.*)$/); if (m) { x.me = m[2]; x.ta = m[3]; } }, del: (c, i) => { const all = D.days[String(c.id)] || {}, ks = Object.keys(all).filter(k => all[k].me).sort().reverse(); delete all[ks[i]]; }, meta: x => x.day, save: () => S.set('d', D) }, 'gyxDaily');
+X.css('gyxDyCss', `.dy-card{border-radius:20px;padding:16px;background:linear-gradient(160deg,#fff4e6,#ffe8f0);margin:8px 0}.dy-card em{font-style:normal;font-size:12px;color:#c08457}.dy-card>b{display:block;font-size:18px;margin:6px 0 12px;line-height:1.5}.dy-a{background:rgba(255,255,255,.75);border-radius:14px;padding:9px 12px;margin:6px 0;font-size:14px;line-height:1.7}.dy-a span{display:block;font-size:11.5px;color:#999}.dy-a.lock{color:#aaa}.dy-cal{display:flex;flex-wrap:wrap;gap:6px}.dy-cal span{padding:4px 9px;border-radius:10px;background:#fff1e0;font-size:12.5px;cursor:pointer;color:#b0703a}`);
+X.mini({ id: 'gyxDaily', icon: '🌅', title: '每日一问', desc: '每天一个问题，都答完才揭晓', cat: '陪伴', onOpen: () => window.gyxDailyOpen() });
+(async () => { D = Object.assign(D, await S.get('d', {})); D.days = D.days || {}; D.mine = D.mine || []; })();

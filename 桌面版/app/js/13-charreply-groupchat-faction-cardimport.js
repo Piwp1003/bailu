@@ -1037,7 +1037,7 @@ if (typeof window.hasInjectedCalendarObserver === 'undefined') {
     if (modal) observer.observe(modal, { attributes: true });
 }
 // ==========================================
-// 📥 智能导入 Silly Tavern 角色卡引擎 (支持 PNG/WEBP/JSON)
+// 📥 智能导入同类软件角色卡引擎 (支持 PNG/WEBP/JSON)
 // ==========================================
 async function handleCharCardImport(event) {
     const file = event.target.files[0];
@@ -1130,7 +1130,7 @@ async function handleCharCardImport(event) {
     }
 
     if (!charData) {
-        // 没读到内嵌的角色卡数据，但如果拖进来的是一张图（没嵌 SillyTavern 数据的普通插画/照片），
+        // 没读到内嵌的角色卡数据，但如果拖进来的是一张图（没嵌同类软件数据的普通插画/照片），
         // 直接判定"失败"太不友好了——多半是想拿这张图当新角色的头像用。顺手帮你把图放进新建表单，
         // 名字/人设留空让你自己填（或者用"照着人设补全空白资料"）。
         if (b64Image) {
@@ -1142,7 +1142,7 @@ async function handleCharCardImport(event) {
             gyMaybeDetectMultiChar(b64Image, { manual: false });
             return;
         }
-        alert("⚠️ 未能从该文件中读取到有效的角色卡数据！\n目前支持自带设定的酒馆(SillyTavern)角色卡(PNG/WEBP) 或 原生 JSON 文件。");
+        alert("⚠️ 未能从该文件中读取到有效的角色卡数据！\n目前支持自带设定的同类软件角色卡(PNG/WEBP) 或 原生 JSON 文件。");
         return;
     }
 

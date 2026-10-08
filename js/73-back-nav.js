@@ -24,11 +24,15 @@
         const sh = document.getElementById('gyPmSheet');
         if (sh && sh.classList.contains('on')) { try { window.gyPmCloseSheet(); } catch (e) { sh.classList.remove('on'); } return true; }
         // 动态建的浮层（小玩法、字卡库、神秘学、立绘……）和 .modal-overlay 类弹窗：挑 z-index 最高、看得见的那个
-        const cands = [...document.querySelectorAll('.modal-overlay, #gyMysOv, [data-gy-overlay]')].filter(vis);
+        const cands = [...document.querySelectorAll('.modal-overlay, #gyMysOv, [data-gy-overlay], .gy-aspage')].filter(vis);
         if (!cands.length) return false;
         const z = el => parseInt(getComputedStyle(el).zIndex, 10) || 0;
         cands.sort((a, b) => z(b) - z(a) || (a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING ? 1 : -1));
-        const top = cands[0];
+        return closeEl(cands[0]);
+    }
+    // 关掉指定的一个浮层（「做成页面」那条顶栏上的 ‹ 也走这里）
+    function closeEl(top) {
+        if (!top) return false;
         // 动态建出来的浮层（xxxOv）：直接拿掉
         if (/Ov$/.test(top.id || '') || top.dataset.gyOverlay != null) { top.remove(); return true; }
         // 有自己的关闭按钮就点它（它可能还要顺手存东西）
@@ -41,6 +45,7 @@
         if (/Ov$/.test(top.id || '') || top.dataset.gyOverlay != null) top.remove(); else top.style.display = 'none';
         return true;
     }
+    window.gyCloseOverlayEl = closeEl;
     function inChat() { const a = document.getElementById('chatInputArea'); const vc = document.getElementById('view-chat'); return !!(a && a.style.display !== 'none' && vc && vis(vc)); }
     function atRoot() {
         if (document.body.classList.contains('gyphm')) return !document.body.classList.contains('gyphm-app');

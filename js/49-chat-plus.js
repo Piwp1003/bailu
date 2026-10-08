@@ -129,7 +129,7 @@
                 }).join('\n');
             return `${i + 1}. 【${g.name}】（${(g.members || []).length} 人）\n${last || '　（最近没人说话）'}`;
         }).join('\n');
-        const ask = `现在的真实时间：${new Date().toLocaleString('zh-CN', { hour12: false, weekday: 'long' })}。
+        const ask = `现在的真实时间：${new Date().toLocaleString('zh-CN', { hour12: false, year: 'numeric', month: 'numeric', day: 'numeric', weekday: 'long', hour: '2-digit', minute: '2-digit' })}。
 你想在某个群里说句话。这是你在的群和它们最近聊到哪儿了：
 
 ${menu}

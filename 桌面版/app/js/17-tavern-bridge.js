@@ -1,11 +1,11 @@
-// ===================== 酒馆助手（TavernHelper）兼容层 · 主页面这一侧 =====================
+// ===================== 助手脚本（TavernHelper）兼容层 · 主页面这一侧 =====================
 //
 // 角色卡里那些"完整前端页面"类的组件（开场白菜单、状态栏、手账本、操作栏），除了画界面，
-// 还会回过头来调酒馆的接口。这一层负责把那些调用接到白露自己的功能上。
+// 还会回过头来调同类软件的接口。这一层负责把那些调用接到白露自己的功能上。
 //
-// ── 楼层模型：跟酒馆对齐 ─────────────────────────────────────────
+// ── 楼层模型：跟同类软件对齐 ─────────────────────────────────────────
 //
-// 酒馆里一段对话就是一个数组 chat[]，**下标就是楼层号（message_id）**，从 0 开始：
+// 同类软件里一段对话就是一个数组 chat[]，**下标就是楼层号（message_id）**，从 0 开始：
 //
 //     message_id 0 ← 开场白（它的 swipes 就是角色卡里那一串候选开场白）
 //     message_id 1 ← 用户说的话
@@ -14,16 +14,16 @@
 //
 // 白露续写工作台的 session.turns[] 本来就是一模一样的结构，只是几个字段名不同：
 //
-//     酒馆              白露              说明
-//     message_id   =   数组下标          现在楼层号也改成从 0 开始显示，跟酒馆一致
-//     role         ←→  role             白露用 'ai'，酒馆用 'assistant'
+//    同类软件             白露              说明
+//     message_id   =   数组下标          现在楼层号也改成从 0 开始显示，跟同类软件一致
+//     role         ←→  role             白露用 'ai'，同类软件用 'assistant'
 //     message      ←→  text
 //     swipe_id     ←→  currentSwipe
 //     swipes       ←→  swipes
 //     is_hidden    ←→  hidden
 //     data         ←→  data             楼层变量，本来没有，这次补上
 //
-// 所以这里不是"另做一套"，而是把同一份数据按酒馆的字段名翻译进出。白露内部保持原来的
+// 所以这里不是"另做一套"，而是把同一份数据按同类软件的字段名翻译进出。白露内部保持原来的
 // 字段名不动（改名要动一大片代码，风险远大于收益），翻译只发生在这一层。
 
 // ---------------------------------------------------------------- 楼层读写
@@ -57,7 +57,7 @@ function gyMergedTurnVars(t) {
     return merged;
 }
 
-// 一条白露楼层 → 一条酒馆消息
+// 一条白露楼层 → 一条同类软件消息
 function gyTurnToMessage(t, idx, includeSwipes) {
     const swipes = (Array.isArray(t.swipes) && t.swipes.length) ? t.swipes.slice() : [t.text || ''];
     const swipeId = Math.min(t.currentSwipe || 0, swipes.length - 1);
@@ -92,7 +92,7 @@ function gyTurnName(t) {
     return '';
 }
 
-// 酒馆的 range 写法：0 / '0' / '0-3' / -1（负数＝从后往前数）/ '{{lastMessageId}}'
+// 同类软件的 range 写法：0 / '0' / '0-3' / -1（负数＝从后往前数）/ '{{lastMessageId}}'
 function gyParseRange(range, len) {
     const last = len - 1;
     if (range === undefined || range === null || range === '') return [0, last];
@@ -138,7 +138,7 @@ function gyTavernContextFor(charId) {
         hasChat: false,
         chatVariables: {},
         globalVariables: {},
-        // 下面这些是卡片会**同步**读的（酒馆那边这些接口也是同步的），
+        // 下面这些是卡片会**同步**读的（同类软件那边这些接口也是同步的），
         // 所以必须在建 iframe 时就一起塞进来，不能等 postMessage 往返
         characters: [],
         worldbookNames: [],
@@ -190,7 +190,7 @@ function gyTavernContextFor(charId) {
     ctx.lastMessageId = turns.length - 1;
     ctx.currentMessageId = turns.length - 1;
 
-    // 开场白那一楼的 swipes 用角色卡的候选开场白填上——酒馆里第 0 楼的 swipes 就是这个，
+    // 开场白那一楼的 swipes 用角色卡的候选开场白填上——同类软件里第 0 楼的 swipes 就是这个，
     // 卡片的开场白菜单全靠它列出可选项
     const openingIdx = turns.findIndex(t => t.fromGreeting);
     let greetings = [];
@@ -270,7 +270,7 @@ function gyFillStaticSnapshot(ctx, char, session) {
 
 // ---------------------------------------------------------------- 变量
 
-// 酒馆有 5 种变量作用域，白露只有 2 种能一一对上，详见「酒馆助手兼容层说明.md」。
+// 同类软件有 5 种变量作用域，白露只有 2 种能一一对上，详见「助手脚本兼容层说明.md」。
 // 对不上的那几种（preset / character / extension）单独存一份，只在本次会话里有效，
 // 保证卡片读写不报错，但不会假装它跟白露的某个真实数据是同一份。
 let gyTavernScratchVars = { preset: {}, character: {}, extension: {}, script: {} };
@@ -290,7 +290,7 @@ function gyTavernVarStore(type) {
     return gyTavernScratchVars[type];
 }
 
-// 楼层变量：酒馆的 getVariables({type:'message', message_id}) 读的是挂在那一楼上的对象。
+// 楼层变量：同类软件的 getVariables({type:'message', message_id}) 读的是挂在那一楼上的对象。
 // 白露这边就存在 turn.data 里。
 function gyTavernMessageVarTurn(messageId) {
     const s = gyTavernTurns();
@@ -361,18 +361,18 @@ function gyFindChar(idOrName) {
     } catch (e) { return null; }
 }
 
-// 白露的世界书条目 → 酒馆的 worldbook entry 形状
-// 白露的世界书条目 → 酒馆的 worldbook entry。
+// 白露的世界书条目 → 同类软件的 worldbook entry 形状
+// 白露的世界书条目 → 同类软件的 worldbook entry。
 //
 // 📌 之前我判断错过一次，这里说清楚：**两边的条目字段几乎是 1:1 的**——
 // 关键词、次要关键词、逻辑、顺序、概率、递归、粘性、冷却、延迟、位置、深度、身份、正文，
 // 白露全都有，一个不缺。真正的差别只有一处：
 //
-//   · 酒馆是两层：**一本"书"里装很多条目**
+//   · 同类软件是两层：**一本"书"里装很多条目**
 //   · 白露是一层：一个扁平列表，每条有个 category（分类标签）
 //
 // 而 category 本来就在干"书名"这件事。所以不需要迁移任何数据、不需要动你的存档结构，
-// 只要把 **category 当成书名** 来读写，白露在卡片眼里就是标准的酒馆两层世界书。
+// 只要把 **category 当成书名** 来读写，白露在卡片眼里就是标准的同类软件两层世界书。
 // 没填分类的条目归到「未分类」这本里。
 const GY_WB_DEFAULT_BOOK = '未分类';
 
@@ -528,12 +528,12 @@ function gyCurrentPersona() {
     return null;
 }
 
-// 白露的人设快照 → 酒馆的 Persona 形状
+// 白露的人设快照 → 同类软件的 Persona 形状
 function gyPersonaToTavern(p) {
     const d = (p && p.data) || {};
     const cur = gyCurrentPersona();
     return {
-        avatar_id: p.id,                 // 酒馆用头像文件名当 id，这里用白露自己的 id，对卡片都是个字符串
+        avatar_id: p.id,                 // 同类软件用头像文件名当 id，这里用白露自己的 id，对卡片都是个字符串
         avatar: d.avatarImg || '',
         name: d.name || '',
         title: p.label || '',            // 白露给人设起的名字（"本体""马甲小号"）
@@ -640,7 +640,7 @@ const gyTavernBridge = {
         return { ok: true, value: session ? session.turns.length - 1 : -1 };
     },
 
-    // 酒馆最常被卡片用到的写接口。支持改正文、切 swipe、换整组 swipes、隐藏/显示、写楼层变量。
+    // 同类软件最常被卡片用到的写接口。支持改正文、切 swipe、换整组 swipes、隐藏/显示、写楼层变量。
     setChatMessages(list, options, ctx) {
         if (!Array.isArray(list) || list.length === 0) return { ok: false, reason: '参数为空' };
         const session = gyTavernTurns();
@@ -668,11 +668,11 @@ const gyTavernBridge = {
                     swiped = true;
                     continue;
                 }
-                console.warn('[酒馆兼容层] 卡片要改第 ' + idx + ' 楼，但这段续写只有 ' + turns.length + ' 楼，已跳过。');
+                console.warn('[同类软件兼容层] 卡片要改第 ' + idx + ' 楼，但这段续写只有 ' + turns.length + ' 楼，已跳过。');
                 continue;
             }
 
-            // 换整组 swipes（酒馆用来"设置开局"）
+            // 换整组 swipes（同类软件用来"设置开局"）
             if (Array.isArray(item.swipes)) {
                 t.swipes = item.swipes.slice();
                 t.currentSwipe = Math.min(t.currentSwipe || 0, t.swipes.length - 1);
@@ -690,7 +690,7 @@ const gyTavernBridge = {
                 } else {
                     const sw = t.swipes || [t.text || ''];
                     if (item.swipe_id < 0 || item.swipe_id >= sw.length) {
-                        console.warn('[酒馆兼容层] 第 ' + idx + ' 楼只有 ' + sw.length + ' 个版本，卡片要第 ' + (item.swipe_id + 1) + ' 个，已跳过。');
+                        console.warn('[同类软件兼容层] 第 ' + idx + ' 楼只有 ' + sw.length + ' 个版本，卡片要第 ' + (item.swipe_id + 1) + ' 个，已跳过。');
                     } else {
                         t.swipes = sw;
                         t.currentSwipe = item.swipe_id;
@@ -716,7 +716,7 @@ const gyTavernBridge = {
             // 用户在"要不要换开场"那一步点了取消，什么都没做，也不用报错
             return { ok: true, value: 0 };
         } else {
-            // 只带了 message_id 的调用＝"重新渲染这一楼"，酒馆那边就是这个语义
+            // 只带了 message_id 的调用＝"重新渲染这一楼"，同类软件那边就是这个语义
             gyTavernAfterChange(session, null, undefined);
         }
         return { ok: true, value: changed };
@@ -844,12 +844,12 @@ const gyTavernBridge = {
 
     // ==== 生成 ====
     //
-    // 酒馆的 generate() 是卡片"让 AI 写一段"的入口（比如沉沦法则那张卡的 uu 生成器）。
+    // 同类软件的 generate() 是卡片"让 AI 写一段"的入口（比如沉沦法则那张卡的 uu 生成器）。
     // 白露这边完全有对应能力，用的就是续写自己那条链路：
     //   buildSsSystemPrompt（大纲/人设/世界书/预设/宏都在里面）→ buildSsHistory → 主/副 API。
     // 所以卡片生成出来的内容，跟你自己点「续写」得到的是同一套设定，不是另起炉灶。
     //
-    // 跟酒馆的差别：generate() **不会**自己往楼层里加内容（酒馆也不会），
+    // 跟同类软件的差别：generate() **不会**自己往楼层里加内容（同类软件也不会），
     // 结果原样返回给卡片，加不加、加到哪由卡片决定。
     async generate(config) {
         const cfg = config || {};
@@ -870,7 +870,7 @@ const gyTavernBridge = {
             history = history.slice(-cfg.max_chat_history);
         }
 
-        // injects：酒馆让卡片往这次请求里临时插几段提示词，用完即弃，不落存档
+        // injects：同类软件让卡片往这次请求里临时插几段提示词，用完即弃，不落存档
         history = gyApplyInjects(history, cfg.injects, (txt) => { systemText += '\n\n' + txt; });
 
         gyTavernEmit('generation_started');
@@ -881,7 +881,7 @@ const gyTavernBridge = {
             let out = '';
             const data = await streamCompletionText(api, messages, (partial, isDone) => {
                 out = partial;
-                // 卡片要流式的话，把增量当酒馆的 stream_token_received 事件发出去
+                // 卡片要流式的话，把增量当同类软件的 stream_token_received 事件发出去
                 if (cfg.should_stream) gyTavernEmit('stream_token_received', partial);
                 if (isDone) gyTavernEmit('stream_reasoning_done');
             }, null, abort.signal);
@@ -942,7 +942,7 @@ const gyTavernBridge = {
         return { ok: true, value: n };
     },
 
-    // ==== 世界书（酒馆叫 worldbook，老名字叫 lorebook，两套名字指同一个东西）====
+    // ==== 世界书（同类软件叫 worldbook，老名字叫 lorebook，两套名字指同一个东西）====
 
     // 书名列表 ＝ 白露的分类列表（没填分类的归到「未分类」）
     getWorldbookNames() {
@@ -1086,7 +1086,7 @@ const gyTavernBridge = {
 
     // ==== 提示词注入 ====
 
-    // 酒馆的 injectPrompts：卡片往接下来的请求里挂几段提示词，直到 uninject 为止。
+    // 同类软件的 injectPrompts：卡片往接下来的请求里挂几段提示词，直到 uninject 为止。
     // 存在会话上（不进存档快照的正文，只影响拼 prompt），由 buildSsSystemPrompt / buildSsHistory 消费。
     injectPrompts(list) {
         const session = gyTavernTurns();
@@ -1268,12 +1268,12 @@ const gyTavernBridge = {
 
     // ==== 用户人设（persona）====
     //
-    // 酒馆的 persona ＝ "你自己"的身份档案（名字/头像/自我描述），可以存好几个随时切，
+    // 同类软件的 persona ＝ "你自己"的身份档案（名字/头像/自我描述），可以存好几个随时切，
     // 比如"本体""马甲小号"。卡片拿这些接口来称呼你、显示你的头像，
     // 或者按不同人设走不同剧情分支。
     //
     // 白露完全有对应的东西：用户资料里的 userPersonas（每份是一整份 currentUser 快照）。
-    // 唯一的结构差异：酒馆用**头像文件名**当 persona 的唯一 id（历史包袱），
+    // 唯一的结构差异：同类软件用**头像文件名**当 persona 的唯一 id（历史包袱），
     // 白露用自己生成的 persona_xxx；对卡片来说都只是个不透明的字符串，不影响使用。
 
     getPersona(personaId) {
@@ -1353,7 +1353,7 @@ const gyTavernBridge = {
         return { ok: true, value: true };
     },
 
-    // 酒馆的播放列表。白露这边就是一个数组，配合 playAudio 用。
+    // 同类软件的播放列表。白露这边就是一个数组，配合 playAudio 用。
     getAudioList() { return { ok: true, value: gyAudioList.slice() }; },
     replaceAudioList(list) {
         gyAudioList = Array.isArray(list) ? list.slice() : [];
@@ -1380,7 +1380,7 @@ const gyTavernBridge = {
 
     // ==== 扩展 ＝ 白露的插件 ====
     //
-    // 酒馆的"扩展"是从 git 地址装一份前端代码进来。白露对应的东西就是**插件**
+    // 同类软件的"扩展"是从 git 地址装一份前端代码进来。白露对应的东西就是**插件**
     //（设置 → 插件：prompt / action / macro / script 四类，结构见 js/01 的 plugins 注释）。
     // 所以这里把 installExtension 接到插件系统上。
     //
@@ -1390,7 +1390,7 @@ const gyTavernBridge = {
     // 等于我亲手把那道墙拆了。所以：一律先弹框问你，把要装的东西一条条列清楚；
     // script 类另外再警告一次。你不点同意，什么都不会发生。
     //
-    // 给 git 地址的那种（酒馆原本的用法）直接拒绝——不会去下载并执行任何远程代码。
+    // 给 git 地址的那种（同类软件原本的用法）直接拒绝——不会去下载并执行任何远程代码。
     async installExtension(payload) {
         let list = payload;
         // 网址形式：真的去下。白露是本地部署，装什么都是自己的机器，
@@ -1466,7 +1466,7 @@ const gyTavernBridge = {
 
     // ==== 脚本按钮 ＝ 续写页上方的卡片按钮栏 ====
     //
-    // 酒馆把这类按钮挂在脚本库的抽屉里；白露改成放在续写操作区上方——卡片就在这个页面里，
+    // 同类软件把这类按钮挂在脚本库的抽屉里；白露改成放在续写操作区上方——卡片就在这个页面里，
     // 按钮离它近才用得顺手。行为不变：点一下把事件发回给注册它的那张卡。
     // 注册信息存在会话上，所以卡片重渲染 / iframe 重建都不会把按钮弄丢。
     replaceScriptButtons(scriptId, buttons, ctx) {
@@ -1500,7 +1500,7 @@ const gyTavernBridge = {
     async triggerSlash(command, ctx) {
         const raw = String(command || '').trim();
         if (!raw) return { ok: true };
-        // 酒馆允许用 | 串几条命令
+        // 同类软件允许用 | 串几条命令
         const parts = raw.split(/\s*\|\s*(?=\/)/);
         let last = '';
         for (const one of parts) last = await gyRunSlash(one, ctx);
@@ -1509,7 +1509,7 @@ const gyTavernBridge = {
 };
 
 
-// 单条斜杠命令。参数写法跟酒馆一致：`/命令 key=value 正文`
+// 单条斜杠命令。参数写法跟同类软件一致：`/命令 key=value 正文`
 async function gyRunSlash(cmd, ctx) {
     const m = String(cmd).trim().match(/^\/([a-zA-Z-]+)\s*([\s\S]*)$/);
     if (!m) return '';
@@ -1611,12 +1611,12 @@ async function gyRunSlash(cmd, ctx) {
             return '';
 
         default:
-            console.info('[酒馆兼容层] 卡片执行了斜杠命令 /' + name + '，白露没有对应功能，已忽略。');
+            console.info('[同类软件兼容层] 卡片执行了斜杠命令 /' + name + '，白露没有对应功能，已忽略。');
             return '';
     }
 }
 
-// 深合并：酒馆的 insertOrAssignVariables 是"有就覆盖、没有就插入"，嵌套对象要往里走
+// 深合并：同类软件的 insertOrAssignVariables 是"有就覆盖、没有就插入"，嵌套对象要往里走
 function gyDeepAssign(target, source) {
     if (!target || !source) return target;
     Object.keys(source).forEach(k => {

@@ -588,6 +588,11 @@ function getStoryWorldbookText(charList, contextText = "", sessionKey = null, tu
 }
 
 // sessionId: 聊天会话id（角色id或群id）；char: 单人聊天时传入角色对象，用于状态延续；用于从聊天记录里找"上一次联系"的时间点
+const GY_PL_TIMERULES = `- 你要自己判断：以你的人设、细腻程度和当前关系阶段，面对这段间隔，你内心真实的反应是什么（也可能完全没反应）——这取决于人设本身，不是间隔长短决定的。冷淡疏离的角色对很长的间隔可能毫无反应；敏感粘人的角色哪怕间隔很短也可能有小情绪，两者都对。
+- 绝对不能：主动追问用户这段时间在干嘛、报时间点或播报"已经过了几小时/现在几点"、把等待和被冷落当成抱怨阴阳怪气的素材、每次上线都套"你终于来了/你可算来了"这种老套开场（除非剧情确实支持）。
+- 如果人设信息不足以支撑判断，默认"淡化处理"：不主动提这件事，正常接话即可；沉默好过报时。
+- 即使确实要体现时间流逝，也只能借助你此刻正在做/刚做完的事情、状态，或很自然的一句话侧面带出，全程最多出现一次，不能是提问或播报语气。
+- 这段间隔里你并不是静止等待用户，而是按人设过着自己的生活；回复时可以自然带入"我刚……"作为切入点，但不必每次都这样做。`;
 function getTimeAwarenessPrompt(sessionId, char) {
     const history = globalChats[sessionId] || [];
     // 本函数调用时，用户刚发的这条消息通常已经push进history了，所以真正的"上一次联系"要看倒数第二条
@@ -618,11 +623,7 @@ function getTimeAwarenessPrompt(sessionId, char) {
 
     return applyMacros(`\n【时间感知与状态延续 — 仅供你内部判断，绝不能直接告诉用户或复述本段说明】：
 - 现在的真实时间：${nowStr}；距离你们上一次互动，实际已经过去约 ${elapsedText}。${lifeStateLine}${anniversaryNote}
-- 你要自己判断：以你的人设、细腻程度和当前关系阶段，面对这段间隔，你内心真实的反应是什么（也可能完全没反应）——这取决于人设本身，不是间隔长短决定的。冷淡疏离的角色对很长的间隔可能毫无反应；敏感粘人的角色哪怕间隔很短也可能有小情绪，两者都对。
-- 绝对不能：主动追问用户这段时间在干嘛、报时间点或播报"已经过了几小时/现在几点"、把等待和被冷落当成抱怨阴阳怪气的素材、每次上线都套"你终于来了/你可算来了"这种老套开场（除非剧情确实支持）。
-- 如果人设信息不足以支撑判断，默认"淡化处理"：不主动提这件事，正常接话即可；沉默好过报时。
-- 即使确实要体现时间流逝，也只能借助你此刻正在做/刚做完的事情、状态，或很自然的一句话侧面带出，全程最多出现一次，不能是提问或播报语气。
-- 这段间隔里你并不是静止等待用户，而是按人设过着自己的生活；回复时可以自然带入"我刚……"作为切入点，但不必每次都这样做。
+${gyPL('core.timeRules', GY_PL_TIMERULES)}
 - 额外任务（不外显）：请在返回的 JSON 里加一个 "stateUpdate" 字段，写一句20字以内的话，描述"回复完这轮之后你大概会去做什么/处于什么状态"，仅用于系统内部记录、给你自己下一次的状态延续做参考，绝不会展示给用户，所以不需要考虑对话自然度，纯粹是内部备忘。${char && char.lifeState && char.lifeState.activity ? `这次填的内容不能和最近记录过的这几条重复或雷同：${[...(char.lifeStateHistory || []), char.lifeState.activity].join('、')}，要体现出实际推进，不能在几件事之间循环打转。` : ''}${statusTypes.length > 0 ? `再加一个 "statusTypeLabel" 字段，从这些标签里选一个最贴近你此刻状态的：[${statusTypes.map(t => t.label).join('、')}]，如果都不太贴切就留空字符串。` : ''}`, char);
 }
 
@@ -757,9 +758,7 @@ function getRecentChatSummaryText(summaryStr, limit = 5) {
 
 // ===== 人味强化协议：反套路 / 反回声 / 情绪校准（整合自用户提供的多份协议文档，为节省token做了精简合并）=====
 // 原则：置于角色人设之前，优先级高于人设本身，不因"角色习惯"或"语气需要"被绕开
-function getHumanFeelPromptText() {
-    if (!humanFeelEnabled) return '';
-    return `【人味强化协议 · 优先于以下人设生效】：
+const GY_PL_HUMANFEEL = `【人味强化协议 · 优先于以下人设生效】：
 1. 特质有刻度不是开关：人设写的每个特质只演到写明的程度，不准往极端方向加码（"护短"不能演成"控制欲"，"直率"不能演成"故意伤人"）。角色是多维的，多个特质互相拉扯，不能让某一个特质垄断所有行为。
 2. 反应要配得上事件：小事只给小反应，大事才给大反应，反应强度要跟事件分量匹配，不要什么都反应过度。
 3. 先有自己，再有用户：写之前先想清楚这个角色此刻自己在忙什么、烦什么、惦记什么——这些跟用户无关。用户的话是撞进这条已有的思路里，不是从零触发的按钮。角色会主导话题、追问、突然改变话题，只回应自己在意的部分，其余可以没听见，情绪状态是累积的，不会每轮重置。
@@ -770,6 +769,9 @@ function getHumanFeelPromptText() {
 8. 人是有毛边的：角色不一定知道自己为什么有某种情绪，只是感觉到了，不用每次都做自我心理分析；对话可以有说岔、改口、跑题、笑错时机、用废话填补沉默，但不要为了显得真实而刻意堆砌，只写这个角色此刻真正在意的东西。
 9. 绝对边界：不允许替用户写想法、感受、台词或关键决定性动作。
 `;
+function getHumanFeelPromptText() {
+    if (!humanFeelEnabled) return '';
+    return gyPL('core.humanFeel', GY_PL_HUMANFEEL);
 }
 
 // ===== TPES 时间感知增强系统（精简版，整合自用户提供的 TPES 2.0 协议文档）=====
@@ -944,14 +946,15 @@ function getTpesNowLine() {
     const weekdayNames = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'];
     return `\n【当前真实时间】：${nowStr}（${weekdayNames[now.getDay()]}），生成时以这个时间为准（对应上面的时间感知协议 TPES）。\n`;
 }
-function getTpesPromptText() {
-    if (!tpesEnabled) return '';
-    return `【时间感知协议 TPES】（具体的当前时间写在这份设定的最后一行）：
+const GY_PL_TPES = `【时间感知协议 TPES】（具体的当前时间写在这份设定的最后一行）：
 - 时间流速：线上聊天时间随对话内容/动作自然推进，不是一问一答就等于一瞬间；线下场景（约会/外出等）按场景动作估算耗时，比如吃饭1-2小时、看电影2小时；用户不在线时角色按人设过自己的生活，时间等同现实流逝，期间可能发生的无关紧要小事不用主动汇报，自然带出即可。
 - 时间要和环境绑定：光线天色、疲惫和饥饿感、街上人多不多、当前季节天气都要跟这个时间对得上，工作日/周末/节日的活动安排也不一样。
-${getSleepWindowPromptLine()}
+{{睡眠时段}}
 - 用户话里提到的时间线索（"刚下班""好困""早上好"）优先于上面这个系统时间判断。
 `;
+function getTpesPromptText() {
+    if (!tpesEnabled) return '';
+    return gyPL('core.tpes', GY_PL_TPES, { 睡眠时段: getSleepWindowPromptLine() });
 }
 
 // 📮 让角色在【聊天/发推/评论】里也记得"我们通过信"。
@@ -1140,8 +1143,9 @@ function buildBasePrompt(char, includeChatSummary = true, chatHistoryStr = "", o
     add('pluginHook', runPluginScriptHooks(char, chatHistoryStr)); // 插件系统：进阶脚本钩子注入
     add('wb.end', wbText('end'));
     if (injOn('preset.end')) add('preset.end', getActivePresetPromptText(char, !!opts.excludeDepthPresetEntries, opts.sessionId, 'end'));
-    let actionRule = allowActionTags ? "你可以使用括号(如()或【】)来进行动作描写和心理描写。" : "不要有多余的动作描写或心理描写，直接输出说话或正文内容。";
+    let actionRule = allowActionTags ? gyPL('core.fmtOn', '你可以使用括号(如()或【】)来进行动作描写和心理描写。') : gyPL('core.fmtOff', '不要有多余的动作描写或心理描写，直接输出说话或正文内容。');
     if (injOn('core.fmt')) add('fmt', `\n【格式规则】：${actionRule}\n`);
+    if (injOn('core.promise') && typeof window.gyPromiseRule === 'function') add('promise', window.gyPromiseRule(char));   // 🤝 约定≠已经发生（js/83）
     // 🪪 身份锚点：角色一多，模型最容易把"谁是谁、谁发的"搞混——放在骨架最后、时间之前，离生成最近
     if (typeof gyIdentityAnchor === 'function') add('anchor', gyIdentityAnchor(char));
     let prompt = (typeof gyPromptAssemble === 'function') ? gyPromptAssemble(SEC, char) : SEC.map(x => x.t).join('');

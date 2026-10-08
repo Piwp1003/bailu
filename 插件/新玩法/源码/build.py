@@ -10,7 +10,7 @@ for f in sorted(glob.glob(os.path.join(src, '[0-9]*.js'))):
     m = re.match(r'/\*\s*(\S+)\s+(.*?)\s*\*/', body, re.S)
     desc = (m.group(2) if m else name).split('：', 1)[-1].strip()
     icon = m.group(1) if m else ''
-    p = {'name': f'{icon} {name}', 'type': 'script', 'scope': 'global', 'enabled': True, 'description': desc, 'onLoad': common + '\n' + body}
+    p = {'name': f'{icon} {name}', 'type': 'script', 'scope': 'global', 'enabled': True, 'description': desc, 'onLoad': common + '\n' + body + '\n//# sourceURL=gyx-plugin/' + name + '.js'}
     json.dump([p], open(os.path.join(out, name + '.json'), 'w', encoding='utf-8'), ensure_ascii=False, indent=1)
     allp.append(p)
 json.dump(allp, open(os.path.join(out, '新玩法全家桶.json'), 'w', encoding='utf-8'), ensure_ascii=False, indent=1)

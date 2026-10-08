@@ -37,7 +37,7 @@ const GY_SEC_NAMES = { humanFeel: '人味强化协议', tpes: '时间感知', pe
     voice: '打字指纹', 'mem.tweet': '推文记忆总结', 'mem.chat': '聊天总结', 'mem.group': '群聊话题', schedule: '日程与生活轨迹',
     theater: '小剧场', letters: '通过的信', diary: '自己写过的日记', anniv: '纪念日', reading: '一起读过的书', film: '一起看过的电影',
     box: '各小功能注入', profile: '资料页', faction: '势力', relation: '人物关系', mood: '情绪', body: '身体状态',
-    plugin: '插件规则', pluginHook: '插件脚本', fmt: '格式规则', anchor: '身份提醒' };
+    plugin: '插件规则', pluginHook: '插件脚本', fmt: '格式规则', promise: '约定≠已发生', anchor: '身份提醒' };
 function gyPromptReportText() {
     const r = __gyLastPromptReport;
     if (!r) return '还没有生成过内容。先跟某个角色聊一句，再回来看。';
@@ -98,6 +98,17 @@ function gyStatusLogAdd(char, entry) {
     } catch (e) {}
 }
 
+// 📜 内置提示词库（js/88 是页面）：内置的规矩、说明文字都从这里取——用户在「内置提示词」里改过就用改过的，
+// 没改过就用代码里写的默认那份。{{名字}} 是会被换成实际内容的空位（比如 {{现在}}），改的时候留着它就行。
+const GY_PL_DEFS = {};
+function gyPL(id, def, vars) {
+    GY_PL_DEFS[id] = def;
+    let t = def;
+    try { const o = window.__gyPLOv || (window.__gyPLOv = JSON.parse(localStorage.getItem('gyPromptLib') || '{}')); if (o && o.on !== false && o.ov && typeof o.ov[id] === 'string') t = o.ov[id]; } catch (e) {}
+    if (vars) Object.keys(vars).forEach(k => { t = t.split('{{' + k + '}}').join(vars[k] == null ? '' : String(vars[k])); });
+    return t;
+}
+const GY_PL_NOW = `\n【🕰️ 现在的真实时间】：{{现在}}（{{时段}}）。开场白、聊天记录、上一条状态栏里写的时间都是**过去**的，不代表现在；你此刻的作息、在做的事、状态栏里的时间，一律按现在这个真实时间来，不要接着上一条的时间往下写（只有你们此刻正在当面相处、剧情里的时间在往前推的时候，才按剧情里推进到的时间来）。\n`;
 // 🕰️ 现在几点：钉在聊天 prompt 最后。新导入的角色卡开场白、上一条的状态栏里常写着"凌晨两点"，
 // 模型会顺着那个时间往下演，大白天还在说"这么晚了快睡吧"。这里明确告诉它那些都是过去的时间。
 function gyNowAnchorNote() {
@@ -106,7 +117,7 @@ function gyNowAnchorNote() {
         const s = d.toLocaleString('zh-CN', { hour12: false, weekday: 'long', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
         const h = d.getHours();
         const part = h < 5 ? '深夜' : h < 9 ? '早上' : h < 12 ? '上午' : h < 14 ? '中午' : h < 18 ? '下午' : h < 22 ? '晚上' : '深夜';
-        return `\n【🕰️ 现在的真实时间】：${s}（${part}）。开场白、聊天记录、上一条状态栏里写的时间都是**过去**的，不代表现在；你此刻的作息、在做的事、状态栏里的时间，一律按现在这个真实时间来，不要接着上一条的时间往下写（只有你们此刻正在当面相处、剧情里的时间在往前推的时候，才按剧情里推进到的时间来）。\n`;
+        return gyPL('core.now', GY_PL_NOW, { 现在: s, 时段: part });
     } catch (e) { return ''; }
 }
 
@@ -359,17 +370,21 @@ function gyCollectReasoning(text) {
     return out;
 }
 // 交给 js/51 存起来；js/51 还没加载好时先排队
+// 💭 思考要不要收：收纳盒开着，或者「聊天里显示 TA 的思考」开着（js/89）
+function gyReasonCaptureOn() { try { return !!reasoningVaultOn || (typeof window.gyChatThinkOn === 'function' && window.gyChatThinkOn()); } catch (e) { return false; } }
 function gyVaultCapture(parts, feature, reqKey, model, via) {
     try {
-        if (!reasoningVaultOn || !parts || !parts.length) return;
+        if (!gyReasonCaptureOn() || !parts || !parts.length) return;
         const rec = { t: Date.now(), feature: feature || '其它', key: reqKey || '', model: model || '', via: via || '', text: parts.join('\n\n―――――\n\n') };
+        try { if (typeof window.gyChatThinkSink === 'function') window.gyChatThinkSink(rec); } catch (e) {}
+        if (!reasoningVaultOn) return;
         if (typeof window.gyReasoningVaultSink === 'function') window.gyReasoningVaultSink(rec);
         else (window.__gyVaultPending = window.__gyVaultPending || []).push(rec);
     } catch (e) { /* 收纳失败绝不能影响生成 */ }
 }
 function gyVaultCaptureFromData(data, feature, api, via) {
     try {
-        if (!reasoningVaultOn || !data || data.error) return;
+        if (!gyReasonCaptureOn() || !data || data.error) return;
         const c = data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content;
         if (typeof c !== 'string' || !c) return;
         const parts = gyCollectReasoning(c);
@@ -390,7 +405,7 @@ function gyVaultDiag(feature, raw, parts, api, via) {
 }
 // 给某一次请求打个"取件码"：聊天气泡上的 💭 靠它找到自己那一轮的思考
 function gyVaultTagApi(api) {
-    if (!reasoningVaultOn || !api) return api;
+    if (!gyReasonCaptureOn() || !api) return api;
     return Object.assign({}, api, { __gyReqKey: 'rq' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7) });
 }
 

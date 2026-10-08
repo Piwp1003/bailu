@@ -91,3 +91,5 @@ X.today(() => { const L = D.log.filter(l => X.day(new Date(l.at)) === X.day()); 
 X.mini({ id: 'gyxStudy', icon: '📚', title: '一起自习室', desc: '番茄钟，TA 在对面也在忙；休息时催你喝水，偷偷切走会被念', onOpen: () => window.gyxStudyOpen() });
 X.ctx(id => T && String(T.c.id) === String(id) ? `【一起自习】你们正在一起自习（${T.phase === 'focus' ? '专注中，她要做的是：' + (T.task || '没说') + '，你在' + T.doing : '休息时间'}）。聊天时别拖着她聊太久，专注时间里可以催她回去学习。` : '', 'gyxStudy');
 (async () => { D = Object.assign(D, await S.get('d', {})); D.log = D.log || []; setInterval(tick, 1000); })();
+X.widget('gyxStudyW', { n: '一起自习', sizes: ['s', 'm'], tap: () => window.gyxStudyOpen(), r: w => { const m = D.log.filter(l => X.day(new Date(l.at)) === X.day()).reduce((a, l) => a + (l.min || 0), 0); return X.gw(w, '📚', '一起自习', [T ? (T.phase === 'focus' ? '专注中' : '休息中') : (m ? '今天 ' + m + ' 分钟' : '一起学一会儿'), T && T.task ? X.esc(T.task) : (m ? '一共 ' + D.log.length + ' 次自习' : '')]); } }, 'gyxStudy');
+X.memArr({ k: 'gyxStudy', ico: '📚', n: '一起自习过', d: '每次一起自习学了什么、多久', arr: () => D.log, text: x => x.task || '（没写在学什么）', field: 'task', meta: x => new Date(x.at).toLocaleString() + ' · ' + x.min + ' 分钟', save: () => S.set('d', D) }, 'gyxStudy');

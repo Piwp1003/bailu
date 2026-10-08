@@ -1592,7 +1592,8 @@ textarea.gym-in{resize:vertical;min-height:74px;line-height:1.6;}
         const u = (el && el.value || '').trim();
         if (!u) return toast('先填链接', '把音频的直接地址贴进来。');
         if (/music\.163\.com|y\.qq\.com|kugou|kuwo|bilibili|youtube|spotify/i.test(u)) {
-            toast('这个链接放不了', '网易云/QQ音乐这类是网页地址，不是音频文件地址，而且有版权校验，网页里拿不到音频。请用音频直链，或者把文件下载下来用「选择音频文件」。');
+            if (typeof window.gyWmOpen === 'function') { toast('🎧 这是网站链接', '在「一起听 · 一起看」里帮你打开了（网易云 / QQ 音乐这类不能当音频文件用）'); window.gyWmOpen(u); if (el) el.value = ''; return; }
+            toast('这个链接放不了', '网易云/QQ音乐这类是网页地址，不是音频文件地址。请用音频直链，或者把文件下载下来上传。');
             return;
         }
         const id = 'm' + Date.now() + Math.random().toString(36).slice(2, 7);

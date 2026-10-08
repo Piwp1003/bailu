@@ -44,13 +44,13 @@ async function handleWbFileUpload(event) {
 
             list.forEach(item => {
                 if (!item || typeof item !== 'object') return;
-                if (item.disable === true) return; // SillyTavern世界书里被禁用的条目（disable:true）不导入，本app没有"禁用但保留"这个状态
+                if (item.disable === true) return; // 同类软件世界书里被禁用的条目（disable:true）不导入，本app没有"禁用但保留"这个状态
                 const title = (item.title || item.comment || item.name || item.key || '未命名设定').toString().trim() || '未命名设定';
                 const content = (item.content || item.text || item.value || item.entry || '').toString().trim();
                 if (!content) return;
                 const keywordsRaw = item.keywords || (Array.isArray(item.keys) ? item.keys.join(',') : (Array.isArray(item.key) ? item.key.join(',') : ''));
                 const category = (item.category || '').toString().trim() || defaultCategory;
-                // 酒馆世界书条目常见的"次要关键词+触发节奏"字段：keysecondary(次要关键词数组)、selectiveLogic(0=AND_ANY 3=AND_ALL 2=NOT_ANY，
+                // 同类软件世界书条目常见的"次要关键词+触发节奏"字段：keysecondary(次要关键词数组)、selectiveLogic(0=AND_ANY 3=AND_ALL 2=NOT_ANY，
                 // 1=NOT_ALL没有完全对应的模式，就近按not_any处理)、probability(概率触发)、sticky/cooldown/delay(触发节奏，单位是"消息数"，
                 // 跟本app的"轮"概念一致，直接原样搬过来)。没有这些字段的老式世界书文件，以下全部取默认值，行为完全不变。
                 const secondaryKeywordsRaw = Array.isArray(item.keysecondary) ? item.keysecondary.join(',') : '';
@@ -195,7 +195,7 @@ function confirmWbImportAll() {
     saveAllData();
     alert(`✅ 已确认导入 ${addedCount} 条世界书设定！`);
 }
-// 📥 导入 SillyTavern 预设（Chat Completion Preset）的逻辑已经搬到独立的"预设"页面，
+// 📥 导入同类软件预设（Chat Completion Preset）的逻辑已经搬到独立的"预设"页面，
 // 具体实现见 js/15-ai-presets.js（handlePresetFileUpload 等函数）。
 
 function downloadTxt(text, filename) {

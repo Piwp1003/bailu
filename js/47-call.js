@@ -543,7 +543,7 @@ ${last ? '\n【电话里已经说过的】\n' + last + '\n' : ''}`;
             const api = getApiConfig(true);
             if (!api || !api.key) return { ok: true };
             const sched = todayLines(char);
-            const ask = `现在的真实时间：${new Date().toLocaleString('zh-CN', { hour12: false, weekday: 'long' })}。
+            const ask = `现在的真实时间：${new Date().toLocaleString('zh-CN', { hour12: false, year: 'numeric', month: 'numeric', day: 'numeric', weekday: 'long', hour: '2-digit', minute: '2-digit' })}。
 对方给你打电话，手机正在响。
 ${sched ? '\n' + sched + '\n' : ''}
 按你此刻真实的处境决定：这通电话你现在**接不接得了**。

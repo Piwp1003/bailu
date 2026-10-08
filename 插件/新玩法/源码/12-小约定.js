@@ -1,4 +1,4 @@
-/* 🤙 小约定：TA 跟你定小约定（喝水、早睡、吃早饭……），到点来检查；做到了有奖励，没做到会被念叨；你也能跟 TA 定 */
+/* 🤙 小约定：TA 跟你定小约定（喝水、早睡、吃早饭……），到点来检查；做到了有奖励，没做到会被念叨；你也能跟 TA 定。装了「生活小档案」的话，聊天里说过的「下次一起……」「改天……」也会自动记到这里（约定和悬念台账），状态有做到 / 取消 / 没做成 */
 if (window.__gyxPromise) return; window.__gyxPromise = 1;
 X.feat('gyxPromise', { n: '🤙 小约定', desc: 'TA 跟你定小约定、到点来检查，做到有奖励；你也能跟 TA 定' });
 const S = X.store('promise');
@@ -41,7 +41,7 @@ window.gyxPromiseMark = async function (id, ok) {
 // 到点：TA 来检查（问你做到没有）
 async function tick() { if (!X.on('gyxPromise')) return;
     for (const it of D.list) {
-        if (it.done !== null || it.asked || Date.now() < it.due) continue;
+        if (it.done !== null || it.asked || !it.due || Date.now() < it.due) continue;
         it.asked = Date.now(); await S.set('d', D);
         const c = X.char(it.cid); if (!c) continue;
         if (it.by === 'ta') { await X.reach(c, `到点了，来检查你们的小约定「${it.what}」她做到没有（问她，等她回答）`); X.notify(c, `🤙 ${X.name(c)} 来检查约定了：${it.what}`, '做到了吗？', 'gyxPromiseOpen'); }
@@ -54,7 +54,7 @@ async function tick() { if (!X.on('gyxPromise')) return;
 }
 X.action({ key: 'gyx_promise', label: '跟对方定一个今天的小约定（到点来检查）', hint: '关心她：喝水、早睡、吃饭……', need: c => !D.list.some(x => x.cid === String(c.id) && x.day === X.day() && x.by === 'ta'), run: async c => (await propose(c)) ? '跟你定了个小约定' : null }, 'gyxPromise');
 window.gyxPromiseOpen = function () {
-    const now = Date.now(), open = D.list.filter(x => x.done === null), past = D.list.filter(x => x.done !== null).slice(0, 20);
+    const now = Date.now(), open = D.list.filter(x => x.done === null && x.src !== 'chat'), past = D.list.filter(x => x.done !== null).slice(0, 20);
     const ok = D.list.filter(x => x.by === 'ta' && x.done === true).length, all = D.list.filter(x => x.by === 'ta' && x.done !== null).length;
     const tm = t => new Date(t).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     window.GYX_PR_WHO = window.GYX_PR_WHO || String((X.cur() || {}).id || '');
@@ -62,20 +62,40 @@ window.gyxPromiseOpen = function () {
         ${open.map(it => { const c = X.char(it.cid); return `<div class="pr-it ${it.by}"><div class="pr-l"><b>${X.esc(it.what)}</b><span>${it.by === 'ta' ? X.esc(X.name(c)) + ' 跟你约的' : '你跟 ' + X.esc(X.name(c)) + ' 约的'} · ${tm(it.due)} ${now >= it.due ? '该检查了' : '检查'}${it.reward ? ' · 🎁 ' + X.esc(it.reward) : ''}</span></div>${it.by === 'ta' ? `<button class="gyx-btn" onclick="gyxPromiseMark('${it.id}',1)">做到了</button><button class="gyx-btn lite" onclick="gyxPromiseMark('${it.id}',0)">没做到</button>` : `<button class="gyx-btn lite" onclick="gyxPromiseMark('${it.id}',1)">TA 做到了</button><button class="gyx-btn lite" onclick="gyxPromiseMark('${it.id}',0)">没做到</button>`}</div>`; }).join('') || '<div class="gyx-tip">现在没有约定。</div>'}
         <div class="gyx-row"><button class="gyx-btn lite" onclick="this.disabled=true;gyxPromiseTa(GYX_PR_WHO).then(()=>gyxPromiseOpen())">让 TA 跟我定一个</button></div>
         <div class="gyx-card"><div class="gyx-tip">你跟 TA 定一个（TA 到点会来汇报）：</div><div class="gyx-row">${X.whoSel(window.GYX_PR_WHO, 'gyxPromiseWho')}<input id="gyxPrW" class="gyx-who" placeholder="比如：今天不许熬夜" style="flex:1"><input id="gyxPrT" class="gyx-who" type="time" value="22:00"><button class="gyx-btn" onclick="gyxPromiseMine()">约好了</button></div></div>
-        ${past.length ? '<div class="gyx-tip">以前的约定</div>' + past.map(it => `<div class="pr-old">${it.done ? '✅' : '❌'} ${X.esc(it.what)} <span>${new Date(it.due).toLocaleDateString()} · ${it.by === 'ta' ? 'TA 约你' : '你约 TA'}</span></div>`).join('') : ''}
+        ${D.list.filter(x => x.src === 'chat' && x.done === null).length ? '<div class="gyx-tip">聊天里说过、还没做的（悬念）</div>' + D.list.filter(x => x.src === 'chat' && x.done === null).map(it => `<div class="pr-old">💭 ${X.esc(it.what)} <span>${X.esc(X.name(X.char(it.cid)))} · ${it.by === 'me' ? '你说的' : it.by === 'both' ? '说好一起' : 'TA 答应的'} · ${new Date(it.at).toLocaleDateString()}</span> <a onclick="gyxPromiseResolve('${it.id}',true)">做到了</a> <a onclick="gyxPromiseResolve('${it.id}','cancel')">取消</a> <a onclick="gyxPromiseResolve('${it.id}',false)">没做成</a></div>`).join('') : ''}
+        ${past.length ? '<div class="gyx-tip">以前的约定</div>' + past.map(it => `<div class="pr-old">${it.done === 'cancel' ? '🚫' : it.done ? '✅' : '❌'} ${X.esc(it.what)} <span>${new Date(it.due).toLocaleDateString()} · ${it.by === 'ta' ? 'TA 约你' : '你约 TA'}</span></div>`).join('') : ''}
         <div class="gyx-row gyx-tip">默认模式的 TA 每天有 <input class="gyx-who" type="number" min="0" max="100" value="${D.cfg.taPer}" style="width:60px" onchange="gyxPromiseCfg(+this.value)">% 的可能跟你定一个；自主模式的 TA 自己决定。</div>`);
 };
 window.gyxPromiseWho = v => { window.GYX_PR_WHO = v; };
 window.gyxPromiseCfg = v => { D.cfg.taPer = v; S.set('d', D); };
 window.gyxPromiseData = () => D;
+// ---- 约定和悬念台账：聊天里说过、还没做的事（生活小档案插件整理聊天时塞进来；也能手动加） ----
+const normW = t => String(t || '').replace(/[\s，。！？、…~～!?,.]/g, '');
+window.gyxPromiseAddFromChat = async function (o) {
+    if (!o || !o.what || !o.cid) return null;
+    const w = String(o.what).slice(0, 60), k = normW(w);
+    if (D.list.some(x => x.cid === String(o.cid) && normW(x.what) === k)) return null;
+    const it = { id: 'pr' + Date.now() + Math.random().toString(36).slice(2, 5), cid: String(o.cid), by: o.by === 'me' ? 'me' : o.by === 'both' ? 'both' : 'ta', what: w, due: o.due || null, done: null, day: X.day(), at: Date.now(), src: 'chat', note: String(o.note || '') };
+    D.list.unshift(it); await S.set('d', D); return it;
+};
+// 结掉一条：true 做到了 / false 没做成 / 'cancel' 取消了
+window.gyxPromiseResolve = async function (id, st, why) {
+    const it = D.list.find(x => x.id === id); if (!it || it.done !== null) return null;
+    it.done = st === 'cancel' ? 'cancel' : !!st; it.checked = Date.now(); if (why) it.why = String(why); await S.set('d', D);
+    if (document.getElementById('gyxPrOv')) window.gyxPromiseOpen(); return it;
+};
+X.action({ key: 'gyx_promise_follow', label: '跟进你们聊天里说过、还没做的事（下次一起……）', hint: '你一直记着', need: c => D.list.some(x => x.cid === String(c.id) && x.src === 'chat' && x.done === null),
+    run: async c => { const it = X.pick(D.list.filter(x => x.cid === String(c.id) && x.src === 'chat' && x.done === null)); return (await X.reach(c, `你们之前在聊天里说过「${it.what}」${it.by === 'me' ? '（是她说要做的）' : it.by === 'both' ? '（说好一起）' : '（是你答应的）'}，到现在还没做。自然地提起来：问问进展、约个时间、或者坦白你忘了`)) ? '提起了你们说过的事' : null; } }, 'gyxPromise');
+X.ctx(id => { const L = D.list.filter(x => x.cid === String(id) && x.src === 'chat' && x.done === null).slice(0, 6); return L.length ? '【你们说过还没做的事】' + L.map(x => x.what + (x.by === 'me' ? '（她说的）' : x.by === 'both' ? '（一起）' : '（你答应的）')).join('；') + '。记着，别忘了，也别每句都提。' : ''; }, 'gyxPromise');
 X.ctx(id => { const L = D.list.filter(x => x.cid === String(id) && x.done === null); if (!L.length) return ''; return '【你们的小约定】' + L.map(x => x.by === 'ta' ? `你跟她约好「${x.what}」，${new Date(x.due).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} 检查，做到了给她：${x.reward}` : `她跟你约好你要「${x.what}」`).join('；') + '。聊天时可以提醒 / 惦记着。'; }, 'gyxPromise');
-X.widget('gyxPromise', { n: '小约定', sizes: ['s', 'm'], tap: () => window.gyxPromiseOpen(), r: w => { const L = D.list.filter(x => x.done === null); if (w.size === 's') return `<div class="gw-pr2 s"><b>🤙</b><em>${L.length ? L.length + ' 个约定' : '没有约定'}</em></div>`; return `<div class="gw-pr2 m"><b>🤙 小约定</b>${L.slice(0, 3).map(x => `<em>· ${X.esc(x.what)}</em>`).join('') || '<em>今天还没有约定</em>'}</div>`; } });
+X.widget('gyxPromise', { n: '小约定', sizes: ['s', 'm'], tap: () => window.gyxPromiseOpen(), r: w => { const L = D.list.filter(x => x.done === null); if (w.size === 's') return `<div class="gw-pr2 s"><b>🤙</b><em>${L.length ? L.length + ' 个约定' : '没有约定'}</em></div>`; return `<div class="gw-pr2 m"><b>🤙 小约定</b>${L.slice(0, 3).map(x => `<em>· ${X.esc(x.what)}</em>`).join('') || '<em>今天还没有约定</em>'}</div>`; } }, 'gyxPromise');
 X.css('gyxPrCss', `
 .pr-stat{display:flex;gap:8px;margin:6px 0 10px}.pr-stat div{flex:1;background:#f7f7f9;border-radius:14px;padding:10px;text-align:center;font-size:12px;color:#8e8e93}.pr-stat b{display:block;font-size:22px;color:#1d1d1f}
 .pr-it{display:flex;gap:8px;align-items:center;padding:10px 12px;border-radius:16px;background:#fff6e8;margin:8px 0}.pr-it.me{background:#eef6ff}.pr-l{flex:1}.pr-l b{display:block;font-size:15px}.pr-l span{font-size:12px;color:#8e8e93}.pr-it .gyx-btn{padding:7px 12px;font-size:13px}
-.pr-old{font-size:13px;padding:4px 2px}.pr-old span{color:#aaa;font-size:12px;margin-left:6px}
+.pr-old a{color:#1d9bf0;cursor:pointer;font-size:12px;margin-left:4px}.pr-old{font-size:13px;padding:4px 2px}.pr-old span{color:#aaa;font-size:12px;margin-left:6px}
 .gw-pr2{height:100%;display:flex;flex-direction:column;justify-content:center;gap:3px}.gw-pr2.s{align-items:center}.gw-pr2.s b{font-size:30px;font-weight:normal}.gw-pr2 em{font-style:normal;font-size:12.5px;color:var(--pm-sub);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 `);
-X.today(() => ({ title: '🤙 小约定', rows: D.list.filter(x => x.done === null).map(x => ({ t: new Date(x.due).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }), x: X.esc(x.what) + (x.by === 'ta' ? ` <em>${X.esc(X.name(X.char(x.cid)))} 约你的</em>` : ' <em>你约 TA 的</em>'), go: 'gyxPromiseOpen()' })) }), 'gyxPromise');
+X.today(() => ({ title: '🤙 小约定', rows: D.list.filter(x => x.done === null && x.due).map(x => ({ t: new Date(x.due).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }), x: X.esc(x.what) + (x.by === 'ta' ? ` <em>${X.esc(X.name(X.char(x.cid)))} 约你的</em>` : ' <em>你约 TA 的</em>'), go: 'gyxPromiseOpen()' })) }), 'gyxPromise');
 X.mini({ id: 'gyxPromise', icon: '🤙', title: '小约定', desc: 'TA 跟你定小约定、到点来检查，做到有奖励；你也能跟 TA 定', onOpen: () => window.gyxPromiseOpen() });
 (async () => { D = Object.assign(D, await S.get('d', {})); D.list = D.list || []; D.cfg = Object.assign({ taPer: 30 }, D.cfg || {}); setInterval(tick, 60000); setTimeout(tick, 16000); })();
+X.memArr({ k: 'gyxPromise', ico: '🤙', n: '小约定', d: '你们约好的事、做到没有', arr: () => D.list, text: x => x.what, field: 'what', meta: x => (x.by === 'me' ? '你约的' : 'TA 约的') + ' · ' + (x.done === true ? '做到了' : x.done === false ? '没做到' : x.done === 'cancel' ? '取消了' : x.src === 'chat' ? '聊天里说过' : '还没到'), save: () => S.set('d', D) }, 'gyxPromise');

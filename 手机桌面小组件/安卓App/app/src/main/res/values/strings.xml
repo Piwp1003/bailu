@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">谷雨小组件</string>
+    <string name="widget_name">谷雨 · 小卡片</string>
+    <string name="widget_desc">TA 的心情、每日一问、等级、倒数日……放到桌面上</string>
+</resources>

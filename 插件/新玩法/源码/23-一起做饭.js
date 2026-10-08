@@ -77,3 +77,5 @@ X.css('gyxCkCss', `.ck-wait{padding:40px 0;text-align:center;color:#8e8e93}.ck-t
 .ck-done{display:flex;flex-direction:column;align-items:center;gap:12px;padding:30px 0}.ck-done b{font-size:22px}.ck-done span{color:#8e8e93}.ck-log{display:flex;align-items:center;gap:8px;padding:6px 0;font-size:14px}.ck-log img{width:40px;height:40px;object-fit:cover;border-radius:8px}.ck-log span{font-size:12px;color:#aaa;margin-left:auto}`);
 X.mini({ id: 'gyxCook', icon: '🍳', title: '一起做饭', desc: 'TA 一步一步教你做菜：计时器、TA 在旁边说话、做完拍照给 TA 看', onOpen: () => window.gyxCookOpen() });
 (async () => { D = Object.assign(D, await S.get('d', {})); D.log = D.log || []; D.cfg = Object.assign({ voice: true }, D.cfg || {}); })();
+X.widget('gyxCookW', { n: '一起做饭', sizes: ['s', 'm'], tap: () => window.gyxCookOpen(), r: w => { const l = D.log[0]; return X.gw(w, '🍳', '一起做饭', K ? [X.esc(K.dish), '第 ' + (K.i + 1) + '/' + K.steps.length + ' 步'] : [l ? '上次：' + X.esc(l.dish) : '今天做点什么', D.log.length ? '一起做过 ' + D.log.length + ' 道' : '']); } }, 'gyxCook');
+X.memArr({ k: 'gyxCook', ico: '🍳', n: '一起做过的菜', d: '', arr: () => D.log, text: x => x.dish, field: 'dish', save: () => S.set('d', D) }, 'gyxCook');

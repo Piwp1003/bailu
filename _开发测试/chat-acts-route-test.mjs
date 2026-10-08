@@ -113,7 +113,7 @@ await page.evaluate(() => {
 });
 const letterRow = () => page.evaluate(() => (gyTaRhythm(myCharacters[0]) || []).find(r => r.gk === 'letter') || null);
 const hasBar = () => page.evaluate(() => { const el = document.querySelector('#gyToday [data-rhi="8301|letter"]'); return el ? !!el.querySelector('.gyt-rh-bar') : null; });
-check('写信之前：信那张卡还没有"下一次"', !((await letterRow()) || {}).next, JSON.stringify(await letterRow()));
+{ const r0 = (await letterRow()) || {}; check('写信之前（从没写过）：信那张卡也排好了第一次（从 TA 定下间隔那天算起，v209）', r0.next && r0.next === r0.at + r0.ms && !r0.last, JSON.stringify(r0)); }
 await page.evaluate(async () => {
   const c = myCharacters[0];
   c.diaryData.letters.unshift({ id: 'L1', title: '旧信', content: '…', date: Date.now() - 10 * 60000, author: 'char' });
@@ -126,7 +126,7 @@ const before = await hasBar();
 await page.evaluate(async () => { await gyChatActsRunOne(myCharacters[0], { key: 'letter', args: [] }); });
 await page.waitForTimeout(1200);
 const after = await hasBar();
-check('聊天里写完信：「今天」上信那张卡自己刷新出了进度（不用切页）', before === false && after === true, before + '→' + after);
+check('聊天里写完信：「今天」上信那张卡自己刷新了（不用切页），「上一次」变成刚才', after === true && ((await letterRow()) || {}).last > Date.now() - 60000, before + '→' + after);
 check('写完信那张卡的"下一次"有了', ((await letterRow()) || {}).next > Date.now(), JSON.stringify(await letterRow()));
 
 // 日记（自主表 diary）：真实数据里有日记就算"上一次"

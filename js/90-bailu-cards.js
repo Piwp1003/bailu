@@ -25,12 +25,16 @@
     if (window.__bailuCardsLoaded) return;
     window.__bailuCardsLoaded = true;
 
-    const KINDS = ['聊天', '推文', '评论', '信', '日记', '论坛', '匿名', '朋友圈', '电话', '状态', '标题', '旁白', '拍一拍', '表情', '格言', '开场', '通用'];
+    const KINDS = ['聊天', '推文', '评论', '信', '日记', '论坛', '匿名', '朋友圈', '电话', '状态', '标题', '旁白', '拍一拍', '表情', '格言', '开场', '字词', '通用'];
     // 只在自己那一格里用、不会被借去当别的话说的几类（氛围字卡）
-    const SOLO = ['拍一拍', '表情', '格言', '开场'];
+    const SOLO = ['拍一拍', '表情', '格言', '开场', '字词'];
     const DEF_CFG = {
         replyMin: 1, replyMax: 3,      // （旧）一次回几条：下面 w1~w5 有值就按权重来
         w1: 75, w2: 24, w3: 1, w4: 0, w5: 0,   // 回 1/2/3/4/5 条的权重：大多数时候就一句，偶尔连发
+        // 「字词」字卡（宝宝、嗯嗯、想你、🥺…不是整句）怎么用：四种说法各一个权重（没有字词字卡就一直是整句）
+        wdWhole: 60, wdJoin: 15, wdBurst: 10, wdMix: 15,   // 整句 / 几个字词拼成一句 / 一个字词一条连发 / 整句前后夹字词
+        wdJoinMin: 2, wdJoinMax: 4,     // 拼一句用几个字词
+        wdBurstMin: 2, wdBurstMax: 5,   // 连发几条
         readMin: 1.5, readMax: 4,       // 你发完多久「已读」（秒）
         emojiP: 20,                     // 话里夹一个表情字卡的概率（%）
         stickerP: 20,                   // 顺手发张表情包的概率（%，用的是「表情 / 图片」里的表情包）
@@ -109,7 +113,7 @@
     window.bailuCfgFor = cfgFor;
 
     /* ---------------- 解析上传 / 粘贴的字卡 ---------------- */
-    const KIND_ALIAS = { chat: '聊天', 私聊: '聊天', 消息: '聊天', tweet: '推文', post: '推文', 发推: '推文', comment: '评论', 回复: '评论', letter: '信', 信件: '信', diary: '日记', forum: '论坛', anon: '匿名', 匿名区: '匿名', 匿名论坛: '匿名', moment: '朋友圈', call: '电话', 通话: '电话', status: '状态', title: '标题', narration: '旁白', 动作: '旁白', 通用: '通用', any: '通用', poke: '拍一拍', 戳一戳: '拍一拍', emoji: '表情', 颜文字: '表情', motto: '格言', 签名: '格言', intro: '开场', 开场动画: '开场' };
+    const KIND_ALIAS = { 词: '字词', 字: '字词', 碎词: '字词', 语气词: '字词', words: '字词', word: '字词', chat: '聊天', 私聊: '聊天', 消息: '聊天', tweet: '推文', post: '推文', 发推: '推文', comment: '评论', 回复: '评论', letter: '信', 信件: '信', diary: '日记', forum: '论坛', anon: '匿名', 匿名区: '匿名', 匿名论坛: '匿名', moment: '朋友圈', call: '电话', 通话: '电话', status: '状态', title: '标题', narration: '旁白', 动作: '旁白', 通用: '通用', any: '通用', poke: '拍一拍', 戳一戳: '拍一拍', emoji: '表情', 颜文字: '表情', motto: '格言', 签名: '格言', intro: '开场', 开场动画: '开场' };
     const normKind = k => { k = String(k || '').trim(); if (!k) return ''; if (KINDS.includes(k)) return k; return KIND_ALIAS[k] || KIND_ALIAS[k.toLowerCase()] || ''; };
     const charNames = () => (typeof myCharacters !== 'undefined' ? myCharacters : []).map(c => [c.name, c.remark].filter(Boolean)).flat();
     const splitList = v => String(v || '').split(/[\s,，、;；]+/).map(x => x.trim()).filter(Boolean);
@@ -258,6 +262,8 @@
         if (/[|｜/]/.test(tok)) return tok.split(/[|｜/]/).some(x => condOne(x, ch, now));
         if (/^(不是|非|!|！)/.test(tok)) return !condOne(tok.replace(/^(不是|非|!|！)/, ''), ch, now);
         const h = now.getHours(), d = now.getDay(), mo = now.getMonth() + 1;
+        // 🕰️ 「感知真实时间」关上了：写了时间条件的字卡都不抽（js/86）
+        if (typeof window.gyTimeSenseOn === 'function' && !window.gyTimeSenseOn() && (SLOTS[tok] || /^(\d{1,2})[点:：](?:-|到|~|～)(\d{1,2})点?$|^周末$|^工作日$|^(周|星期|礼拜)[日天一二三四五六]$|^[春夏秋冬]天?$|^\d{1,2}月(\d{1,2}[日号]?)?$/.test(tok))) return false;
         if (SLOTS[tok]) { const [a, b] = SLOTS[tok]; return (h >= a && h < b) || (h + 24 >= a && h + 24 < b); }
         let m;
         if ((m = tok.match(/^(\d{1,2})[点:：](?:-|到|~|～)(\d{1,2})[点]?$/))) { const a = +m[1], b = +m[2]; return a <= b ? (h >= a && h < b) : (h >= a || h < b); }
@@ -285,7 +291,7 @@
         return false;   // 认不出的条件：不满足（字卡库里会标出来）
     }
     const pst = () => { try { return typeof window.gyPeriodNow === 'function' ? window.gyPeriodNow() : null; } catch (e) { return null; } };
-    const condOk = (c, ch) => !c.cond || !c.cond.length || c.cond.every(t => condOne(t, ch, new Date()));
+    const condOk = (c, ch) => !c.cond || !c.cond.length || c.cond.every(t => condOne(t, ch, typeof window.gyTimeNow === 'function' ? window.gyTimeNow() : new Date()));   // 🕰️ 自定义时间（js/87）
     const keyHit = c => !!(c.keys && c.keys.length && CUR_SAID && c.keys.some(k => k && CUR_SAID.toLowerCase().includes(String(k).toLowerCase())));
     window.bailuCondKnown = tok => { try { const t = String(tok).replace(/^(不是|非|!|！)/, ''); return t.split(/[|｜/]/).every(x => SLOTS[x] || /^(\d{1,2})[点:：](?:-|到|~|～)(\d{1,2})点?$|^周末$|^工作日$|^(周|星期|礼拜)[日天一二三四五六]$|^[春夏秋冬]天?$|^\d{1,2}月(\d{1,2}[日号]?)?$|心情[:：=]|^(经期|例假|生理期|经期中|大姨妈|经期快到|快来例假|经期前|排卵期|易孕期|排卵日|推迟|经期推迟)$/.test(x)); } catch (e) { return false; } };
     function pool(kind, ch) {
@@ -342,7 +348,7 @@
         return out.map(c => fill(c.t, ch));
     }
     function fill(t, ch) {
-        const d = new Date(), pad = n => String(n).padStart(2, '0');
+        const d = typeof window.gyTimeNow === 'function' ? window.gyTimeNow() : new Date(), pad = n => String(n).padStart(2, '0');
         let uname = '你'; try { uname = (typeof userDisplayName === 'function' && ch) ? userDisplayName(ch) : ((typeof currentUser !== 'undefined' && currentUser.name) || '你'); } catch (e) {}
         return String(t).replace(/\{(user|我|你)\}/g, uname).replace(/\{(char|TA|ta|角色)\}/g, nameOf(ch) || 'TA')
             .replace(/\{time\}/g, pad(d.getHours()) + ':' + pad(d.getMinutes())).replace(/\{date\}/g, (d.getMonth() + 1) + '月' + d.getDate() + '日');
@@ -593,10 +599,29 @@
             if (/repl|comment|评论|回复/.test(k) && C.kind !== '聊天') C.kind = '评论';
             for (let i = 0; i < n; i++) out.push(fillSchema(sc.item, k.replace(/s$/, ''), C, depth + 1));
             C.kind = kind0;
+            if (C.kind === '聊天' && /^(replies|messages|bubbles|lines|msgs)$/.test(k)) return wordify(out, C);
             return out;
         }
         return '';
     }
+    // 「字词」字卡：整句 / 拼成一句 / 一个一条连发 / 整句前后夹几个，按权重挑一种
+    function wordMode(cfg) {
+        const w = [cfg.wdWhole, cfg.wdJoin, cfg.wdBurst, cfg.wdMix].map(x => Math.max(0, +x || 0)), sum = w.reduce((a, b) => a + b, 0);
+        if (!sum) return 0; let r = Math.random() * sum; for (let i = 0; i < 4; i++) { if ((r -= w[i]) < 0) return i; } return 0;
+    }
+    const EMO_HEAD = /^[\u{1F300}-\u{1FAFF}\u2600-\u27BF~～(（]/u, PUNCT_END = /[，。！？!?…~～、]$/;
+    const joinWords = ws => ws.reduce((a, w, i) => !i ? w : a + (EMO_HEAD.test(w) || PUNCT_END.test(a) ? '' : pick(['', ' ', '，', ' '])) + w, '');
+    function wordify(out, C) {
+        const ch = C.char, cf = C.cfg;
+        if (!out.length || !poolRaw('字词', ch).some(c => c.kinds.includes('字词'))) return out;
+        const mode = wordMode(cf); if (!mode) return out;
+        const setText = (r, t) => (r && typeof r === 'object') ? Object.assign({}, r, { text: t }) : t;
+        const textOf2 = r => (r && typeof r === 'object') ? String(r.text || '') : String(r || '');
+        if (mode === 1) return out.map(r => setText(r, joinWords(draw('字词', ch, rint(Math.max(1, +cf.wdJoinMin || 2), Math.max(+cf.wdJoinMin || 2, +cf.wdJoinMax || 4))))));
+        if (mode === 2) { const ws = draw('字词', ch, rint(Math.max(1, +cf.wdBurstMin || 2), Math.max(+cf.wdBurstMin || 2, +cf.wdBurstMax || 5))); return ws.map(w => setText(out[0], w)); }
+        return out.map(r => { const t = textOf2(r), a = Math.random() < 0.6 ? draw('字词', ch, 1)[0] : '', b = !a || Math.random() < 0.4 ? draw('字词', ch, 1)[0] : ''; return setText(r, (a ? a + pick(['，', ' ', '']) : '') + t + (b ? pick(['', ' ']) + b : '')); });
+    }
+    window.bailuWordify = (texts, ch, mode) => { const C = { char: ch || null, cfg: Object.assign({}, cfgFor(ch)) }; if (mode != null) ['wdWhole', 'wdJoin', 'wdBurst', 'wdMix'].forEach((k, i) => C.cfg[k] = i === mode ? 1 : 0); return wordify(texts.map(t => ({ text: t })), C).map(r => r.text); };
     function summarize(C) {
         // 从这次给的聊天记录里挑几句最近的，当成「记下来的事」
         const lines = C.all.split('\n').map(l => l.trim()).filter(l => /^[^\s：:]{1,12}[：:].{2,}/.test(l) && !/^(【|注意|要求|规则)/.test(l));
@@ -811,6 +836,41 @@
         const by = {}; S.cards.forEach(c => (c.kinds.length ? c.kinds : ['通用']).forEach(k => { by[k] = (by[k] || 0) + 1; }));
         return KINDS.map(k => `<span class="bl-chip${F.kind === k ? ' on' : ''}" onclick="bailuF('kind','${k}')">${k} ${by[k] || 0}</span>`).join('');
     }
+    // 多选：批量改分组 / 改类型 / 启用停用 / 删除
+    let SEL = new Set(), MULTI = false;
+    function filtered() {
+        let L = S.cards;
+        if (F.kind) L = L.filter(c => F.kind === '通用' ? !c.kinds.length : c.kinds.includes(F.kind));
+        if (F.char) L = L.filter(c => F.char === '*' ? !c.chars.length : c.chars.includes(F.char));
+        if (F.q) L = L.filter(c => c.t.includes(F.q));
+        if (F.g) L = L.filter(c => F.g === '-' ? !c.g : c.g === F.g);
+        return L;
+    }
+    function batchHtml() {
+        if (!MULTI) return `<span class="bl-bt" onclick="bailuMulti(1)">☑️ 多选 / 批量改</span>`;
+        const n = SEL.size;
+        return `<div class="bl-batch-on"><b>已选 ${n} 张</b><span onclick="bailuSelAll()">全选筛出来的（${filtered().length}）</span><span onclick="bailuSelNone()">清空</span>
+            <select onchange="if(this.value)bailuBatch('group',this.value);this.value=''"><option value="">移到分组…</option><option value="-">（移出分组）</option>${S.groups.map(g => `<option value="${g.id}">${esc(g.name)}</option>`).join('')}<option value="+">＋ 新分组…</option></select>
+            <select onchange="if(this.value)bailuBatch('kind',this.value);this.value=''"><option value="">改类型…</option>${KINDS.map(k => `<option>${k}</option>`).join('')}</select>
+            <span onclick="bailuBatch('on')">启用</span><span onclick="bailuBatch('off')">停用</span><span class="del" onclick="bailuBatch('del')">删除</span><span onclick="bailuMulti(0)">完成</span></div>`;
+    }
+    window.bailuMulti = v => { MULTI = !!v; if (!MULTI) SEL.clear(); paint(); };
+    window.bailuSel = (id, on) => { on ? SEL.add(id) : SEL.delete(id); const b = document.querySelector('#bailuBox .bl-batch'); if (b) b.innerHTML = batchHtml(); };
+    window.bailuSelAll = () => { filtered().forEach(c => SEL.add(c.id)); paint(); };
+    window.bailuSelNone = () => { SEL.clear(); paint(); };
+    window.bailuBatch = async function (op, v) {
+        if (!SEL.size) return toast('还没选字卡', '先勾几张，或者点「全选筛出来的」');
+        const L = S.cards.filter(c => SEL.has(c.id));
+        if (op === 'del') { if (!(await askOk(`删掉选中的 ${L.length} 张字卡？`))) return; S.cards = S.cards.filter(c => !SEL.has(c.id)); SEL.clear(); }
+        else if (op === 'on' || op === 'off') L.forEach(c => { c.off = op === 'off'; });
+        else if (op === 'kind') L.forEach(c => { c.kinds = v === '通用' ? [] : [v]; });
+        else if (op === 'group') {
+            let gid = v;
+            if (v === '+') { const name = (await (typeof appPrompt === 'function' ? appPrompt('新分组叫什么？', '') : Promise.resolve(prompt('新分组叫什么？', ''))) || '').trim(); if (!name) return; gid = groupByName(name).id; }
+            L.forEach(c => { if (gid === '-') delete c.g; else c.g = gid; });
+        }
+        await save(); paint(); toast(`改好了 ${L.length} 张`, '');
+    };
     function listHtml() {
         let L = S.cards;
         if (F.kind) L = L.filter(c => F.kind === '通用' ? !c.kinds.length : c.kinds.includes(F.kind));
@@ -818,7 +878,7 @@
         if (F.q) L = L.filter(c => c.t.includes(F.q));
         if (F.g) L = L.filter(c => F.g === '-' ? !c.g : c.g === F.g);
         const shown = L.slice(-300).reverse();
-        return `<div class="bl-n">共 ${L.length} 张${L.length > shown.length ? `（先显示最新的 ${shown.length} 张，用上面的筛选找别的）` : ''}</div>` + shown.map(c => `<div class="bl-card${c.off ? ' off' : ''}">
+        return `<div class="bl-n">共 ${L.length} 张${L.length > shown.length ? `（先显示最新的 ${shown.length} 张，用上面的筛选找别的）` : ''}</div>` + shown.map(c => `<div class="bl-card${c.off ? ' off' : ''}${MULTI && SEL.has(c.id) ? ' sel' : ''}">${MULTI ? `<label class="bl-ck"><input type="checkbox" ${SEL.has(c.id) ? 'checked' : ''} onchange="bailuSel('${c.id}',this.checked);this.closest('.bl-card').classList.toggle('sel',this.checked)"></label>` : ''}
             <div class="t" contenteditable="true" onblur="bailuEdit('${c.id}',this.innerText)">${esc(c.t)}</div>
             <div class="m">${gTag(c)}<span>${esc(c.kinds.join('、') || '通用')}</span><span>${esc(c.chars.join('、') || '谁都能用')}</span>${(c.cond || []).map(t => `<span class="bl-cond${window.bailuCondKnown(t) ? '' : ' bad'}" title="${window.bailuCondKnown(t) ? '条件' : '认不出这个条件，这张卡不会被用到'}">⏱ ${esc(t)}</span>`).join('')}${(c.keys || []).length ? `<span class="bl-key">🔑 ${esc(c.keys.join(' '))}</span>` : ''}${c.sample ? '<span class="s">示例</span>' : ''}
             <i onclick="bailuTag('${c.id}')">改标签</i><i onclick="bailuPickGroup('${c.id}')">分组</i><i onclick="bailuToggle('${c.id}')">${c.off ? '启用' : '停用'}</i><i class="del" onclick="bailuDel('${c.id}')">删除</i></div></div>`).join('');
@@ -852,6 +912,9 @@
             + row('readMin', '你发完，最快多久已读', 0, null, 0.1, '秒') + row('readMax', '你发完，最慢多久已读', 0, null, 0.1, '秒')
             + row('delayMin', '已读后最少想多久再回', 0, null, 0.1, '秒') + row('delayMax', '已读后最多想多久再回', 0, null, 0.1, '秒')
             + row('silence', '已读不回的概率', 0, 100, 1, '%')
+            + sec('字词字卡（宝宝、嗯嗯、想你、🥺…）怎么用') + '<div class="bl-tip">字卡类型选「字词」就是零碎的词，不用写成整句。下面四个是权重，按比例随机挑一种；没有字词字卡时永远是整句。</div>'
+            + row('wdWhole', '整句（照常用整句字卡）', 0) + row('wdJoin', '拼成一句（宝宝 想你🥺）', 0) + row('wdBurst', '一个词一条，连发几条', 0) + row('wdMix', '整句前后夹一两个字词', 0)
+            + row('wdJoinMin', '拼一句：最少几个词', 1) + row('wdJoinMax', '拼一句：最多几个词', 1) + row('wdBurstMin', '连发：最少几条', 1) + row('wdBurstMax', '连发：最多几条', 1)
             + sec('聊天里的小动作') + row('emojiP', '话里夹个表情字卡', 0, 100, 1, '%') + row('stickerP', '顺手发张表情包', 0, 100, 1, '%') + row('quoteP', '引用你说过的话再回', 0, 100, 1, '%') + row('pokeP', '拍一拍你', 0, 100, 1, '%')
             + sec('TA 做事') + row('obey', '你让 TA 做事，TA 照做', 0, 100, 1, '%') + row('accept', '答应邀请 / 接电话', 0, 100, 1, '%') + row('activity', '自主模式里「做点什么」', 0, 100, 1, '%')
             + row('nextMin', '自主模式：最快多久再想想', 1, null, 1, '分钟') + row('nextMax', '自主模式：最慢多久再想想', 1, null, 1, '分钟')
@@ -867,6 +930,7 @@
         box.querySelector('.bl-groups').innerHTML = groupsHtml();
         box.querySelector('.bl-gop').innerHTML = groupOps();
         box.querySelector('.bl-list').innerHTML = listHtml();
+        const bb = box.querySelector('.bl-batch'); if (bb) bb.innerHTML = batchHtml();
         const ig = document.getElementById('bailuImpGroup'); if (ig) { const v = IMP.g; ig.innerHTML = '<option value="">不放进分组</option>' + S.groups.map(g => `<option value="${g.id}">${esc(g.name)}</option>`).join(''); ig.value = v; }
     }
     window.bailuOpen = function () {
@@ -904,8 +968,8 @@
             <details class="bl-sec"><summary>🎲 概率和节奏</summary><div class="bl-cfgs">${cfgHtml()}</div></details>
             <div class="bl-sec"><div class="bl-filter"><input placeholder="搜字卡" oninput="bailuF('q',this.value)"></div>
                 <div class="bl-stats"></div><div class="bl-chars"></div><div class="bl-groups"></div><div class="bl-gop"></div>
-                <div class="bl-ops"><span onclick="bailuExport()">导出全部</span><span onclick="bailuExportShown()" title="上面选了哪个角色，就是导出这个人的字卡">导出筛出来的</span><span onclick="bailuDedup()">一键去重</span><span onclick="bailuGroupShown()">把筛出来的放进分组</span><span onclick="bailuToggleShown()">筛出来的全部停用/启用</span><span onclick="bailuSamples()">${S.cards.some(c => c.sample) ? '删掉示例字卡' : '放回示例字卡'}</span><span class="del" onclick="bailuClearShown()">删掉当前筛出来的</span></div>
-                <div class="bl-list"></div></div>
+                <div class="bl-ops"><span onclick="bailuExport()">导出全部</span><span onclick="bailuExportShown()" title="上面选了哪个角色，就是导出这个人的字卡">导出筛出来的</span><span onclick="bailuAddBuiltin(1)">放回内置一万条</span><span onclick="bailuDedup()">一键去重</span><span onclick="bailuGroupShown()">把筛出来的放进分组</span><span onclick="bailuToggleShown()">筛出来的全部停用/启用</span><span onclick="bailuSamples()">${S.cards.some(c => c.sample) ? '删掉示例字卡' : '放回示例字卡'}</span><span class="del" onclick="bailuClearShown()">删掉当前筛出来的</span></div>
+                <div class="bl-batch"></div><div class="bl-list"></div></div>
         </div>`;
         document.body.appendChild(ov);
         ov.style.display = 'flex';
@@ -980,6 +1044,26 @@
         await save(); paint(); toast(n ? `🃏 收集到 ${n} 张新字卡` : '没有新的可收集', n ? '来自聊天记录、推文和信件' : '');
     };
     window.bailuEdit = async function (id, t) { const c = S.cards.find(x => x.id === id); if (!c) return; t = String(t || '').trim(); if (!t || t === c.t) return; c.t = t; delete c.sample; await save(); };
+    // 内置一万条字卡（js/92）：第一次打开自动导入成一个分组，全部是「通用」，谁都能用；整组停用 / 删掉 / 批量改都行
+    window.bailuAddBuiltin = async function (force) {
+        const L = window.BAILU_BUILTIN || [], WL = window.BAILU_BUILTIN_WORDS || []; if (!L.length && !WL.length && !(window.BAILU_BUILTIN_KAO || []).length) return 0;
+        await ready;
+        let n = 0;
+        if (L.length && (force || !(S.cfg.builtinV >= 1))) { const g = groupByName('内置字卡（一万条）'); n += addCards(L.map((t, i) => ({ id: 'kb' + i.toString(36) + uid(), t, kinds: [], chars: [], g: g.id })), 'add', g.id); S.cfg.builtinV = 1; }
+        // 字词字卡（宝宝、嗯嗯、想你…）：单独一组，类型是「字词」
+        // 第 2 版：字词加到三千多个，另加一组「内置颜文字」（颜文字 + emoji）；已经导入过的不会重复
+        const KL = window.BAILU_BUILTIN_KAO || [];
+        if ((WL.length || KL.length) && (force || !(S.cfg.builtinWV >= 2))) {
+            if (WL.length) { const g = groupByName('内置字词'); n += addCards(WL.map((t, i) => ({ id: 'kw' + i.toString(36) + uid(), t, kinds: ['字词'], chars: [], g: g.id })), 'add', g.id); }
+            if (KL.length) { const g = groupByName('内置颜文字'); n += addCards(KL.map((t, i) => ({ id: 'kk' + i.toString(36) + uid(), t, kinds: ['字词'], chars: [], g: g.id })), 'add', g.id); }
+            S.cfg.builtinWV = 2;
+        }
+        if (!n && !force) return 0;
+        await save();
+        try { if (document.getElementById('bailuBox')) paint(); } catch (e) {}
+        if (force) toast(`🃏 放回了 ${n} 张内置字卡`, '在分组「内置字卡（一万条）」「内置字词」「内置颜文字」里');
+        return n;
+    };
     window.bailuDel = async function (id) { S.cards = S.cards.filter(x => x.id !== id); await save(); paint(); };
     window.bailuToggle = async function (id) { const c = S.cards.find(x => x.id === id); if (c) { c.off = !c.off; await save(); paint(); } };
     window.bailuTag = async function (id) {
@@ -1078,7 +1162,7 @@
 .bl-cfg.own span{color:#1d9bf0;font-weight:600}
 .bl-cond{padding:0 6px;border-radius:6px;background:#eef6ff;color:#3a78c2}.bl-cond.bad{background:#fdecec;color:#d33;text-decoration:line-through}.bl-key{padding:0 6px;border-radius:6px;background:#fff5e0;color:#b27400}
 .bl-gtag{padding:0 6px;border-radius:6px;font-size:11px}
-.bl-card{border:1px solid #eee;border-radius:12px;padding:8px 10px;margin-bottom:6px}.bl-card.off{opacity:.45}
+.bl-card{border:1px solid #eee;border-radius:12px;padding:8px 10px;margin-bottom:6px}.bl-card.off{opacity:.45}.bl-card{position:relative}.bl-card.sel{border-color:#1d9bf0;background:#f0f8ff}.bl-ck{position:absolute;right:8px;top:6px}.bl-ck input{width:18px;height:18px}.bl-bt{display:inline-block;margin:6px 0;font-size:12.5px;color:#1d9bf0;cursor:pointer}.bl-batch-on{position:sticky;top:0;z-index:2;display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:8px 10px;margin:6px 0;border-radius:12px;background:#1d1d1f;color:#fff;font-size:12.5px}.bl-batch-on span{cursor:pointer;padding:3px 8px;border-radius:8px;background:rgba(255,255,255,.14)}.bl-batch-on span.del{background:#e0245e}.bl-batch-on select{font-size:12px;border-radius:8px;padding:3px 4px}
 .bl-card .t{font-size:14px;line-height:1.55;outline:none;white-space:pre-wrap}.bl-card .t:focus{background:#fffbe6}
 .bl-card .m{display:flex;flex-wrap:wrap;gap:8px;font-size:11.5px;color:#999;margin-top:4px;align-items:center}.bl-card .m .s{color:#d08b00}
 .bl-card .m i{font-style:normal;color:#576b95;cursor:pointer}.bl-card .m i.del{color:#e0443e}

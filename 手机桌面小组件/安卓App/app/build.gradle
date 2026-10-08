@@ -1,0 +1,26 @@
+plugins { id 'com.android.application' }
+android {
+    namespace 'com.guyu.widget'
+    compileSdk 34
+    defaultConfig {
+        applicationId 'com.guyu.widget'
+        minSdk 21
+        targetSdk 34
+        versionCode 1
+        versionName '1.0'
+    }
+    // 固定的签名：以后重新打包也能直接覆盖安装，不用先卸载（这个小组件不涉及隐私，钥匙放仓库里没关系）
+    signingConfigs {
+        fixed {
+            storeFile file('guyu-widget.jks')
+            storePassword 'guyuwidget'
+            keyAlias 'guyu'
+            keyPassword 'guyuwidget'
+        }
+    }
+    buildTypes {
+        debug { signingConfig signingConfigs.fixed }
+        release { minifyEnabled false; signingConfig signingConfigs.fixed }
+    }
+    compileOptions { sourceCompatibility JavaVersion.VERSION_1_8; targetCompatibility JavaVersion.VERSION_1_8 }
+}

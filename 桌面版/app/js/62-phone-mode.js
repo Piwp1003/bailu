@@ -177,6 +177,14 @@ body.gyphm-mob.gyphm-float .main-content{position:fixed!important;left:0!importa
 body.gyphm.gyphm-float #gyPmBar,body.gyphm.gyphm-float .main-content,body.gyphm.gyphm-float #gyPmApp{transition:transform .38s cubic-bezier(.2,.85,.25,1)}
 body.gyphm.gyphm-float.pm-fl-drag #gyPmBar,body.gyphm.gyphm-float.pm-fl-drag .main-content,body.gyphm.gyphm-float.pm-fl-drag #gyPmApp{transition:none}
 #gyPmFloat{display:none;position:fixed;z-index:2006;pointer-events:none}
+#gyPmPip{position:fixed;z-index:2007;border-radius:18px;box-shadow:0 0 0 1px rgba(0,0,0,.12),0 18px 40px rgba(0,0,0,.28);background:var(--pm-card,#fff)}
+#gyPmPip .scr{position:absolute;inset:0;border-radius:18px;overflow:hidden}
+#gyPmPip .inner{transform-origin:0 0;overflow-y:auto;overflow-x:hidden;display:flex;flex-direction:column;background:var(--pm-bg,#fff)}
+#gyPmPip .inner>*{display:var(--pd)!important;flex:1 0 auto;min-height:100%}
+#gyPmPip.snap .inner{pointer-events:none}#gyPmPip.snap .scr{cursor:pointer}
+#gyPmPip .gb{position:absolute;left:0;right:0;top:-30px;height:28px;display:flex;align-items:center;justify-content:space-between;cursor:grab;touch-action:none;padding:0 4px}
+#gyPmPip .gb i{font-style:normal;width:26px;height:26px;border-radius:50%;background:rgba(30,30,32,.72);color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;cursor:pointer}
+#gyPmPip .gb b{font-size:11px;padding:3px 10px;border-radius:10px;background:rgba(30,30,32,.62);color:#fff;max-width:60%;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-weight:500}
 body.gyphm-float #gyPmFloat{display:block}
 #gyPmFloat .fr{position:absolute;inset:0;border-radius:18px;box-shadow:0 0 0 1px rgba(0,0,0,.12),0 18px 40px rgba(0,0,0,.28)}
 #gyPmFloat .gb{position:absolute;left:0;right:0;top:-30px;height:28px;display:flex;align-items:center;justify-content:space-between;pointer-events:auto;cursor:grab;touch-action:none;padding:0 4px}
@@ -519,6 +527,15 @@ body.gyphm #gyChatHead{background:transparent!important;border-bottom:.5px solid
         setTimeout(done, 390);
     };
     window.gyPmFloatOn = () => F.on;
+    // 小窗开着时点了别的 App：小窗不收，里面换成这个 App 接着浮着（想看大的点 ⤢）
+    function flKeep() {
+        if (!F.on) return;
+        document.body.classList.add('gyphm-app', 'gyphm-float');
+        const r = scrRect();
+        flEls().forEach(el => { if (!el.style.transformOrigin) { const pt = el.style.transform; el.style.transform = 'none'; const b = el.getBoundingClientRect(); el.style.transformOrigin = `${r.left - b.left}px ${r.top - b.top}px`; el.style.transform = pt; } });
+        flApply(); renderHome();
+        requestAnimationFrame(() => { if (F.on) flApply(); });
+    }
     function flBind(fl) {
         const gb = fl.querySelector('.gb'); let d = null;
         gb.addEventListener('pointerdown', e => { if (e.target.closest('[data-fl]')) return; d = { x: e.clientX - F.x, y: e.clientY - F.y, id: e.pointerId }; document.body.classList.add('pm-fl-drag'); try { gb.setPointerCapture(e.pointerId); } catch (er) {} });
@@ -532,22 +549,25 @@ body.gyphm #gyChatHead{background:transparent!important;border-bottom:.5px solid
     // 小手机自己的「原生 App」（日历这种）：盖在屏幕里，跟白露的页面一样有顶栏和返回
     window.gyPmNative = function (title, html, opts) {
         const n = document.getElementById('gyPmApp'); if (!n) return null;
-        if (F.on) window.gyPmFloat(false, true);
+        const pp = F.on ? pipBegin() : null;
         enterApp(); document.body.classList.add('gyphm-native');
         S.native = { back: opts && opts.back };
         n.innerHTML = html; n.classList.add('on'); n.scrollTop = 0;
         setTitle(title); syncNav();
+        if (pp) pipEnd(pp);
         return n;
     };
     window.gyPmOpen = function (key) {
         const a = appOf(key); if (!a) return;
         const j = a[4];
-        if (F.on && !j.sheet && !(j.fn && !j.native)) window.gyPmFloat(false, true);   // 开别的 App：小窗先收起来
+        // 开别的 App：小窗不收起来，里面换成新 App 接着浮着（以前是先收起来）
         if (j.sheet) { if (typeof window.gyPmBeauty === 'function') window.gyPmBeauty(); return; }
         // 弹窗类（相册、账单）：直接盖在桌面上，不用进 App
         if (j.fn && !j.native) { try { window[j.fn].apply(null, j.args || []); } catch (e) { console.warn('[小手机] 打开失败：', e); } return; }
+        // 🪟 小窗开着时点了别的 App：原来那个留在小窗里（还能点），新的这个全屏打开
+        const pp = F.on ? pipBegin() : null;
         closeNative();
-        if (j.native) { try { window[j.fn].apply(null, j.args || []); } catch (e) { console.warn('[小手机] 打开失败：', e); } zoomFrom(key); return; }
+        if (j.native) { try { window[j.fn].apply(null, j.args || []); } catch (e) { console.warn('[小手机] 打开失败：', e); } if (pp && !pp.done) pipEnd(pp); zoomFrom(key); return; }
         enterApp(); setTitle(a[1]); S.stack = []; S.app = key;
         S.nav = true;
         try {
@@ -569,18 +589,127 @@ body.gyphm #gyChatHead{background:transparent!important;border-bottom:.5px solid
         setTitle(t); S.stack = [{ v: j.today ? 'today' : (j.feature ? 'featurePage' : S.view), p: j.param, t }];
         syncNav();
         try { document.querySelector('.main-content').scrollTop = 0; } catch (e) {}
+        if (pp) pipEnd(pp);
         zoomFrom(key);
     };
     window.gyPmOpenChat = function (id) {
-        if (F.on) window.gyPmFloat(false, true);
+        const pp = F.on ? pipBegin() : null;
         closeNative(); enterApp();
         S.nav = true;
         try { switchMainView('chat'); switchChatSession(String(id)); } catch (e) {}
         S.nav = false;
         S.stack = [{ v: 'chat', t: '聊天' }];
         const s = sessOf(id); setTitle(s ? (s.remark || s.name) : '聊天'); syncNav();
+        if (pp) pipEnd(pp);
         zoomFrom('chat');
     };
+
+    /* ---------------- 🪟 画中画：小窗里留着原来那个 App，屏幕上是新点开的 ----------------
+       · 原来那页和新开的不是同一页（比如聊天 → 日记）：把原来那页**整个搬进小窗**，里面照样能点、能打字、会实时更新。
+       · 是同一页（比如跟 A 聊着又点开跟 B 聊）：小窗里放一张原来那页的快照，点 ⤢ 就回到原来那个。
+       · ⤢：回到小窗里那个 App（全屏）；✕：关掉小窗；拖顶上那条能挪，松手自己靠边。 */
+    const PIP = { on: false };
+    const viewEls = () => [...document.querySelectorAll('.main-content > [id^="view-"]')];
+    const shown = el => !!el && getComputedStyle(el).display !== 'none';
+    function pipBegin() {
+        if (PIP.on) pipClose();
+        const nat = !!S.native;
+        const el = nat ? document.getElementById('gyPmApp') : viewEls().find(shown);
+        const info = { el, native: nat, title: (document.getElementById('gyPmT') || {}).textContent || '', stack: S.stack.slice(), view: S.view, app: S.app,
+            chat: (!nat && S.view === 'chat' && chatOpen() && typeof currentChatSessionId !== 'undefined') ? String(currentChatSessionId) : null,
+            disp: el ? getComputedStyle(el).display : 'block', snap: null, parent: el && el.parentNode, next: el && el.nextSibling };
+        if (el) { const c = el.cloneNode(true); c.querySelectorAll('[id]').forEach(x => x.removeAttribute('id')); c.removeAttribute('id'); c.querySelectorAll('input,textarea,button,select').forEach(x => { x.disabled = true; }); info.snap = c; }
+        window.gyPmFloat(false, true);
+        return info;
+    }
+    function pipEnd(info) {
+        if (!info || info.done) return; info.done = true;
+        if (!info.el) return;
+        const live = !info.native && !shown(info.el) && info.el.parentNode;
+        const r = scrRect();
+        let pp = document.getElementById('gyPmPip');
+        if (!pp) {
+            pp = document.createElement('div'); pp.id = 'gyPmPip';
+            pp.innerHTML = '<div class="gb"><i data-pp="max" title="回到这个 App">⤢</i><b></b><i data-pp="x" title="关掉小窗">✕</i></div><div class="scr"><div class="inner"></div></div>';
+            document.body.appendChild(pp); pipBind(pp);
+        }
+        const inner = pp.querySelector('.inner');
+        inner.innerHTML = '';
+        Object.assign(inner.style, { width: r.width + 'px', height: r.height + 'px', transform: `scale(${F.s})` });
+        inner.style.setProperty('--pd', info.disp === 'none' ? 'block' : info.disp);
+        pp.querySelector('.gb b').textContent = info.title || '';
+        if (live) { inner.appendChild(info.el); info.el.classList.add('gy-in-pip'); pp.classList.remove('snap'); }
+        else { inner.appendChild(info.snap); pp.classList.add('snap'); }
+        Object.assign(PIP, info, { on: true, live: !!live });
+        const w = r.width * F.s, h = r.height * F.s;
+        PIP.x = PIP.x != null ? PIP.x : r.left + r.width - w - 12; PIP.y = PIP.y != null ? PIP.y : r.top + r.height - h - 118;
+        pipApply();
+        document.body.classList.add('gyphm-pip');
+    }
+    function pipApply() {
+        const pp = document.getElementById('gyPmPip'); if (!pp) return;
+        const r = scrRect(), w = r.width * F.s, h = r.height * F.s;
+        PIP.x = Math.max(r.left + 6, Math.min(r.left + r.width - w - 6, PIP.x)); PIP.y = Math.max(r.top + 40, Math.min(r.top + r.height - h - 10, PIP.y));
+        Object.assign(pp.style, { left: PIP.x + 'px', top: PIP.y + 'px', width: w + 'px', height: h + 'px' });
+    }
+    // 把搬进小窗的那页放回原处
+    function putBack() {
+        if (PIP.live && PIP.el) {
+            PIP.el.classList.remove('gy-in-pip');
+            try { if (PIP.next && PIP.next.parentNode === PIP.parent) PIP.parent.insertBefore(PIP.el, PIP.next); else PIP.parent.appendChild(PIP.el); } catch (e) { try { document.querySelector('.main-content').appendChild(PIP.el); } catch (er) {} }
+        }
+    }
+    function pipClose() {
+        if (!PIP.on) return;
+        const keep = PIP.live && PIP.el && PIP.el.style.display !== 'none';
+        putBack();
+        if (PIP.live && PIP.el && !keep) PIP.el.style.display = 'none';
+        const pp = document.getElementById('gyPmPip'); if (pp) pp.remove();
+        PIP.on = false; PIP.live = false; PIP.el = null;
+        document.body.classList.remove('gyphm-pip');
+    }
+    window.gyPmPipOn = () => PIP.on;
+    window.gyPmPipClose = pipClose;
+    window.gyPmPipInfo = () => PIP.on ? { live: PIP.live, title: PIP.title, view: PIP.view, chat: PIP.chat, el: PIP.el && PIP.el.id } : null;
+    // ⤢：回到小窗里那个 App
+    window.gyPmPipMax = function () {
+        if (!PIP.on) return;
+        const info = { stack: PIP.stack, view: PIP.view, chat: PIP.chat, title: PIP.title, native: PIP.native };
+        pipClose();
+        closeSheet(); closeNative(); enterApp();
+        S.nav = true;
+        try {
+            if (info.chat) { switchMainView('chat'); switchChatSession(info.chat); }
+            else if (info.view === 'today') { if (typeof openMobileTrendsView === 'function') openMobileTrendsView(); }
+            else { const top = info.stack[info.stack.length - 1]; if (top && top.v === 'featurePage' && S.app) window.gyPmOpen(S.app); else if (top) switchMainView(top.v, top.p); }
+        } catch (e) {}
+        S.nav = false;
+        S.stack = info.stack.length ? info.stack : S.stack; S.view = info.view;
+        setTitle(info.title); syncNav();
+    };
+    function pipBind(pp) {
+        const gb = pp.querySelector('.gb'); let d = null;
+        gb.addEventListener('pointerdown', e => { if (e.target.closest('[data-pp]')) return; d = { x: e.clientX - PIP.x, y: e.clientY - PIP.y, id: e.pointerId }; try { gb.setPointerCapture(e.pointerId); } catch (er) {} });
+        gb.addEventListener('pointermove', e => { if (!d || e.pointerId !== d.id) return; PIP.x = e.clientX - d.x; PIP.y = e.clientY - d.y; pipApply(); });
+        const up = () => { if (!d) return; d = null; const r = scrRect(), w = r.width * F.s; PIP.x = (PIP.x + w / 2 < r.left + r.width / 2) ? r.left + 12 : r.left + r.width - w - 12; pipApply(); };
+        gb.addEventListener('pointerup', up); gb.addEventListener('pointercancel', up);
+        gb.addEventListener('click', e => { const b = e.target.closest('[data-pp]'); if (!b) return; if (b.dataset.pp === 'max') window.gyPmPipMax(); else pipClose(); });
+        // 快照模式：点里面任何地方都是「回到这个 App」
+        pp.querySelector('.scr').addEventListener('click', () => { if (pp.classList.contains('snap')) window.gyPmPipMax(); });
+    }
+    // 别处又要显示小窗里那一页（比如从桌面又点开同一个 App）：先把它放回去，小窗收起
+    function hookRouter() {
+        if (typeof window.switchMainView !== 'function' || window.switchMainView.__gyPip) return;
+        const f0 = window.switchMainView;
+        window.switchMainView = function () {
+            const r = f0.apply(this, arguments);
+            try { if (PIP.on && PIP.live && PIP.el && PIP.el.style.display && PIP.el.style.display !== 'none') pipClose(); } catch (e) {}
+            return r;
+        };
+        window.switchMainView.__gyPip = true;
+    }
+    hookRouter(); setTimeout(hookRouter, 1500);
+    window.addEventListener('resize', () => { if (PIP.on) pipApply(); });
     window.gyPmHome = function () {
         if (F.on) window.gyPmFloat(false, true);
         closeSheet(); closeNative();

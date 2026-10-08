@@ -401,12 +401,21 @@ function makeMiniGamePanelDraggable(panel, handle) {
     document.addEventListener('touchend', pointerUp);
 }
 
+// 插件列表：每张卡左边一个勾选框，顶上一排批量操作（全选 / 反选 / 启用 / 停用 / 导出选中 / 删除选中）
+let pluginSel = new Set();
+const plgOverwriteOn = () => { try { return localStorage.getItem('gyPlgOverwrite') !== '0'; } catch (e) { return true; } };
+function setPluginOverwrite(v) { try { localStorage.setItem('gyPlgOverwrite', v ? '1' : '0'); } catch (e) {} }
 function renderPluginsList() {
     const container = document.getElementById('pluginsList');
     if (!container) return;
-    if (!plugins || plugins.length === 0) { container.innerHTML = '<div class="empty-state">还没有安装任何插件，从下面导入或新建一个吧</div>'; return; }
+    const ow = `<label style="display:flex; align-items:center; gap:6px; font-size:13px; color:#536471;"><input type="checkbox" ${plgOverwriteOn() ? 'checked' : ''} onchange="setPluginOverwrite(this.checked)"> 导入时同名插件直接覆盖（不会多出一份），覆盖完自动刷新生效</label>`;
+    if (!plugins || plugins.length === 0) { container.innerHTML = ow + '<div class="empty-state">还没有安装任何插件，从上面导入或新建一个吧（导入可以一次选好几个文件）</div>'; return; }
+    pluginSel = new Set([...pluginSel].filter(id => plugins.some(p => p.id === id)));
+    const n = pluginSel.size, q = s => `<span class="plg-bt" onclick="${s[1]}">${s[0]}</span>`;
+    const bar = `<div class="plg-bar">${ow}<div class="plg-bar-row"><label style="display:flex;align-items:center;gap:4px;"><input type="checkbox" ${n && n === plugins.length ? 'checked' : ''} onchange="pluginSelAll(this.checked)"> 全选</label>${q(['反选', 'pluginSelInvert()'])}<span style="color:#8b98a5;">已选 ${n} / ${plugins.length}</span>
+        ${n ? [['启用', "pluginBatch('on')"], ['停用', "pluginBatch('off')"], ['导出选中', "pluginBatch('export')"], ['🗑 删除选中', "pluginBatch('del')"]].map(q).join('') : ''}</div></div>`;
     const typeLabel = { prompt: '📜 提示词规则', action: '⚡ 快捷动作', macro: '🔤 宏', script: '🧬 脚本钩子(进阶)' };
-    container.innerHTML = plugins.map(p => {
+    container.innerHTML = bar + plugins.map(p => {
         let scopeLabel;
         if (p.scope === 'global') scopeLabel = '全局生效';
         else if (Array.isArray(p.scope)) scopeLabel = `仅限：${p.scope.map(id => myCharacters.find(c => c.id == id)?.name || '未知角色').join('、') || '（未选择角色）'}`;
@@ -414,14 +423,15 @@ function renderPluginsList() {
         const bodyText = p.promptText || p.actionPrompt || p.macroValue || p.code || '';
         const descHtml = p.description ? `<div class="plugin-clamp-wrap"><div class="plugin-clamp-text" style="font-size:12px; color:#8b98a5;">${escapeHtml(p.description)}</div><span class="plugin-expand-hint" onclick="togglePluginClamp(this)">展开 ▾</span></div>` : '';
         const bodyHtml = bodyText ? `<div class="plugin-clamp-wrap" style="margin-top:6px;"><div class="plugin-clamp-text" style="font-family:monospace; font-size:11px; color:#536471;">${escapeHtml(bodyText)}</div><span class="plugin-expand-hint" onclick="togglePluginClamp(this)">展开 ▾</span></div>` : '';
-        return `<div class="wb-card" style="min-width:0; max-width:none; width:100%;">
+        return `<div class="wb-card${pluginSel.has(p.id) ? ' plg-sel' : ''}" style="min-width:0; max-width:none; width:100%;">
             <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px;">
+                <input type="checkbox" class="plg-pick" ${pluginSel.has(p.id) ? 'checked' : ''} onchange="pluginSelToggle('${p.id}', this.checked)" title="选中（批量操作用）" style="margin-top:4px;">
                 <div style="flex:1; min-width:0;">
-                    <div class="wb-title">${escapeHtml(p.name)} <span style="font-size:11px; font-weight:normal; color:#8b98a5;">[${typeLabel[p.type] || p.type}]</span></div>
+                    <div class="wb-title">${escapeHtml(p.name)} <span style="font-size:11px; font-weight:normal; color:#8b98a5;">[${typeLabel[p.type] || p.type}]</span>${p.updatedAt ? `<span style="font-size:11px; font-weight:normal; color:#17bf63; margin-left:4px;">· ${new Date(p.updatedAt).toLocaleDateString()} 更新过</span>` : ''}</div>
                     <div style="font-size:12px; color:#8b98a5; margin-bottom:4px;">${scopeLabel}</div>
                     ${descHtml}
                 </div>
-                <input type="checkbox" ${p.enabled !== false ? 'checked' : ''} onchange="togglePluginEnabled('${p.id}')" title="启用/禁用">
+                <label style="display:flex; flex-direction:column; align-items:center; font-size:10px; color:#8b98a5;"><input type="checkbox" ${p.enabled !== false ? 'checked' : ''} onchange="togglePluginEnabled('${p.id}')" title="启用/禁用">启用</label>
             </div>
             ${bodyHtml}
             <div style="display:flex; gap:10px; margin-top:6px;">
@@ -430,6 +440,21 @@ function renderPluginsList() {
             </div>
         </div>`;
     }).join('');
+    if (!document.getElementById('plgBatchCss')) { const st = document.createElement('style'); st.id = 'plgBatchCss'; st.textContent = '.plg-bar{position:sticky;top:0;z-index:3;background:var(--bg-color,#fff);padding:8px 0 10px;border-bottom:1px solid rgba(0,0,0,.06);display:flex;flex-direction:column;gap:8px}.plg-bar-row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;font-size:13px}.plg-bt{padding:4px 10px;border-radius:12px;background:rgba(29,155,240,.1);color:#1d9bf0;cursor:pointer}.plg-bt:last-child{background:rgba(249,24,128,.1);color:#f91880}.wb-card.plg-sel{outline:2px solid #1d9bf0;outline-offset:-2px}'; document.head.appendChild(st); }
+}
+function pluginSelToggle(id, on) { if (on) pluginSel.add(id); else pluginSel.delete(id); renderPluginsList(); }
+function pluginSelAll(on) { pluginSel = on ? new Set(plugins.map(p => p.id)) : new Set(); renderPluginsList(); }
+function pluginSelInvert() { pluginSel = new Set(plugins.filter(p => !pluginSel.has(p.id)).map(p => p.id)); renderPluginsList(); }
+async function pluginBatch(op) {
+    const L = plugins.filter(p => pluginSel.has(p.id)); if (!L.length) return;
+    if (op === 'export') { saveTextFileForApp(`插件导出_选中${L.length}个_${new Date().toISOString().slice(0, 10)}.json`, JSON.stringify(L, null, 2), 'application/json'); return; }
+    if (op === 'del') {
+        if (!(await appConfirm(`确定要删除选中的 ${L.length} 个插件吗？\n${L.slice(0, 8).map(p => '· ' + p.name).join('\n')}${L.length > 8 ? '\n……' : ''}`))) return;
+        plugins = plugins.filter(p => !pluginSel.has(p.id)); if (editingPluginId && pluginSel.has(editingPluginId)) cancelPluginEdit(); pluginSel = new Set();
+    }
+    if (op === 'on' || op === 'off') L.forEach(p => { p.enabled = op === 'on'; });
+    saveAllData(); renderPluginsList(); renderChatPluginActionsBar();
+    if (op === 'off' || op === 'del') { if (await appConfirm(`已${op === 'del' ? '删除' : '停用'} ${L.length} 个插件。脚本插件要刷新一下才会真正停下来，现在刷新吗？`)) refreshAppPage(); }
 }
 
 // 插件列表里描述/内容默认只显示两行，点"展开"切换显示全部（再点一次收起）
@@ -578,35 +603,32 @@ async function refreshAppPage() {
     location.reload();
 }
 
+// 导入：可以一次选好几个文件；同名插件默认直接覆盖（保留原来的启用状态和位置），覆盖了就问一下要不要刷新——
+// 脚本插件的旧代码已经在跑，新代码要刷新一次才会换上
 function handlePluginImport(event) {
-    const file = event.target.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = e => {
-        try {
-            const parsed = JSON.parse(e.target.result);
-            const list = Array.isArray(parsed) ? parsed : [parsed];
-            let addedCount = 0;
-            const newlyAdded = [];
-            list.forEach(p => {
-                if (!p.name || !p.type) return;
-                const newPlugin = { ...p, id: 'plg_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6), enabled: p.enabled !== false };
-                plugins.push(newPlugin);
-                newlyAdded.push(newPlugin);
-                addedCount++;
-            });
-            saveAllData();
-            renderPluginsList();
-            renderChatPluginActionsBar();
-            // 即插即用：如果插件带有"网页打开时执行"的钩子，导入这一刻就立刻跑一次，不用等刷新页面
-            newlyAdded.forEach(p => { if (p.enabled !== false && p.type === 'script' && p.onLoad) executePluginOnLoad(p); });
-            alert(`成功导入 ${addedCount} 个插件！`);
-        } catch (err) {
-            alert('导入失败，文件不是合法的插件JSON：' + err.message);
-        }
-    };
-    reader.readAsText(file, 'UTF-8');
+    const files = [...(event.target.files || [])];
     event.target.value = '';
+    if (!files.length) return;
+    const overwrite = plgOverwriteOn();
+    Promise.all(files.map(f => new Promise(res => { const r = new FileReader(); r.onload = e => res({ name: f.name, text: e.target.result }); r.onerror = () => res({ name: f.name, text: null }); r.readAsText(f, 'UTF-8'); }))).then(async rs => {
+        let added = 0, replaced = 0; const bad = [], newlyAdded = [], seen = new Map();
+        rs.forEach(r => {
+            let parsed; try { parsed = JSON.parse(r.text); } catch (err) { bad.push(r.name); return; }
+            (Array.isArray(parsed) ? parsed : [parsed]).forEach(p => {
+                if (!p || !p.name || !p.type) return;
+                const key = String(p.name).trim();
+                const old = overwrite ? (seen.get(key) || plugins.find(x => String(x.name).trim() === key)) : null;
+                if (old) { const keep = { id: old.id, enabled: old.enabled, scope: old.scope }; Object.keys(old).forEach(k => delete old[k]); Object.assign(old, p, keep, { updatedAt: Date.now() }); if (!seen.has(key)) replaced++; seen.set(key, old); return; }
+                const np = { ...p, id: 'plg_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6), enabled: p.enabled !== false };
+                plugins.push(np); newlyAdded.push(np); seen.set(key, np); added++;
+            });
+        });
+        saveAllData(); renderPluginsList(); renderChatPluginActionsBar();
+        newlyAdded.forEach(p => { if (p.enabled !== false && p.type === 'script' && p.onLoad) executePluginOnLoad(p); });
+        const msg = `新装 ${added} 个${replaced ? `，覆盖更新 ${replaced} 个` : ''}${bad.length ? `\n这几个文件不是合法的插件 JSON：${bad.join('、')}` : ''}`;
+        if (replaced) { if (await appConfirm(msg + '\n\n覆盖的插件要刷新一下才会换成新版本，现在刷新吗？')) refreshAppPage(); }
+        else alert(msg);
+    });
 }
 
 // 👤 char 传进来就按“在这个角色面前我是谁”取人设（见 js/01 resolveUserPersonaFor）；

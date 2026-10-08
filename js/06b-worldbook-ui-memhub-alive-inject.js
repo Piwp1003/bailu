@@ -693,7 +693,7 @@ async function checkAndAutoSummarizeChat(sessionId) {
 
     let recent20 = validMsgs.slice(-interval).map(m => (m.sender === 'me' ? "用户: " : char.name + ": ") + m.text).join('\n');
     let prompt = buildStructuredMessages('你是一个擅长提炼对话要点的助手，只输出总结本身，不要任何多余说明。',
-        [], `请简要总结以下用户与"${char.name}"的最近${interval}条对话内容，提取出关键信息、当前话题和双方的情感状态（100字以内）。\n\n对话记录：\n${recent20}`);
+        [], `请简要总结以下用户与"${char.name}"的最近${interval}条对话内容，提取出关键信息、当前话题和双方的情感状态（100字以内）。说好了但还没做的事，写成"约好了……（还没发生）"，不要写成已经做过。\n\n对话记录：\n${recent20}`);
 
     try {
         let data = await callChatCompletionAPI(api, prompt);

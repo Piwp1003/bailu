@@ -1,13 +1,13 @@
-// ===================== AI 预设系统（仿 SillyTavern「Chat Completion 预设」） =====================
+// ===================== AI 预设系统（仿照同类软件「Chat Completion 预设」） =====================
 // 设计说明：
 // - 一个"预设"＝一整套可以整体导入/切换/导出的提示词模块（主提示/文风/思维链/NSFW开关等）+ 采样参数，
-//   对应 SillyTavern 里 Chat Completion 预设（prompts + prompt_order）这个概念。
+//   对应同类软件里 Chat Completion 预设（prompts + prompt_order）这个概念。
 // - 和已有的"插件"系统（js/02-databank-plugins-minigames.js 里 type:'prompt' 的插件）是两套独立体系：
-//   插件面向"你自己攒的、不管用哪个预设都想要的小工具规则"，预设面向"整份从酒馆导入、成体系的大型提示词方案"。
+//   插件面向"你自己攒的、不管用哪个预设都想要的小工具规则"，预设面向"整份从同类软件导入、成体系的大型提示词方案"。
 //   两者互不冲突，生成时会把各自启用的内容都拼进最终 prompt（见 buildBasePrompt 里两个函数都会被调用）。
-// - 同一时间只允许一个预设"启用中"（跟酒馆一样，切换预设是互斥单选）；未启用的预设数据完整保留在本地，
+// - 同一时间只允许一个预设"启用中"（跟同类软件一样，切换预设是互斥单选）；未启用的预设数据完整保留在本地，
 //   随时可以切回去，导入多份预设互相比较、切换非常方便。
-// - 预设内部的每条提示词模块可以单独勾选启用/禁用、编辑内容、拖拽调整顺序，界面交互仿照酒馆的 Prompt Manager。
+// - 预设内部的每条提示词模块可以单独勾选启用/禁用、编辑内容、拖拽调整顺序，界面交互仿照同类软件的 Prompt Manager。
 
 let currentEditingPresetId = null; // 当前在"预设"页面上展开查看/编辑的预设——这只是"正在看哪个"，不等于"已启用哪个"
 let presetPromptDragSrcIdx = null; // 提示词条目拖拽排序时，记录拖拽起点的下标
@@ -25,9 +25,9 @@ function getCurrentEditingPreset() {
 }
 
 // ===================== 🎭 小剧场：预设里常见的一类"番外/彩蛋"提示词模块 =====================
-// 不少从酒馆导入的预设里会带一批名字里有"剧场"两个字的模块（比如"💡日常剧场""🔦SCP小剧场""4选1 简约文字小剧场"等），
+// 不少从同类软件导入的预设里会带一批名字里有"剧场"两个字的模块（比如"💡日常剧场""🔦SCP小剧场""4选1 简约文字小剧场"等），
 // 用来在正文之外额外生成一段小番外/互动卡片。这些本质上就是普通的预设提示词模块，只是数量多、名字有规律，
-// 酒馆里得去很长的Prompt Manager列表里一个个找出来勾选，这里提供一个按名字识别的专用入口，方便集中管理。
+// 同类软件里得去很长的Prompt Manager列表里一个个找出来勾选，这里提供一个按名字识别的专用入口，方便集中管理。
 function isTheaterPresetPrompt(p) {
     return !!(p && typeof p.name === 'string' && p.name.indexOf('剧场') !== -1);
 }
@@ -96,7 +96,7 @@ function getActivePresetDepthEntries(char, sessionId) {
 
 // 把一段文本以 {role, content} 消息的形式插入到"历史消息数组"里，从末尾往前数第depth个位置
 // （depth=1表示插在最后一条消息前面，depth=2插在倒数第二条前面，以此类推），用来实现"在对话进行到一半时
-// 插入提醒"这种深度注入效果——酒馆的预设模块（injection_position/depth）、作者注、以及世界书的"[系统/用户/AI]插入深度"
+// 插入提醒"这种深度注入效果——同类软件的预设模块（injection_position/depth）、作者注、以及世界书的"[系统/用户/AI]插入深度"
 // 这几个位置都用的这同一套机制。role 不传就还是老行为（role:'system'），大多数OpenAI兼容接口允许system角色的
 // 消息出现在对话中间，模型也会把它当成较强的指令来对待；传 'user'/'assistant' 则伪装成用户/AI说过的话插进去，
 // 适合想让世界书内容看起来像"对话里提过"而不是"系统突然插话"的场景。
@@ -323,7 +323,7 @@ function addPresetPromptEntryFromForm() {
     renderPresetPromptList(preset); // 重新渲染会把表单重新画一遍在最下面（自动清空），方便连续添加
 }
 
-// ===================== 拖拽排序（原生 HTML5 drag & drop，仿酒馆 Prompt Manager 可拖拽列表） =====================
+// ===================== 拖拽排序（原生 HTML5 drag & drop，仿照同类软件 Prompt Manager 可拖拽列表） =====================
 
 function presetPromptDragStart(ev, idx) {
     presetPromptDragSrcIdx = idx;
@@ -409,7 +409,7 @@ async function deletePreset(id) {
     renderPresetsPage();
 }
 
-// 切换"当前使用的预设"——跟酒馆一样是互斥单选，切换的同时把这份预设自带的采样参数同步应用到全局设置
+// 切换"当前使用的预设"——跟同类软件一样是互斥单选，切换的同时把这份预设自带的采样参数同步应用到全局设置
 function setActivePreset(id) {
     const preset = aiPresets.find(p => p.id === id); if (!preset) return;
     aiPresets.forEach(p => { p.enabled = (p.id === id); });
@@ -430,11 +430,11 @@ function updatePresetSamplerField(key, value) {
         preset.samplerParams[key] = isNaN(num) ? value : num;
     }
     saveAllData();
-    // 如果正在编辑的刚好是当前启用中的预设，实时同步到全局采样参数，体验上更接近酒馆"改了立刻生效"
+    // 如果正在编辑的刚好是当前启用中的预设，实时同步到全局采样参数，体验上更接近同类软件"改了立刻生效"
     if (preset.enabled) applyPresetSamplerParams(preset);
 }
 
-// 导出成 SillyTavern 能直接识别的 Chat Completion 预设格式，方便反向导回酒馆或分享给用其他工具的朋友
+// 导出成同类软件能直接识别的 Chat Completion 预设格式，方便反向导回同类软件或分享给用其他工具的朋友
 function exportPreset(id) {
     const preset = aiPresets.find(p => p.id === id); if (!preset) return;
     const sp = preset.samplerParams || {};
@@ -456,7 +456,7 @@ function exportPreset(id) {
     saveTextFileForApp(safeFilename, JSON.stringify(out, null, 2), 'application/json');
 }
 
-// ===================== 导入 SillyTavern 预设 JSON =====================
+// ===================== 导入同类软件预设 JSON =====================
 
 let presetImportPendingList = []; // 待确认的模块清单：[{id, name, role, content, enabled}]
 let presetImportSourceName = '';
@@ -464,7 +464,7 @@ let presetImportSamplerParams = null; // 预设里检测到的采样参数：{te
 let presetImportPendingRegexList = []; // 预设自带的正则脚本：[{id, name, find, flags, replace, isRegex, target, enabled}]，导入预设时默认自动一并挂上
 let presetImportIncompatNote = ''; // 导入时发现的"跟本app不完全适配、但仍全部原样导入了"的模块说明（marker占位符/空内容），确认导入前弹窗告知
 
-// 酒馆预设文件的 extensions.regex_scripts 里经常还附带一批"配套正则"（比如清理思维链标签、格式化输出等），
+// 同类软件预设文件的 extensions.regex_scripts 里经常还附带一批"配套正则"（比如清理思维链标签、格式化输出等），
 // 这些脚本跟提示词模块是配套设计的，缺了正则很多预设的输出格式会不对，所以要一起解析出来。
 // 转换逻辑跟"导入角色卡时顺带识别正则脚本"(js/13-charreply-groupchat-faction-cardimport.js)完全一致，
 // 复用同一套 target 判定规则（placement: 1=用户输入, 2=AI输出）和字段映射，保持两处行为一致。
@@ -484,9 +484,9 @@ function looksLikeFieldExtractionPattern(pattern) {
     return !!pattern && /\(\.\*\??\)|\(\[\\s\\S\]\*\??\)/.test(pattern);
 }
 
-// 🐛🐛 关键修复（这一个坑影响面极大，几乎所有酒馆正则都中招）：
+// 🐛🐛 关键修复（这一个坑影响面极大，几乎所有同类软件正则都中招）：
 // 下面三处"宽松收尾"改写都是把 `收尾标签` 换成 `(?:收尾标签|$)`——意思是"标签写了就在标签处停，
-// 标签没写就一直吃到末尾"。问题在于：酒馆导出的 findRegex 绝大多数带 **m 标志**（`/.../gm`），
+// 标签没写就一直吃到末尾"。问题在于：同类软件导出的 findRegex 绝大多数带 **m 标志**（`/.../gm`），
 // 而在 m 模式下 `$` 匹配的是**每一行的行尾**，不是整段文本的末尾。
 // 于是 `([\s\S]*?)\s*(?:</Tag>|$)` 里那个**惰性**捕获组，在第一个换行处就能用 `$` 收工——
 // 结果只捕获到第一行，标签块剩下的内容全部漏在外面。
@@ -539,7 +539,7 @@ function relaxTrailingClosingTagInPattern(pattern) {
     return pattern;
 }
 
-// 酒馆单条正则脚本对象 -> 本app正则脚本格式，预设内嵌的regex_scripts和独立导出的正则脚本JSON文件用的是同一套单条字段结构，
+// 同类软件单条正则脚本对象 -> 本app正则脚本格式，预设内嵌的regex_scripts和独立导出的正则脚本JSON文件用的是同一套单条字段结构，
 // 所以两个导入入口（预设导入 / Git链接导入独立正则脚本文件）共用这一份映射逻辑，不用各写一遍。
 function mapStRegexScriptItem(rs) {
     if (!rs || !rs.findRegex) return null;
@@ -569,7 +569,7 @@ function mapStRegexScriptItem(rs) {
         enabled: rs.disabled !== true, // 预设作者没主动关掉的，导入后就直接是启用状态，不用用户再手动开
         displayOnly: !!rs.markdownOnly,
         promptOnly: !rs.markdownOnly && !!rs.promptOnly,
-        // 酒馆原生的"深度范围"限定：只对发给AI的历史记录里、距离最新消息第几条以内/以外的消息生效
+        // 同类软件原生的"深度范围"限定：只对发给AI的历史记录里、距离最新消息第几条以内/以外的消息生效
         // （比如"远楼层消息"这种脚本专门用来隐藏很久以前的历史，避免占用token，但不影响最近几条）。
         // 只有promptOnly的脚本才有意义用这个字段，但导入时不管三七二十一都原样带过来，免得以后改成promptOnly时又要重新导入一次。
         minDepth: (typeof rs.minDepth === 'number') ? rs.minDepth : null,
@@ -604,7 +604,7 @@ async function handlePresetFileUpload(event) {
     try { parsed = JSON.parse(rawText); } catch (e) { appAlert('导入失败：不是合法的 JSON 文件'); event.target.value = ''; return; }
 
     if (!parsed || !Array.isArray(parsed.prompts)) {
-        appAlert('导入失败：这不是 SillyTavern 预设格式（没有找到 prompts 数组）。世界书/角色卡请用世界书页面或角色导入功能导入。');
+        appAlert('导入失败：这不是同类软件预设格式（没有找到 prompts 数组）。世界书/角色卡请用世界书页面或角色导入功能导入。');
         event.target.value = '';
         return;
     }
@@ -629,11 +629,11 @@ async function handlePresetFileUpload(event) {
     const orderInfoById = {};
     if (bestGroup) bestGroup.order.forEach(o => { if (o && o.identifier !== undefined && o.identifier !== null) orderInfoById[o.identifier] = o; });
 
-    // 酒馆原生的 injection_position===1 代表"深度注入"（插入到聊天记录中间第injection_depth层），
+    // 同类软件原生的 injection_position===1 代表"深度注入"（插入到聊天记录中间第injection_depth层），
     // 对应本app预设模块的 injectionDepth 字段；injection_position===0（或没有）就是普通固定顺序，depth记0。
     const readInjectionDepth = (p) => (p.injection_position === 1 && typeof p.injection_depth === 'number') ? p.injection_depth : 0;
 
-    // 💡 修复"所有都要导入"：以前 marker占位符（世界书/聊天记录/人设这类酒馆内置插槽，本app是通过别的机制
+    // 💡 修复"所有都要导入"：以前 marker占位符（世界书/聊天记录/人设这类同类软件内置插槽，本app是通过别的机制
     // 自动注入等效内容的，不靠这些占位符）和内容为空的模块会被直接跳过、完全不出现在导入列表里，用户根本
     // 看不出"这份预设其实还有几条没导进来"。现在全部原样纳入列表——marker类默认禁用（本app本来就会在别处
     // 自动处理这部分内容，同时启用容易变成重复注入），内容为空的也原样导入（可能是作者故意留白等你自己填），
@@ -665,7 +665,7 @@ async function handlePresetFileUpload(event) {
     presetImportSourceName = file.name.replace(/\.json$/i, '');
     presetImportIncompatNote = (markerCount > 0 || emptyCount > 0)
         ? `⚠️ 这份预设里有 ${markerCount + emptyCount} 个模块跟本app不完全适配，但已经全部原样导入了，不会漏掉：\n`
-            + (markerCount > 0 ? `· ${markerCount} 个是酒馆内置占位符（世界书/聊天记录/人设等插槽），本app是通过其它机制自动处理这部分内容的，不靠这些占位符——已默认禁用，避免重复注入，需要的话你可以自己看着改成启用。\n` : '')
+            + (markerCount > 0 ? `· ${markerCount} 个是同类软件内置占位符（世界书/聊天记录/人设等插槽），本app是通过其它机制自动处理这部分内容的，不靠这些占位符——已默认禁用，避免重复注入，需要的话你可以自己看着改成启用。\n` : '')
             + (emptyCount > 0 ? `· ${emptyCount} 个模块内容是空的（可能是预设作者故意留白、等你自己填），已原样导入，默认禁用。\n` : '')
         : '';
     openPresetImportPreviewModal();
@@ -724,7 +724,7 @@ function renderPresetImportPreviewList() {
                 <input type="checkbox" ${item.enabled ? 'checked' : ''} onchange="presetImportPendingList[${i}].enabled = this.checked">
                 <span style="font-weight:bold; color:#1d9bf0; font-size:13px;">${escapeHtml(item.name)}</span>
                 <span style="font-size:11px; color:#8b98a5; border:1px solid #8b98a5; border-radius:4px; padding:0 4px;">${escapeHtml(presetRoleLabels[item.role] || item.role)}</span>
-                ${item.isMarker ? `<span style="font-size:11px; color:#f91880; border:1px solid #f91880; border-radius:4px; padding:0 4px;" title="酒馆内置占位符，本app通过其它机制自动处理，不需要靠这条">⚠️占位符</span>` : ''}
+                ${item.isMarker ? `<span style="font-size:11px; color:#f91880; border:1px solid #f91880; border-radius:4px; padding:0 4px;" title="同类软件内置占位符，本app通过其它机制自动处理，不需要靠这条">⚠️占位符</span>` : ''}
                 ${item.isEmpty ? `<span style="font-size:11px; color:#e0a800; border:1px solid #e0a800; border-radius:4px; padding:0 4px;">⚠️内容为空</span>` : ''}
             </label>
             <div class="plugin-clamp-wrap">
@@ -764,7 +764,7 @@ function confirmPresetImportAll() {
     const enabledCount = preset.prompts.filter(p => p.enabled).length;
 
     // 预设自带的配套正则脚本：默认勾选自动导入，按各自脚本原本的开关状态直接挂到全局正则列表里生效，
-    // 不需要用户再手动去"AI增强功能"页面逐条添加/开启——跟酒馆里"导入预设=正则一起生效"的体验保持一致。
+    // 不需要用户再手动去"AI增强功能"页面逐条添加/开启——跟同类软件里"导入预设=正则一起生效"的体验保持一致。
     const applyRegexCheckbox = document.getElementById('presetImportApplyRegex');
     const shouldApplyRegex = !!(presetImportPendingRegexList.length > 0 && (!applyRegexCheckbox || applyRegexCheckbox.checked));
     let importedRegexCount = 0;
@@ -778,7 +778,7 @@ function confirmPresetImportAll() {
     presetImportIncompatNote = '';
     closeModal('presetImportPreviewModal');
 
-    setActivePreset(preset.id); // 导入即启用，和酒馆"导入预设=切换到这份预设"的使用习惯保持一致；不想用可以随时在预设页切回其他预设
+    setActivePreset(preset.id); // 导入即启用，和同类软件"导入预设=切换到这份预设"的使用习惯保持一致；不想用可以随时在预设页切回其他预设
     if (document.getElementById('view-presets') && document.getElementById('view-presets').style.display !== 'none') renderPresetsPage();
     if (importedRegexCount > 0 && typeof renderRegexScriptsList === 'function') renderRegexScriptsList();
     if (importedRegexCount > 0) saveAllData();

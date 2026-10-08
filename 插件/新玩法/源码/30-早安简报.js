@@ -1,16 +1,15 @@
-/* ☀️ TA 的早安简报：每天早上第一次打开，TA 给你一份只属于你的简报——天气、今天的日程、约定、快到的纪念日、经期、今日份歌曲……最上面是 TA 写给你的早安 */
+/* ☀️ TA 的早安简报：每天早上第一次打开，TA 给你一份只属于你的简报——天气、今天的日程、约定、快到的纪念日、经期……最上面是 TA 写给你的早安 */
 if (window.__gyxBrief) return; window.__gyxBrief = 1;
 X.feat('gyxBrief', { n: '☀️ TA 的早安简报', desc: '每天早上一份简报：天气、日程、约定、纪念日，TA 写给你的早安' });
 const S = X.store('brief');
 let D = { cfg: { from: 5, to: 11, who: '', pop: true }, last: '', log: [] };
 function facts() {
     const f = [];
-    try { const W = window.gyxWeatherData && window.gyxWeatherData(); if (W && W.now && W.me) f.push(['🌦️', `${W.me.name} 今天 ${Math.round(W.now.min)}~${Math.round(W.now.max)}°，降水 ${W.now.rain}%`]); } catch (e) {}
+    try { const W = window.gymapWeatherInfo && window.gymapWeatherInfo(); if (W) f.push(['🌦️', `${W.city || '你那边'} 今天 ${W.desc || ''} ${W.min}~${W.max}°${W.rain != null ? '，降水 ' + W.rain + '%' : ''}`]); } catch (e) {}   // 天气用原来地图里的（js/23）
     try { const k = X.day(), L = (typeof gyMyDayAll === 'function' ? gyMyDayAll() : []).filter(x => x && x.date === k); L.forEach(x => f.push(['🗓️', `${x.time || '今天'} ${x.text}`])); } catch (e) {}
     try { const P = window.gyxPromiseData && window.gyxPromiseData(); (P && P.list || []).filter(x => x.done === null).forEach(x => f.push(['🤙', `约定：${x.what}`])); } catch (e) {}
     try { X.chars().forEach(c => (window.gyxAnnivUpcoming ? window.gyxAnnivUpcoming(c.id, 7) : []).forEach(a => f.push(['🎉', `${a.left === 0 ? '今天' : a.left + ' 天后'}：${a.name}`]))); } catch (e) {}
     try { const s = window.gyPeriodNow && window.gyPeriodNow(); if (s && s.has) { if (s.inPeriod) f.push(['🩸', `经期第 ${s.day} 天，多喝热水`]); else if (s.toNext <= 3) f.push(['🩸', `经期大概 ${s.toNext} 天后来`]); } } catch (e) {}
-    try { const L = window.gyxListData && window.gyxListData(); if (L && L.songs && L.songs.length) { const k = X.day(); let h = 0; for (const ch of k) h = (h * 31 + ch.charCodeAt(0)) >>> 0; const s = L.songs[h % L.songs.length]; f.push(['🎶', `今日份：《${s.t}》${s.a}`]); } } catch (e) {}
     try { const G = window.gyxGrowData && window.gyxGrowData(); (G && G.list || []).forEach(p => f.push(['🌱', `${p.name}等着你去照顾`])); } catch (e) {}
     try { const C = window.gyxCapsuleData && window.gyxCapsuleData(); const r = (C && C.list || []).filter(i => !i.opened && (i.arrived || (i.from === 'me' && Date.now() >= i.open))); if (r.length) f.push(['⏳', `${r.length} 个时间胶囊可以拆了`]); } catch (e) {}
     return f;
@@ -48,7 +47,7 @@ window.gyxBriefOpen = function () {
     X.panel('gyxBrSet', '☀️ 早安简报', `<div class="gyx-row">谁来说早安：<select class="gyx-who" onchange="gyxBriefCfg('who',this.value)"><option value="">最近聊天的人</option>${X.chars().map(c => `<option value="${X.esc(c.id)}"${String(c.id) === String(D.cfg.who) ? ' selected' : ''}>${X.esc(X.name(c))}</option>`).join('')}</select></div>
         <div class="gyx-row">早上 <input class="gyx-who" type="number" min="0" max="23" value="${D.cfg.from}" style="width:60px" onchange="gyxBriefCfg('from',+this.value)"> 点到 <input class="gyx-who" type="number" min="1" max="24" value="${D.cfg.to}" style="width:60px" onchange="gyxBriefCfg('to',+this.value)"> 点之间第一次打开时</div>
         <label class="gyx-row"><input type="checkbox" ${D.cfg.pop ? 'checked' : ''} onchange="gyxBriefCfg('pop',this.checked)"> 弹出简报卡片（不勾＝只在聊天里说早安）</label>
-        <div class="gyx-tip">简报里会放：天气、今天的日程、小约定、快到的纪念日、经期、今日份歌曲、小生命、能拆的时间胶囊（装了对应插件才有）。</div>
+        <div class="gyx-tip">简报里会放：天气（原来地图里设的城市）、今天的日程、小约定、快到的纪念日、经期、小生命、能拆的时间胶囊（装了对应插件才有）。</div>
         <div class="gyx-row"><button class="gyx-btn" onclick="document.getElementById('gyxBrSet').remove();gyxBriefShow(true)">现在来一份</button></div>
         ${D.log.slice(0, 7).map(x => `<div class="gyx-tip">${x.day} · ${X.esc(X.name(X.char(x.cid)))}：${X.esc(x.hi.slice(0, 40))}…</div>`).join('')}`);
 };
@@ -64,3 +63,5 @@ X.css('gyxBrCss', `.br-card{position:relative;overflow:hidden;width:min(400px,92
 .br-fs div{display:flex;gap:8px;padding:7px 2px;font-size:14px;border-bottom:1px dashed rgba(0,0,0,.08)}.br-fs i{font-style:normal}.br-card .gyx-btn{margin-top:14px;width:100%}`);
 X.mini({ id: 'gyxBrief', icon: '☀️', title: '早安简报', desc: '每天早上 TA 给你一份简报：天气、日程、约定、纪念日、早安', onOpen: () => window.gyxBriefOpen() });
 (async () => { D = Object.assign(D, await S.get('d', {})); D.cfg = Object.assign({ from: 5, to: 11, who: '', pop: true }, D.cfg || {}); D.log = D.log || []; const go = () => { if (!window.__guyuBooted) return setTimeout(go, 1000); setTimeout(tick, 6000); }; go(); setInterval(tick, 10 * 60000); })();
+X.widget('gyxBriefW', { n: '早安', sizes: ['s', 'm'], tap: () => window.gyxBriefShow(), r: w => { const it = D.log[0], td = it && it.day === X.day(); return X.gw(w, '☀️', '早安简报', td ? [X.esc(X.name(X.char(it.cid))) + ' 的早安', X.esc(it.hi.slice(0, 40))] : ['来一份早安']); } }, 'gyxBrief');
+X.memArr({ k: 'gyxBrief', ico: '☀️', n: 'TA 写的早安', d: '早安简报里的话', arr: () => D.log, text: x => x.hi, field: 'hi', meta: x => x.day, save: () => S.set('d', D) }, 'gyxBrief');

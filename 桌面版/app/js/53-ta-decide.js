@@ -231,7 +231,7 @@ ${d.unit === 'count' ? '按你自己的习惯定，像个真人。' : '想怎么
             const d = GAPS[gk], g = char.taGap && char.taGap[gk];
             const text = !g ? '' : d.unit === 'count' ? (isFinite(g.n) ? `最多 ${g.n} 次` : '') : fmtGap(g, d);
             const ld = lastDone(char, gk);
-            const next = (g && g.ms && ld) ? ld + g.ms : 0;
+            const next = (g && g.ms) ? (ld || g.at || 0) + g.ms : 0;   // 从没做过：从定下来那天算第一次
             return { gk, label, icon, desc, text, why: (g && g.why) || '', at: (g && g.at) || 0, ms: (g && g.ms) || 0, n: g && g.n, last: ld, next, busy: !!asking[String(char.id) + ':' + gk] };
         });
     };
@@ -371,8 +371,25 @@ ${list}
         return run;
     }
     window.gyTaAskHabits = askHabits;
-    // 以前这里每 3 天自动重问一遍。去掉了：卡上的数放在那，做了那件事才顺便定下一次。
-    window.gyTaEnsureHabits = async function () {};
+    // 每天问 TA 一次「这些事你一般多久做一次」（你要求的：不然从没做过的事永远定不下来）。
+    // 做了某件事时 TA 还是会顺便改那一件的间隔；这里是兜底：哪怕一件都没做，也每天重新想一遍。
+    // 开关：设置里「TA 的节奏每天重问」（gyTaDailyAsk，默认开）；一天一个角色只问一次、一次调用问完所有事。
+    const dailyOn = () => { try { return localStorage.getItem('gyTaDailyAsk') !== '0'; } catch (e) { return true; } };
+    window.gyTaDailyAskSet = v => { try { localStorage.setItem('gyTaDailyAsk', v ? '1' : '0'); } catch (e) {} };
+    window.gyTaEnsureHabits = async function () {
+        if (!dailyOn()) return;
+        const today = new Date().toDateString();
+        for (const c of allChars()) {
+            if (!isAuto(c)) continue;
+            const h = c.taHabit || {};
+            if (h.day === today) continue;
+            const r = await askHabits(c);
+            if (r) { c.taHabit.day = today; if (typeof saveAllData === 'function') saveAllData(); }
+            await new Promise(res => setTimeout(res, 3000));
+        }
+    };
+    // 开着页面的话：启动后两分钟问一次，之后每小时看看是不是新的一天
+    setTimeout(() => { window.gyTaEnsureHabits(); setInterval(() => window.gyTaEnsureHabits(), 3600000); }, 120000);
     // 做完一件事：TA 在决策时顺便说了"下次再做这件事大概隔多久"（js/14 的 nextSame）
     window.gyTaActDone = function (char, key, minutes, why) {
         try {
@@ -419,7 +436,7 @@ ${list}
             const h = habitOf(char, key); if (!h) return true;
             if (h.never) return !!hasEvents && Math.random() < 0.15;
             if (hasEvents) return true;
-            const last = lastAct(char, key); if (!last || !h.ms) return true;
+            const last = lastAct(char, key) || h.at; if (!last || !h.ms) return true;   // 从没做过：从 TA 定下这个间隔那天开始算
             const r = (Date.now() - last) / h.ms;
             return r >= 1 || Math.random() < Math.pow(Math.max(0, r), 3);
         } catch (e) { return true; }
@@ -538,7 +555,7 @@ ${list}
             const ms = h && !h.never ? h.ms : 0;
             return { gk: 'act:' + a.key, act: a.key, cat: catOf(a), label, icon, desc,
                 text: !h ? '' : h.never ? '几乎不做' : '下次约隔 ' + fmtMs(h.ms),
-                why: (h && h.why) || '', at: (h && h.at) || 0, ms, last, next: (ms && last) ? last + ms : 0,
+                why: (h && h.why) || '', at: (h && h.at) || 0, ms, last, next: ms ? (last || (h && h.at) || 0) + ms : 0, first: !last,
                 busy: !!askingH[String(char.id)] };
         });
     }

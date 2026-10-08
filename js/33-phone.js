@@ -378,6 +378,8 @@
         return `<div class="gyph-grid">${out.join('')}</div>`;
     }
     function appNote(c) {
+        // 📝 装了「TA 的备忘录」插件：显示 TA 自己真写的便签和涂鸦
+        try { if (typeof window.gyxMemoPhoneHtml === 'function') { const h = window.gyxMemoPhoneHtml(c); if (h) return h; } } catch (e) {}
         const NOTES = ['牛奶 / 鸡蛋 / 洗衣液', '周四之前把材料交上去', '别忘了充话费', '生日礼物：想想送什么',
                        '这本书看到第 87 页', '牙医：下周二下午三点', '房租月底', '记得回电话'];
         const n = seedInt(c.id, 'note', 2, 5);

@@ -267,7 +267,7 @@ async function checkAndFlowSchedules() {
     for (let char of myCharacters) {
         if (char.schedule && char.schedule.text) {
             if (!char.lifeState || (now - char.lifeState.updatedAt > 2 * 3600000)) { 
-                const prompt = `现在的真实时间是 ${new Date().toLocaleString('zh-CN', { hour12: false, weekday: 'long' })}。这是"${char.name}"的今日日程：\n${char.schedule.text}\n请根据现在的真实时间，对照ta的日程表，直接输出ta此刻正在做什么（20字以内，不要加引号）。`;
+                const prompt = `现在的真实时间是 ${new Date().toLocaleString('zh-CN', { hour12: false, year: 'numeric', month: 'numeric', day: 'numeric', weekday: 'long', hour: '2-digit', minute: '2-digit' })}。这是"${char.name}"的今日日程：\n${char.schedule.text}\n请根据现在的真实时间，对照ta的日程表，直接输出ta此刻正在做什么（20字以内，不要加引号）。`;
                 try {
                     let text = (await sendChatRequest(api, prompt)).choices?.[0]?.message?.content?.trim();
                     if (text) saveCharLifeState(char, text, char.lifeState?.statusTypeLabel);
@@ -848,7 +848,17 @@ function gyImgScheduleGc(delay) {
 }
 window.gyImgScheduleGc = gyImgScheduleGc;
 
+// 🔒 导入存档的那几百毫秒里不许自动存档插队：
+// 以前「写进新存档 → 读回来」中间如果正好碰上一次自动存档，会把内存里的旧数据又写回去，导入等于白做（偶尔才碰上，所以很难查）。
+var __gyHold = 0;
+async function gyHoldSaves(fn) {
+    if (__gySaveTimer) { clearTimeout(__gySaveTimer); __gySaveTimer = null; }
+    try { await (__gySaveLastPromise || Promise.resolve()); } catch (e) {}
+    __gyHold++;
+    try { return await fn(); } finally { __gyHold = Math.max(0, __gyHold - 1); __gySavePending = false; }
+}
 function __gyDoSaveNow() {
+    if (__gyHold > 0) { __gySavePending = true; return Promise.resolve(); }
     __gySavePending = false;
     const dataToSave = getFullDataSnapshot();
     const onFail = function (e) {

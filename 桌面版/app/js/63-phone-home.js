@@ -1149,7 +1149,7 @@
         for (let d = 1; d <= days; d++) {
             const k = dkey(CAL.y, CAL.m, d), x = calDay(k);
             const dots = [x.mine.length ? '<i class="a"></i>' : '', x.anniv.length ? '<i class="b"></i>' : '', x.birth.length ? '<i class="c"></i>' : '', x.diaries.length ? '<i class="d"></i>' : ''].join('');
-            cells += `<span class="c${k === tk ? ' today' : ''}${k === CAL.sel ? ' sel' : ''}" onclick="gyPmCalPick('${k}')"><b>${d}</b><em>${dots}</em></span>`;
+            cells += `<span class="c${k === tk ? ' today' : ''}${k === CAL.sel ? ' sel' : ''}${window.gyPeriodCell ? window.gyPeriodCell(k) : ''}" onclick="gyPmCalPick('${k}')"><b>${d}</b><em>${dots}</em></span>`;
         }
         const k = CAL.sel || tk, x = calDay(k), dd = new Date(k + 'T00:00:00');
         const rows = [
@@ -1162,9 +1162,9 @@
             <div class="pmc-hd"><div><em>${CAL.y}年</em><b>${CAL.m + 1}月</b></div><span class="nav"><i onclick="gyPmCalMove(-1)">‹</i><i class="t" onclick="gyPmCalMove(0)">今天</i><i onclick="gyPmCalMove(1)">›</i></span></div>
             <div class="pmc-wk">${'日一二三四五六'.split('').map(x => `<span>${x}</span>`).join('')}</div>
             <div class="pmc-grid">${cells}</div>
-            <div class="pmc-lg"><span><i class="a"></i>我的日程</span><span><i class="b"></i>纪念日</span><span><i class="c"></i>生日</span><span><i class="d"></i>日记</span></div>
+            <div class="pmc-lg"><span><i class="a"></i>我的日程</span><span><i class="b"></i>纪念日</span><span><i class="c"></i>生日</span><span><i class="d"></i>日记</span>${window.gyPeriodOpen ? '<span onclick="gyPeriodOpen()" style="cursor:pointer;color:#e5566f">🩸 经期记录 ›</span>' : ''}</div>
             <div class="pmc-day"><h5>${dd.getMonth() + 1}月${dd.getDate()}日 星期${WK[dd.getDay()]}${k === tk ? ' · 今天' : ''}</h5>
-                ${rows.length ? rows.join('') : '<div class="none">这一天什么都没有</div>'}
+                ${(window.gyPeriodDayRow ? window.gyPeriodDayRow(k) : '')}${rows.length ? rows.join('') : (window.gyPeriodDayRow && window.gyPeriodDayRow(k) ? '' : '<div class="none">这一天什么都没有</div>')}
                 <button class="pmc-add" onclick="gyPmCalAdd('${k}')">＋ 在这一天记一条</button></div></div>`;
     }
     function calPaint() { const n = document.getElementById('gyPmApp'); if (n && document.body.classList.contains('gyphm-native')) n.innerHTML = calHtml(); }

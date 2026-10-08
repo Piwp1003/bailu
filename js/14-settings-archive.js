@@ -563,7 +563,7 @@ async function runAutonomyTurn(char, manual) {
 
         const openTodos = (char.todos || []).filter(t => t && !t.done).slice(0, 10);
         const recentActs = (char.autonomyLog || []).slice(-6).map(l => l.label).filter(Boolean);
-        const nowStr = new Date().toLocaleString('zh-CN', { hour12: false, weekday: 'long' });
+        const nowStr = new Date().toLocaleString('zh-CN', { hour12: false, year: 'numeric', month: 'numeric', day: 'numeric', weekday: 'long', hour: '2-digit', minute: '2-digit' });
         const who = (typeof userDisplayName === 'function') ? userDisplayName(char) : '用户';
         const recentChat = (typeof getRecentChatContext === 'function') ? (getRecentChatContext(char.id) || '') : '';
 
@@ -585,7 +585,7 @@ async function runAutonomyTurn(char, manual) {
             const h = typeof window.gyTaHabitOf === 'function' ? window.gyTaHabitOf(char, k) : null;
             const lastTxt = last ? '上一次是' + (window.gyTaAgo ? window.gyTaAgo(last) : new Date(last).toLocaleDateString()) : '还从来没做过';
             let due = '';
-            if (h && !h.never && h.ms && last && Date.now() - last >= h.ms) due = `（你说过大概隔${window.gyTaFmtMs ? window.gyTaFmtMs(h.ms) : Math.round(h.ms / 3600000) + '小时'}一次——按你自己的习惯，差不多到了）`;
+            if (h && !h.never && h.ms && Date.now() - (last || h.at || Date.now()) >= h.ms) due = `（你说过大概隔${window.gyTaFmtMs ? window.gyTaFmtMs(h.ms) : Math.round(h.ms / 3600000) + '小时'}一次——按你自己的习惯，差不多到了）`;
             else if (h && !h.never && h.ms) due = `（你说过大概隔${window.gyTaFmtMs ? window.gyTaFmtMs(h.ms) : Math.round(h.ms / 3600000) + '小时'}一次）`;
             return `· ${n}：${lastTxt}${due}`;
         });
@@ -777,7 +777,7 @@ async function autonomyWriteDiary(char, topic, by) {
     if (!Array.isArray(char.diaryData.diaries)) char.diaryData.diaries = [];
     const recentChat = (typeof getRecentChatContext === 'function') ? (getRecentChatContext(char.id) || '') : '';
     const limit = (typeof diaryWordLimit !== 'undefined') ? diaryWordLimit : 300;
-    const ask = `现在是 ${new Date().toLocaleString('zh-CN', { hour12: false, weekday: 'long' })}。
+    const ask = `现在是 ${new Date().toLocaleString('zh-CN', { hour12: false, year: 'numeric', month: 'numeric', day: 'numeric', weekday: 'long', hour: '2-digit', minute: '2-digit' })}。
 你现在想写点东西给自己看——一篇不打算给任何人看的日记。写今天真实发生的、心里过不去的、或者忽然想明白的那一点事。
 ${why}${tp ? `\n这次想写的方向：${tp}（照这个方向写，但用你自己的语气和视角，不要照抄这句话）` : ''}
 字数 ${limit} 字左右。${typeof WORD_LIMIT_PRIORITY_NOTE !== 'undefined' ? WORD_LIMIT_PRIORITY_NOTE : ''}

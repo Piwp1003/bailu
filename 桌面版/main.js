@@ -151,13 +151,15 @@ contextBridge.exposeInMainWorld('gyDesk', {
   petShow: o => ipcRenderer.send('gy-pet', 'show', o),
   petHide: () => ipcRenderer.send('gy-pet', 'hide'),
   petSay: t => ipcRenderer.send('gy-pet', 'say', String(t || '')),
-  onPet: cb => ipcRenderer.on('gy-pet-ev', (e, ev) => { try { cb(ev); } catch (er) {} })
+  onPet: cb => ipcRenderer.on('gy-pet-ev', (e, ev) => { try { cb(ev); } catch (er) {} }),
+  showMain: () => ipcRenderer.send('gy-pet', 'main')
 });`;
 const PET_PRELOAD = `const { contextBridge, ipcRenderer } = require('electron');
 contextBridge.exposeInMainWorld('pet', {
   moveBy: (dx, dy) => ipcRenderer.send('gy-pet-in', 'move', { dx, dy }),
   done: () => ipcRenderer.send('gy-pet-in', 'moved'),
   click: () => ipcRenderer.send('gy-pet-in', 'click'),
+  dbl: () => ipcRenderer.send('gy-pet-in', 'dbl'),
   menu: () => ipcRenderer.send('gy-pet-in', 'menu'),
   hover: on => ipcRenderer.send('gy-pet-in', 'hover', !!on),
   on: cb => ipcRenderer.on('gy-pet-do', (e, a, v) => cb(a, v))
@@ -183,7 +185,7 @@ a.addEventListener('mouseenter',()=>pet.hover(true));document.getElementById('w'
 a.addEventListener('pointerdown',e=>{if(e.button===2)return;d={x:e.screenX,y:e.screenY};mv=false;a.setPointerCapture(e.pointerId)});
 a.addEventListener('pointermove',e=>{if(!d)return;const dx=e.screenX-d.x,dy=e.screenY-d.y;if(!mv&&Math.abs(dx)+Math.abs(dy)<4)return;mv=true;d={x:e.screenX,y:e.screenY};pet.moveBy(dx,dy)});
 a.addEventListener('pointerup',()=>{if(!d)return;d=null;if(mv)pet.done();else pet.click()});
-a.addEventListener('contextmenu',e=>{e.preventDefault();pet.menu()});
+a.addEventListener('contextmenu',e=>{e.preventDefault();pet.menu()});a.addEventListener('dblclick',()=>pet.dbl());
 pet.on((k,v)=>{if(k==='set'){document.body.style.setProperty('--s',(v.size||64)+'px');a.className=v.shape==='free'?'free':'';if(v.img){a.style.backgroundImage='url("'+v.img.replace(/"/g,'%22')+'")';a.textContent=''}else{a.style.backgroundImage='';a.textContent=v.letter||'T'}}
 if(k==='say'){b.textContent=v;b.classList.add('on');clearTimeout(ht);ht=setTimeout(()=>b.classList.remove('on'),Math.max(4000,v.length*280))}});
 </script></body></html>`;
@@ -207,6 +209,7 @@ function toMain(ev) { if (mainWindow && !mainWindow.isDestroyed()) mainWindow.we
 function showMain() { if (!mainWindow || mainWindow.isDestroyed()) return; if (mainWindow.isMinimized()) mainWindow.restore(); mainWindow.show(); mainWindow.focus(); }
 ipcMain.on('gy-pet', (e, what, v) => {
   if (what === 'show') petShow(v);
+  if (what === 'main') showMain();
   if (what === 'hide') { if (petWin && !petWin.isDestroyed()) petWin.close(); petWin = null; }
   if (what === 'say' && petWin && !petWin.isDestroyed()) petWin.webContents.send('gy-pet-do', 'say', v);
 });
@@ -215,11 +218,15 @@ ipcMain.on('gy-pet-in', (e, what, v) => {
   if (what === 'hover') petWin.setIgnoreMouseEvents(!v, { forward: true });
   if (what === 'move') { const [x, y] = petWin.getPosition(); petWin.setPosition(Math.round(x + v.dx), Math.round(y + v.dy)); }
   if (what === 'moved') { const [x, y] = petWin.getPosition(); toMain({ type: 'moved', x, y }); }
-  if (what === 'click') { showMain(); toMain({ type: 'click' }); }
+  // 点一下＝理 TA：不跳主窗口，TA 在桌面上当场回你（主窗口在后台算好那句话发回来）
+  if (what === 'click') toMain({ type: 'poke' });
+  if (what === 'dbl') { showMain(); toMain({ type: 'chat' }); }
   if (what === 'menu') {
     Menu.buildFromTemplate([
-      { label: '打开白露', click: () => { showMain(); toMain({ type: 'click' }); } },
-      { label: '小 TA 设置', click: () => { showMain(); toMain({ type: 'menu' }); } },
+      { label: '理 TA 一下', click: () => toMain({ type: 'poke' }) },
+      { label: '去和 TA 聊天', click: () => { showMain(); toMain({ type: 'chat' }); } },
+      { label: '返回白露（打开主窗口）', click: () => showMain() },
+      { label: '立绘和设置', click: () => { showMain(); toMain({ type: 'menu' }); } },
       { label: '先收起小 TA', click: () => { if (petWin) petWin.close(); } },
       { type: 'separator' },
       { label: '退出白露', click: () => { quitting = true; app.quit(); } }

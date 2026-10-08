@@ -141,7 +141,7 @@ async function refreshLifeStateOnChatEnter(charId) {
     if (!api.key) return;
 
     const typeAsk = statusTypes.length > 0 ? `，并从这些状态类型里选一个最贴近的填入 "statusTypeLabel" 字段：[${statusTypes.map(t => t.label).join('、')}]，都不贴切就填空字符串` : '';
-    const prompt = `现在的真实时间是 ${new Date().toLocaleString('zh-CN', { hour12: false, weekday: 'long' })}。这是"${char.name}"的今日日程：\n${char.schedule.text}\n请根据现在的真实时间，对照ta的日程表，判断ta此刻正在做什么（20字以内，不要加引号）${typeAsk}。请严格只输出 JSON，不要包含任何 Markdown 语法或多余说明：{"activity": "此刻在做的事"${typeAsk ? ', "statusTypeLabel": "从给定列表里选的状态类型"' : ''}}`;
+    const prompt = `现在的真实时间是 ${new Date().toLocaleString('zh-CN', { hour12: false, year: 'numeric', month: 'numeric', day: 'numeric', weekday: 'long', hour: '2-digit', minute: '2-digit' })}。这是"${char.name}"的今日日程：\n${char.schedule.text}\n请根据现在的真实时间，对照ta的日程表，判断ta此刻正在做什么（20字以内，不要加引号）${typeAsk}。请严格只输出 JSON，不要包含任何 Markdown 语法或多余说明：{"activity": "此刻在做的事"${typeAsk ? ', "statusTypeLabel": "从给定列表里选的状态类型"' : ''}}`;
 
     try {
         const data = await sendChatRequest(api, prompt);
@@ -267,7 +267,7 @@ function showCharLifeStatePopup(charId, event) {
     if (enableScheduleAutoCheck && isScheduleStale(char)) {
         statusHtml += `<br><span style="font-size:11px; color:#f91880;">⚠️ 日程是之前生成的，可能已过期，右键头像可更新</span>`;
     }
-    textEl.innerHTML = statusHtml;
+    textEl.innerHTML = statusHtml + ((typeof window.gyInnerPopupHtml === 'function') ? window.gyInnerPopupHtml(char) : '');   // 💭 心声便签（js/81）
     const scheduleToggle = document.getElementById('charStatusScheduleToggle');
     const scheduleText = document.getElementById('charStatusScheduleText');
     scheduleText.style.display = 'none'; scheduleText.dataset.expanded = '0';
@@ -572,7 +572,23 @@ function showChatContextMenu(e, msgIdx) {
         <button class="context-btn" onclick="contextActionAddToMemory()">⭐ 收藏进相册</button>
         <button class="context-btn" style="color:#f91880;" onclick="contextActionDeleteChat()">删除消息</button>
     `;
-    menu.style.display = 'flex'; let x = e.pageX, y = e.pageY; if(x + 100 > window.innerWidth) x -= 100; if(y + 200 > window.innerHeight) y -= 200; menu.style.left = x + 'px'; menu.style.top = y + 'px';
+    menu.style.display = 'flex'; menu.dataset.openAt = String(Date.now());
+    // 插件会往菜单里再加几项（表情、番外、转文字…），菜单变高。先按现在的大小放一次，等它们加完下一帧再按实际大小放一次，
+    // 保证整块菜单都在屏幕里；放不下就往鼠标上方翻。
+    const x = e.pageX, y = e.pageY; gyPlaceChatMenu(menu, x, y); requestAnimationFrame(() => gyPlaceChatMenu(menu, x, y));
+}
+function gyPlaceChatMenu(menu, x, y) {
+    try {
+        if (!menu || menu.style.display === 'none') return;
+        const sx = window.scrollX || 0, sy = window.scrollY || 0, vw = window.innerWidth, vh = window.innerHeight;
+        menu.style.maxHeight = (vh - 16) + 'px'; menu.style.overflowY = 'auto';
+        const w = menu.offsetWidth || 160, h = menu.offsetHeight || 200;
+        let L = x, T = y;
+        if (L + w > sx + vw - 8) L = x - w;
+        if (T + h > sy + vh - 8) T = y - h;
+        L = Math.max(sx + 8, Math.min(L, sx + vw - w - 8)); T = Math.max(sy + 8, Math.min(T, sy + vh - h - 8));
+        menu.style.left = L + 'px'; menu.style.top = T + 'px';
+    } catch (er) {}
 }
 
 // ==========================================
@@ -1275,6 +1291,7 @@ async function triggerAIBatchReply(sessionId, triggerText, aliveCatchUp) {
         // 合并后的内容"（见 sendChatMessage 的合并发送去抖逻辑），不再只取 globalChats 最后一条——
         // 不然合并逻辑再怎么做，这里最终提醒AI的还是只有最后一句，等于白合并。
         let latestMsgText = `${currentUser.name}：${triggerText}`;
+        if (isGroup && typeof window.gyGroupObserveLatest === 'function') { const _obs = window.gyGroupObserveLatest(sessionId, triggerText); if (_obs) latestMsgText = _obs; }   // 👀 只围观的群（js/82）
         let latestEmphasis = `\n\n【⚠️最新消息 - 请务必围绕这些来回复（如果是好几条连着发的，说明用户是一口气说完的，要整体理解、一起回应，不要只挑最后一句），不要无视它、也不要延续更早之前已经聊完的旧话题】：\n${latestMsgText}\n` +
             // 🖐️ 手动模式下攒了好几句时，再补一句"这是一条话，别一句一句分开答"（js/49，可关）
             ((typeof window.gyBatchOneNote === 'function') ? window.gyBatchOneNote(triggerText) : '');
@@ -1312,6 +1329,7 @@ async function triggerAIBatchReply(sessionId, triggerText, aliveCatchUp) {
         // 不跟任何设定打架，效果也更稳。
 
         let systemText = `${buildBasePrompt(char, true, recentHistory, { sessionId, excludeDepthPresetEntries: true, excludeWorldbookPositions: ['at_depth', 'before_an', 'after_an'], precomputedWbEntries: wbEntriesForChat })}${semanticContext}${getRecentPostsAwarenessText(char)}${getTimeAwarenessPrompt(sessionId, char)}${getChatNaturalnessPrompt()}`;
+        if (isGroup && typeof window.gyGroupInfoPrompt === 'function') systemText += window.gyGroupInfoPrompt(sessionId, char);   // 👑 群名 / 群主 / 管理员 / 公告（js/82）
         let finalUserText = `${replyRule}
 你可以通过输出 [NUDGE] 主动拍一拍用户。也可艾特别人。
 ${emoPrompt}
@@ -1409,6 +1427,7 @@ ${multiReplyBlock}${(typeof aliveMoodFormatNote === 'function') ? aliveMoodForma
                         }, chatImages);
                     } else {
                         data = await callChatCompletionAPI(rqApi, prompt, 2, chatImages);
+                        if (typeof window.gyRepairChatJson === 'function') data = await window.gyRepairChatJson(rqApi, data, char);   // 🔧 JSON 坏了修一次（js/83）
                     }
                 } catch (e) {
                     data = { error: { message: (e && e.message) || String(e) } };
@@ -1601,7 +1620,7 @@ ${multiReplyBlock}${(typeof aliveMoodFormatNote === 'function') ? aliveMoodForma
             pendingPrivateChains.push(privateChain);
             currentlyTypingChars.delete(char.name); updateTypingIndicator();
             if (data && data.error) {
-                alert(`⚠️ 聊天 API 报错（${char.name} 回复失败）:\n${data.error.message || JSON.stringify(data.error)}`);
+                alert(`⚠️ 聊天 API 报错（${char.name} 回复失败）:\n${(typeof enhanceNetworkErrorMessage === 'function') ? enhanceNetworkErrorMessage(data.error.message || JSON.stringify(data.error)) : (data.error.message || JSON.stringify(data.error))}`);
                 continue;
             }
         } catch(e) { 

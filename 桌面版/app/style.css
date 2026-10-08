@@ -258,7 +258,7 @@ body.dark-theme .suggest-row:hover { background-color: rgba(255,255,255,0.06); }
 .plugin-expand-hint { color: var(--gy-accent); cursor: pointer; font-size: 12px; display: inline-block; margin-top: 2px; user-select: none; }
 .plugin-expand-hint:hover { text-decoration: underline; }
 
-/* ===== AI 预设系统（仿 SillyTavern Prompt Manager） ===== */
+/* ===== AI 预设系统（仿照同类软件Prompt Manager） ===== */
 .preset-tab-chip { padding:6px 12px; border-radius:9999px; border:1px solid var(--gy-accent); color:var(--gy-accent); font-size:13px; cursor:pointer; white-space:nowrap; background:white; user-select:none; }
 .preset-tab-chip.active-editing { background:rgba(var(--gy-accent-rgb),0.12); font-weight:bold; }
 .preset-tab-chip.is-active-preset { border-color:#00ba7c; color:#00ba7c; }
@@ -315,7 +315,7 @@ body.dark-theme .ai-status-field { color: #4db3f5; }
 .novel-src-empty, .novel-src-hint { font-size: 12px; color: #8b98a5; padding: 4px 0; }
 body.dark-theme .novel-src-category { border-color: rgba(255,255,255,0.1); }
 
-/* ===== MVU变量补丁状态栏（酒馆"状态栏"类预设常见格式，隐藏原始JSON、渲染成真正的状态卡片） ===== */
+/* ===== MVU变量补丁状态栏（同类软件"状态栏"类预设常见格式，隐藏原始JSON、渲染成真正的状态卡片） ===== */
 .mvu-status-bar { margin: 0 0 8px; padding: 8px 10px; border: 1px solid rgba(var(--gy-accent-rgb),0.3); border-radius: 8px; background: rgba(var(--gy-accent-rgb),0.05); display: flex; flex-direction: column; gap: 6px; }
 .mvu-stat-group-title { font-size: 11px; font-weight: bold; color: var(--gy-accent); letter-spacing: 0.3px; margin-bottom: 3px; opacity: 0.9; }
 .mvu-stat-group-fields { display: flex; flex-wrap: wrap; gap: 6px; }

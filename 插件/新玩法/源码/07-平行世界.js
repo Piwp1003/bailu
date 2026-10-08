@@ -64,3 +64,4 @@ X.css('gyxWdCss', `
 X.today(() => ({ title: '🪐 平行世界', rows: Object.entries(D).filter(([, w]) => w.active && w.active !== 'main' && w.lines[w.active]).map(([cid, w]) => ({ t: X.name(X.char(cid)), x: '现在在「' + X.esc(w.lines[w.active].name) + '」', go: `gyxWorldOpen('${cid}')` })) }), 'gyxWorld');
 X.mini({ id: 'gyxWorld', icon: '🪐', title: '平行世界', desc: '从任意一句分出「如果当时……」的世界线接着聊，几条线随时切换', onOpen: () => window.gyxWorldOpen() });
 (async () => { D = await S.get('d', {}); })();
+X.widget('gyxWorldW', { n: '平行世界', sizes: ['s', 'm'], tap: () => window.gyxWorldOpen && window.gyxWorldOpen(), r: w => { const c = X.cur(), x = c && D[String(c.id)], ln = x && x.active && x.lines[x.active]; return X.gw(w, '🪐', '平行世界', [ln && x.active !== 'main' ? '在「' + X.esc(ln.name) + '」' : '在主线', x ? Object.keys(x.lines).length - 1 + ' 条平行线' : '开一条我们的 AU']); } }, 'gyxWorld');

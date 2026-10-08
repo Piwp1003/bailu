@@ -193,9 +193,63 @@ ${have.length ? `【已经抽过这些，别重复】${have.join('、')}\n` : ''
         renderPanel();
     };
     window.gyNpcSet = async function (k, v) { S[k] = parseInt(v) || 0; await save(); };
+    // ✏️ 改：抽出来的人名字、关系写得不对，以前只能删了重加
+    window.gyNpcEdit = function (id) { editing = id || null; renderPanel(); };
+    window.gyNpcSave = async function (id) {
+        const n = S.npcs.find(x => x.id === id); if (!n) return;
+        const g = k => { const e = document.getElementById('gynpE_' + k); return e ? e.value.trim() : (n[k] || ''); };
+        const name = g('name'); if (!name) return toast('名字不能空着');
+        Object.assign(n, { name, ico: g('ico') || '👤', who: g('who'), tie: g('tie'), persona: g('persona'), tone: g('tone'), handle: g('handle').replace(/^@/, ''), edited: Date.now() });
+        S.log = (S.log || []); S.log.unshift({ at: Date.now(), t: '改了 ' + name }); S.log = S.log.slice(0, 60);
+        editing = null; await save(); renderPanel();
+        try { if (typeof window.gyPhoneForgetThreads === 'function') window.gyPhoneForgetThreads(); } catch (e) {}
+        toast(['改好了', '记下了：' + name, '好'][Math.floor(Math.random() * 3)]);
+    };
+    // ✨ 变成角色：从「设定里的人」变成能私聊、能进群、有资料页的完整角色（世界书跟着主角色走）
+    window.gyNpcPromote = async function (id) {
+        const n = S.npcs.find(x => x.id === id); if (!n) return null;
+        if (n.charId && charOf(n.charId)) { toast(n.name + ' 已经是角色了'); return charOf(n.charId); }
+        const owner = charOf(n.ownerId);
+        if (chars().some(c => c.name === n.name) && !(typeof confirm === 'function' && confirm(`已经有一个叫「${n.name}」的角色了，还要再建一个吗？`))) return null;
+        const persona = [`${n.name}${n.who ? '，' + n.who : ''}。`, n.persona ? n.persona + '。' : '', owner && n.tie ? `跟${owner.name}的关系：${n.tie}。` : '', n.tone ? `说话：${n.tone}。` : '',
+            owner ? `（来自${owner.name}的世界：和${owner.name}在同一个世界里，世界观、时代、身边的人都跟${owner.name}的设定一致。）` : ''].join('');
+        const now = Date.now(), cid = now;
+        const c = { id: cid, name: n.name, handle: n.handle || ('npc' + String(now).slice(-5)), persona, bio: n.who || '', followers: '1000', following: '100',
+            location: owner ? (owner.location || '') : '', website: '', birthdate: '', isFollowing: true, isSpecialFollow: false, verified: false,
+            avatarEmoji: (n.ico && n.ico !== '👤') ? n.ico : n.name[0], themeColor: '#1d9bf0', avatarImg: null, bgImg: null,
+            group: owner ? (owner.group || '') : '', groups: owner && Array.isArray(owner.groups) ? owner.groups.slice() : [],
+            postFreq: { interval: 2, unit: 'day', count: 1 }, lastPostTime: now, chatFreq: { interval: 1, unit: 'day' }, lastChatProactiveTime: now,
+            letterFreq: { interval: 14, unit: 'day' }, lastLetterProactiveTime: now, forumPostFreq: { interval: 7, unit: 'day' }, lastForumPostTime: now,
+            anonPostFreq: { interval: 7, unit: 'day' }, lastAnonPostTime: now, actMode: 'fixed', autonomyMinMinutes: 30, autonomyMaxHours: 8,
+            webMode: 'default', webGapMin: 0, webPerDay: 0, ownDaysMode: 'default', lastAutonomyTime: now, nextAutonomyAt: 0, autonomyLog: [], todos: [],
+            autoReplyText: '', busyAutoReplyText: '', memorySummary: '', chatSummary: '', diaryData: { letters: [], diaries: [] }, pendingLetterReplies: [],
+            anonName: '匿名者', anonId: Math.random().toString(36).substr(2, 6).toUpperCase(), firstMessage: '', alternateGreetings: [],
+            worldbooks: owner && Array.isArray(owner.worldbooks) ? owner.worldbooks.slice() : [], postCount: 0, fromNpc: n.id, fromNpcOwner: String(n.ownerId) };
+        myCharacters.push(c);
+        try { if (owner && typeof charRelationships !== 'undefined' && Array.isArray(charRelationships) && n.tie) charRelationships.push({ id: 'rel_' + now + Math.floor(Math.random() * 1000), fromId: owner.id, toId: cid, label: String(n.tie).slice(0, 12), color: '#8b98a5' }); } catch (e) {}
+        n.charId = cid;
+        S.log = (S.log || []); S.log.unshift({ at: now, t: n.name + ' 变成了角色' }); S.log = S.log.slice(0, 60);
+        await save();
+        try { if (typeof saveAllData === 'function') saveAllData(); } catch (e) {}
+        try { if (typeof renderChatCharList === 'function') renderChatCharList(); } catch (e) {}
+        renderPanel();
+        toast(['✨ ' + n.name + ' 现在能直接聊天了', n.name + ' 成了一个完整的角色', '去聊天页就能找到 ' + n.name][Math.floor(Math.random() * 3)]);
+        return c;
+    };
+    window.gyNpcChat = function (id) {
+        const n = S.npcs.find(x => x.id === id); if (!n || !n.charId) return;
+        try { window.gyNpcClose(); document.querySelectorAll('#gyNpcModal').forEach(m => m.classList.remove('on')); switchMainView('chat'); switchChatSession(String(n.charId)); } catch (e) {}
+    };
 
     /* ---------- prompt 注入 ---------- */
+    const NUDGE = {};
     window.__gyNpcCtxFor = function (charId) {
+        try {
+            if (NUDGE[String(charId)]) return `\n【这次主动找她的由头】${NUDGE[String(charId)]}\n` + (window.__gyNpcCtxBase ? window.__gyNpcCtxBase(charId) : '');
+            return window.__gyNpcCtxBase ? window.__gyNpcCtxBase(charId) : '';
+        } catch (e) { return ''; }
+    };
+    window.__gyNpcCtxBase = function (charId) {
         try {
             if (!on('npcOn') || !on('npcInject')) return '';
             const arr = listOf(charId).slice(0, Math.max(0, Math.round(gyNum(S.inject, 5))));
@@ -236,14 +290,28 @@ ${have.length ? `【已经抽过这些，别重复】${have.join('、')}\n` : ''
     window.gyNpcClose = function () { const m = document.getElementById('gyNpcModal'); if (m) m.classList.remove('on'); };
     window.gyNpcPick = function (id) { openChar = (String(openChar) === String(id)) ? null : String(id); renderPanel(); };
 
+    let editing = null;
+    function npcEditForm(n) {
+        const f = (k, ph, v) => `<input id="gynpE_${k}" placeholder="${ph}" value="${esc(v || '')}">`;
+        return `<div class="gynp-edit">
+          <div class="gynp-new-row">${f('ico', '👤', n.ico).replace('<input', '<input style="max-width:56px;text-align:center;"')}${f('name', '名字或称呼', n.name)}</div>
+          ${f('who', '他是谁', n.who)}${f('tie', '跟这个角色什么关系、还来往吗', n.tie)}${f('persona', '这人什么样', n.persona)}${f('tone', '说话什么调调', n.tone)}${f('handle', '网络账号（没有就空着）', n.handle)}
+          <div><button class="gynp-btn" onclick="gyNpcSave('${n.id}')">保存</button> <button class="gynp-btn ghost" onclick="gyNpcEdit('')">取消</button></div></div>`;
+    }
     function npcRow(n) {
+        if (editing === n.id) return npcEditForm(n);
+        const pc = n.charId && charOf(n.charId);
         return `<div class="gynp-row${n.on === false ? ' off' : ''}">
           <span class="gynp-ico">${esc(n.ico || '👤')}</span>
           <div class="gynp-b">
             <div class="gynp-t"><b>${esc(n.name)}</b>${n.handle ? `<em>@${esc(n.handle)}</em>` : ''}
-              ${n.from === 'wb' ? `<span class="gynp-tag">世界书${n.wb ? '·' + esc(n.wb) : ''}</span>` : '<span class="gynp-tag">我加的</span>'}</div>
+              ${n.from === 'wb' ? `<span class="gynp-tag">世界书${n.wb ? '·' + esc(n.wb) : ''}</span>` : '<span class="gynp-tag">我加的</span>'}${pc ? '<span class="gynp-tag ok">已经是角色</span>' : ''}</div>
             <div class="gynp-d">${esc(n.who || '')}${n.tie ? '　·　' + esc(n.tie) : ''}</div>
             ${n.tone ? `<div class="gynp-d">说话：${esc(n.tone)}</div>` : ''}
+          </div>
+          <div class="gynp-ops">
+            ${pc ? `<span class="gynp-op go" onclick="gyNpcChat('${n.id}')">💬 去聊天</span>` : `<span class="gynp-op" onclick="gyNpcPromote('${n.id}')" title="变成完整的角色：能私聊、能拉进群、有自己的资料页">✨ 变成角色</span>`}
+            <span class="gynp-op" onclick="gyNpcEdit('${n.id}')">改</span>
           </div>
           <label class="gynp-sw"><input type="checkbox" ${n.on === false ? '' : 'checked'}
             onchange="gyNpcToggle('${n.id}', this.checked)"></label>
@@ -331,6 +399,11 @@ ${have.length ? `【已经抽过这些，别重复】${have.join('、')}\n` : ''
     .gynp-d{font-size:11.5px;color:#8b98a5;line-height:1.7;margin-top:2px;}
     .gynp-sw{flex-shrink:0;}
     .gynp-del{color:var(--gy-bad,#f4212e);font-size:12px;cursor:pointer;flex-shrink:0;}
+    .gynp-ops{display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0;}
+    .gynp-op{font-size:12px;color:var(--gy-accent,#1d9bf0);cursor:pointer;white-space:nowrap;}.gynp-op.go{font-weight:600;}
+    .gynp-tag.ok{color:#17bf63;border-color:#17bf63;}
+    .gynp-edit{padding:10px 0;border-top:1px solid rgba(128,128,128,.14);}
+    .gynp-edit input{width:100%;box-sizing:border-box;padding:7px 10px;border:1px solid var(--gy-line,#cfd9de);border-radius:9px;background:transparent;color:inherit;font-size:13px;font-family:inherit;margin-bottom:7px;}
     .gynp-hint{font-size:12px;color:#8b98a5;line-height:1.8;padding:6px 0;}
     .gynp-new{margin-top:10px;padding-top:10px;border-top:1px dashed var(--gy-line,#cfd9de);}
     .gynp-new-row{display:flex;gap:8px;}
@@ -342,6 +415,9 @@ ${have.length ? `【已经抽过这些，别重复】${have.join('、')}\n` : ''
     .gynp-btn[disabled]{opacity:.5;cursor:default;}
     .gynp-nums{display:flex;flex-wrap:wrap;gap:14px;margin-top:14px;padding-top:12px;
         border-top:1px dashed var(--gy-line,#cfd9de);font-size:12px;color:#8b98a5;}
+    #gyNpcModal .gynp-w,.gynp-w{height:100%;display:flex;flex-direction:column;justify-content:center;padding:10px;box-sizing:border-box}
+    .gynp-w.s{align-items:center;gap:4px}.gynp-w.s b{font-size:24px}.gynp-w.s em{font-style:normal;font-size:12px}
+    .gynp-w.m .h{display:flex;gap:6px;align-items:center;font-size:12px;opacity:.8}.gynp-w.m em{font-style:normal;font-size:13px;margin-top:6px;line-height:1.6}
     .gynp-nums input{width:58px;padding:4px 6px;border:1px solid var(--gy-line,#cfd9de);
         border-radius:6px;background:transparent;color:inherit;margin:0 3px;}
     `;
@@ -423,6 +499,51 @@ ${have.length ? `【已经抽过这些，别重复】${have.join('、')}\n` : ''
             });
         } catch (e) {}
     }
+
+    /* ---------- 今天 / 小组件 / 记忆总览 / 自主行动 ---------- */
+    function todayHtml() {
+        if (!on('npcOn')) return '';
+        const day = new Date().toDateString();
+        const L = S.npcs.filter(n => new Date(n.at).toDateString() === day || (n.edited && new Date(n.edited).toDateString() === day));
+        const P = (S.log || []).filter(x => new Date(x.at).toDateString() === day && /变成了角色/.test(x.t));
+        if (!L.length && !P.length) return '';
+        return `<div class="gyt-sec gynp-tsec"><h4>👥 世界里的人</h4>${L.slice(0, 3).map(n => `<div class="gyt-row click" onclick="gyNpcOpen('${n.ownerId}')"><span class="gyt-t">${esc((charOf(n.ownerId) || {}).name || '')}</span><span class="gyt-x">${esc(n.ico || '👤')} ${esc(n.name)}${n.who ? '，' + esc(n.who) : ''}</span></div>`).join('')}${P.slice(0, 2).map(x => `<div class="gyt-row"><span class="gyt-t">✨</span><span class="gyt-x">${esc(x.t)}</span></div>`).join('')}</div>`;
+    }
+    function paintToday() { ['gyToday', 'gyTodayM'].forEach(id => { const b = document.getElementById(id); if (!b) return; b.querySelectorAll('.gynp-tsec').forEach(x => x.remove()); const h = todayHtml(); if (h) b.insertAdjacentHTML('beforeend', h); }); }
+    function hookToday() { const f = window.gyTodayRender; if (typeof f !== 'function' || f.__gyNpc) return; const w = function () { const r = f.apply(this, arguments); try { paintToday(); } catch (e) {} return r; }; Object.keys(f).forEach(k => { try { w[k] = f[k]; } catch (e) {} }); w.__gyNpc = true; window.gyTodayRender = w; }
+    function regWidget() {
+        const W = window.__gyPmW; if (!W || !W.WD) return false; if (W.WD.gyNpcW) return true;
+        W.WD.gyNpcW = { n: 'TA 身边的人', sizes: ['s', 'm'], tap: () => window.gyNpcOpen(window.currentChatSessionId), r: w => {
+            const c = charOf(window.currentChatSessionId) || chars().find(x => listOf(x.id).length) || null; const L = c ? listOf(c.id) : [];
+            if (w.size === 's') return `<div class="gynp-w s"><b>👥</b><em>${L.length ? L.length + ' 个人' : '还没抽'}</em></div>`;
+            return `<div class="gynp-w m"><div class="h"><b>👥</b><span>${c ? esc(c.name) + ' 身边的人' : 'TA 身边的人'}</span></div><em>${L.length ? L.slice(0, 4).map(n => esc(n.ico || '👤') + esc(n.name)).join('　') : '去「世界里的人」从世界书里抽'}</em></div>`; } };
+        return true;
+    }
+    function regMem() {
+        if (typeof window.gyMemExAdd !== 'function') return false;
+        window.gyMemExAdd({ k: 'gyNpc', ico: '👥', n: '身边的人（NPC）', d: '格式：名字｜他是谁｜什么关系，改了就是改这个人', on: () => on('npcOn'),
+            items: c => S.npcs.filter(n => String(n.ownerId) === String(c.id)), text: n => [n.name, n.who || '', n.tie || ''].join('｜'),
+            edit: (n, v) => { const p = String(v).split('｜'); if (p[0] && p[0].trim()) n.name = p[0].trim(); if (p.length > 1) n.who = (p[1] || '').trim(); if (p.length > 2) n.tie = (p[2] || '').trim(); n.edited = Date.now(); },
+            del: (c, i) => { const L = S.npcs.filter(n => String(n.ownerId) === String(c.id)); const x = L[i]; if (x) S.npcs = S.npcs.filter(n => n !== x); },
+            meta: n => (n.from === 'wb' ? '世界书里抽的' : '我加的') + (n.charId && charOf(n.charId) ? ' · 已经是角色' : '') + (n.on === false ? ' · 关着' : ''), save: () => save() });
+        return true;
+    }
+    function regAction() {
+        try {
+            if (typeof GY_AUTONOMY_ACTIONS === 'undefined' || GY_AUTONOMY_ACTIONS.some(a => a.key === 'npc_gossip')) return;
+            GY_AUTONOMY_ACTIONS.push({ key: 'npc_gossip', label: '跟她讲讲身边某个人的事（世界书里的熟人）', hint: '师父又怎样了、同事闹了什么笑话——像跟对象聊八卦那样',
+                need: c => on('npcOn') && listOf(c.id).length > 0 && typeof sendProactiveChatMessage === 'function',
+                run: async c => {
+                    const L = listOf(c.id); const n = L[Math.floor(Math.random() * L.length)]; if (!n) return null;
+                    NUDGE[String(c.id)] = `你身边的「${n.name}」（${[n.who, n.tie].filter(Boolean).join('，')}）最近有点事，你想跟她说说——吐槽、八卦、担心、或者觉得好笑都行，按你们的关系和你的性格来，自然地聊，别像在汇报`;
+                    try { await sendProactiveChatMessage(c); S.log = (S.log || []); S.log.unshift({ at: Date.now(), t: c.name + ' 跟你聊了 ' + n.name }); S.log = S.log.slice(0, 60); save(); return '跟她聊了聊' + n.name; }
+                    catch (e) { return null; } finally { delete NUDGE[String(c.id)]; }
+                } });
+        } catch (e) {}
+    }
+    try { const st = document.createElement('style'); st.textContent = '.gynp-w{height:100%;display:flex;flex-direction:column;justify-content:center;padding:10px;box-sizing:border-box}.gynp-w.s{align-items:center;gap:4px}.gynp-w.s b{font-size:24px}.gynp-w.s em{font-style:normal;font-size:12px}.gynp-w.m .h{display:flex;gap:6px;align-items:center;font-size:12px;opacity:.8}.gynp-w.m em{font-style:normal;font-size:13px;margin-top:6px;line-height:1.6}'; (document.head || document.documentElement).appendChild(st); } catch (e) {}
+    let memOk = false, wOk = false;
+    setInterval(() => { hookToday(); regAction(); if (!memOk) memOk = regMem(); if (!wOk) wOk = regWidget(); }, 3000);
 
     (async function init() {
         addSwitches();

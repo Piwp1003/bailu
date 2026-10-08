@@ -97,7 +97,7 @@ window.gyxGrowSel = id => { SEL = id; paint(); };
 window.gyxGrowAdd = () => { const b = document.getElementById('gyxGrBody'); b.innerHTML = `<div class="gyx-row">${X.whoSel((X.cur() || {}).id, 'gyxGrowWho')}</div><div class="gr-pick"><div onclick="gyxGrowNew('plant',GYX_GROW_WHO)"><span>🌱</span>种一盆花</div><div onclick="gyxGrowNew('cat',GYX_GROW_WHO)"><span>🐱</span>养一只小猫</div></div>`; };
 window.gyxGrowOpen = function () { window.GYX_GROW_WHO = String((X.cur() || {}).id || ''); X.panel('gyxGrOv', '🌱 一起养的小生命', '<div id="gyxGrBody"></div>'); paint(); };
 window.gyxGrowData = () => D;
-X.widget('gyxGrow', { n: '小生命', sizes: ['s', 'm'], tap: () => window.gyxGrowOpen(), r: w => { const p = D.list[0]; if (!p) return '<div class="gw-gr s"><b>🌱</b><em>一起养一个</em></div>'; return `<div class="gw-gr ${w.size}"><div class="a">${art(p)}</div>${w.size === 'm' ? `<div class="t"><b>${X.esc(p.name)}</b><em>${KINDS[p.kind].stages[stage(p)]}</em><em>${mood(p)}</em></div>` : ''}</div>`; } });
+X.widget('gyxGrow', { n: '小生命', sizes: ['s', 'm'], tap: () => window.gyxGrowOpen(), r: w => { const p = D.list[0]; if (!p) return '<div class="gw-gr s"><b>🌱</b><em>一起养一个</em></div>'; return `<div class="gw-gr ${w.size}"><div class="a">${art(p)}</div>${w.size === 'm' ? `<div class="t"><b>${X.esc(p.name)}</b><em>${KINDS[p.kind].stages[stage(p)]}</em><em>${mood(p)}</em></div>` : ''}</div>`; } }, 'gyxGrow');
 X.ctx(id => { const L = D.list.filter(p => p.cid === String(id)); if (!L.length) return ''; return '【你们一起养的】' + L.map(p => `${KINDS[p.kind].n}「${p.name}」（${KINDS[p.kind].stages[stage(p)]}，${mood(p)}）`).join('；') + '。聊天时偶尔可以提到它。'; }, 'gyxGrow');
 X.css('gyxGrCss', `
 .gr-pick{display:flex;gap:12px;margin:12px 0}.gr-pick div{flex:1;text-align:center;padding:18px 8px;border-radius:18px;background:#f7f7f9;cursor:pointer;font-size:14px}.gr-pick span{display:block;font-size:44px;margin-bottom:6px}
@@ -111,3 +111,4 @@ X.css('gyxGrCss', `
 X.today(() => ({ title: '🌱 小生命', rows: D.list.map(p => ({ t: KINDS[p.kind].stages[stage(p)].split(' ')[0] + ' ' + p.name, x: `${mood(p)}${p.taDay === X.day() ? ' · TA 今天照顾过了' : ''}`, go: 'gyxGrowOpen()' })) }), 'gyxGrow');
 X.mini({ id: 'gyxGrow', icon: '🌱', title: '一起养小生命', desc: '一盆花或一只小猫，聊得越多长得越好；TA 也会去照顾它', onOpen: () => window.gyxGrowOpen() });
 (async () => { D = Object.assign(D, await S.get('d', {})); D.list = D.list || []; setInterval(tick, 20 * 60000); setTimeout(chatGrow, 5000); setInterval(chatGrow, 60000); })();
+X.memArr({ k: 'gyxGrow', ico: '🌱', n: '一起养的小生命', d: '名字（删了就是不养了）', arr: () => D.list, text: x => x.name, field: 'name', meta: x => (x.kind === 'cat' ? '小猫' : '植物') + ' · ' + new Date(x.born).toLocaleDateString() + ' 开始养', save: () => S.set('d', D) }, 'gyxGrow');

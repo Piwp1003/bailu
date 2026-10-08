@@ -1634,6 +1634,7 @@ body.dark-theme .gynow-av{background:#2f3336;color:#e7e9ea;}
                     : (o.moodFlat ? row('🌡️ 心情', '挺平静的，没有没散的情绪', true) : '')}
               ${o.body && o.body.length ? row('🥱 身上', esc(o.body.join('；')))
                     : (o.bodyNoSched ? row('🥱 身上', '还没有日程，推不出来', true) : '')}
+              ${(typeof window.gyInnerNowRows === 'function') ? window.gyInnerNowRows(c) : ''}
               ${o.rel && o.rel.last ? row('💗 最近一笔', `<b style="color:${o.rel.last.d > 0 ? '#f91880' : '#5b7fff'}">${o.rel.last.d > 0 ? '+' : ''}${o.rel.last.d}</b>　${esc(o.rel.last.why || '')}　<span style="color:#8b98a5;font-size:11.5px;">${ago(o.rel.last.at)} · ${esc(o.rel.last.src || '')}</span>`) : ''}
               ${o.gossipAbout ? row('🗣️ 外面在传', `${esc(o.gossipAbout.told.byName)} 说：「${esc(o.gossipAbout.told.text)}」`) : ''}
               ${o.gossipBy ? row('🗣️ TA 传过', `跟你说过 ${o.gossipBy} 件别人的事`, true) : ''}

@@ -1,10 +1,21 @@
-/* 💞 默契问答：TA 出题考你（关于 TA、关于你们），你也能出题考 TA；答对答错 TA 都有反应，默契值一直记着 */
+/* 💞 默契问答：TA 出题考你（关于 TA、关于你们），你也能出题考 TA；还有「你还记得吗」——TA 从你们的聊天总结里挑一天出回忆题。答对答错 TA 都有反应，默契值一直记着 */
 if (window.__gyxQuiz) return; window.__gyxQuiz = 1;
 X.feat('gyxQuiz', { n: '💞 默契问答', desc: 'TA 考你、你考 TA，看看你们有多默契' });
 const S = X.store('quiz');
 let D = { log: [], mine: {}, taAns: {} };   // log:{cid, dir:'ta'|'me', q, opts, ans, pick, ok, at}; mine[cid]=[{q,a}] 你出的题；taAns[cid][q]=TA 的答案（白露用）
 const BANK = [['更喜欢猫还是狗？', ['猫', '狗', '都喜欢', '都不太喜欢']], ['周末最想怎么过？', ['在家躺着', '出门逛逛', '跟你待着', '补觉']], ['最喜欢哪个季节？', ['春天', '夏天', '秋天', '冬天']], ['吵架了谁会先低头？', ['我', '你', '谁也不低头', '一起低头']], ['甜的还是辣的？', ['甜的', '辣的', '都要', '都不要']], ['早起还是熬夜？', ['早起', '熬夜', '看心情', '熬夜然后早起']], ['第一次见面你注意到我哪里？', ['眼睛', '声音', '笑', '手']], ['下雨天想做什么？', ['听雨睡觉', '出去踩水', '看电影', '想你']], ['最想和我去哪？', ['海边', '雪山', '游乐园', '哪都行']], ['我生气的时候你怎么办？', ['哄', '让你冷静一下', '买好吃的', '抱住不放']], ['理想的约会是？', ['看电影', '逛街', '在家做饭', '散步聊天']], ['喝咖啡还是奶茶？', ['咖啡', '奶茶', '都行', '白开水']]];
 const seed = s => { let h = 7; for (const ch of String(s)) h = (h * 31 + ch.charCodeAt(0)) >>> 0; return h; };
+// 「你还记得吗」：从聊天总结里挑一天出题（白露不用模型：那天的事 + 别的三天当干扰项）
+function memLines(c) { return String(c.chatSummary || '').split('\n').map(l => { const m = l.match(/^\[([^\]]+)\]\s*(.+)/); if (!m) return null; const t = new Date(m[1].replace(/\s*[上下]午/, ' ')).getTime(); return { at: isNaN(t) ? 0 : t, text: m[2].replace(/【[^】]*】/g, '').trim() }; }).filter(x => x && x.text.length > 4); }
+const short = t => t.split(/[。！？\n]/)[0].slice(0, 26);
+async function memAsk(c) {
+    const L = memLines(c); if (L.length < 2) return null;
+    const it = X.pick(L.slice(0, Math.max(1, L.length - 1))), md = it.at ? `${new Date(it.at).getMonth() + 1}月${new Date(it.at).getDate()}日` : '那天';
+    if (!X.bailu()) { const j = X.json(await X.ask(`${X.who(c)}\n这是你们 ${md} 的回忆：「${it.text}」\n用它出一道「你还记得吗」的回忆题考她：问那天的一个具体细节，4 个选项只有一个对，其他三个要像真的。\n只输出 JSON：{"q":"题目（你的口吻）","opts":["","","",""],"ans":"正确选项原文","say":"出题时说的一句话"}`)); if (j && j.q && Array.isArray(j.opts) && j.opts.includes(j.ans)) return Object.assign(j, { kind: 'mem', at0: it.at }); }
+    const others = L.filter(x => x !== it).sort(() => Math.random() - .5).slice(0, 3).map(x => short(x.text)), ans = short(it.text), opts = [ans].concat(others).filter((v, i, a) => a.indexOf(v) === i).sort(() => Math.random() - .5);
+    return { q: `你还记得吗？${md}，我们……`, opts, ans, say: X.cards(['回忆', '聊天'], c, 1)[0] || X.v('考考你的记性。', '这天你还记得吗？'), kind: 'mem', at0: it.at };
+}
+window.gyxQuizMem = async function (cid) { const c = X.char(cid) || X.cur(); const j = await memAsk(c); if (!j) { X.toast('💭 还出不了回忆题', '聊天总结还太少，多聊几天再来'); return null; } CUR = Object.assign({ cid: String(c.id) }, j); window.gyxQuizOpen(c.id); return CUR; };
 async function taAsk(c) {
     if (X.bailu()) { const [q, o] = BANK[Math.floor(Math.random() * BANK.length)]; const a = o[seed(c.id + q) % o.length]; return { q, opts: o, ans: a, say: X.cards(['默契', '聊天'], c, 1)[0] || '考考你～' }; }
     const r = await X.ask(`${X.who(c)}\n最近的聊天：\n${X.recent(c, 16)}\n\n你想出一道「默契题」考她：关于你自己（喜好、习惯、小秘密）或者关于你们之间发生过的事（最好是聊天里真实提到过的）。给 4 个选项，只有一个是对的，其他三个要像真的。\n只输出 JSON：{"q":"题目（用你的口吻）","opts":["选项1","选项2","选项3","选项4"],"ans":"正确的那个选项原文","say":"出题时说的一句话"}`);
@@ -22,14 +33,14 @@ window.gyxQuizOpen = function (who) {
     const L = D.log.filter(x => x.cid === cid), ok = L.filter(x => x.ok).length, pct = L.length ? Math.round(ok / L.length * 100) : 0;
     const q = CUR && CUR.cid === cid ? CUR : null;
     X.panel('gyxQzOv', '💞 默契问答', `<div class="gyx-row">${X.whoSel(cid, 'gyxQuizOpen')}<span class="qz-score">默契值 <b>${pct}</b>%（${ok}/${L.length}）</span></div>
-        ${q ? `<div class="qz-q"><em>${X.esc(X.name(c))} 考你：</em><b>${X.esc(q.q)}</b>${q.say ? `<span>${X.esc(q.say)}</span>` : ''}<div class="qz-opts">${q.opts.map((o, i) => `<button class="gyx-btn lite" onclick="gyxQuizPick(${i})">${X.esc(o)}</button>`).join('')}</div></div>` : ''}
-        <div class="gyx-row"><button class="gyx-btn" onclick="this.disabled=true;this.textContent='TA 在出题……';gyxQuizTa('${cid}')">让 TA 考我</button></div>
+        ${q ? `<div class="qz-q"><em>${X.esc(X.name(c))} ${q.kind === 'mem' ? '翻出一段回忆考你' : '考你'}：</em><b>${X.esc(q.q)}</b>${q.say ? `<span>${X.esc(q.say)}</span>` : ''}<div class="qz-opts">${q.opts.map((o, i) => `<button class="gyx-btn lite" onclick="gyxQuizPick(${i})">${X.esc(o)}</button>`).join('')}</div></div>` : ''}
+        <div class="gyx-row"><button class="gyx-btn" onclick="this.disabled=true;this.textContent='TA 在出题……';gyxQuizTa('${cid}')">让 TA 考我</button><button class="gyx-btn lite" onclick="this.disabled=true;this.textContent='TA 在翻回忆……';gyxQuizMem('${cid}')">💭 你还记得吗</button></div>
         <div class="gyx-card"><div class="gyx-tip">你来考 TA：写一道题和你心里的答案，看 TA 答不答得上</div><input id="gyxQzQ" class="gyx-in" placeholder="比如：我最喜欢的颜色是？"><input id="gyxQzA" class="gyx-in" placeholder="你心里的答案" style="margin-top:6px"><div class="gyx-row"><button class="gyx-btn" onclick="gyxQuizMine('${cid}')">考 TA</button></div></div>
-        <div class="qz-log">${L.slice(0, 20).map(x => `<div>${x.ok ? '✅' : '❌'} <b>${x.dir === 'ta' ? 'TA 考你' : '你考 TA'}</b> ${X.esc(x.q)} <span>答案：${X.esc(x.ans)} · ${x.dir === 'ta' ? '你选' : 'TA 答'}：${X.esc(x.pick)}</span>${x.say ? `<p>💬 ${X.esc(x.say)}</p>` : ''}</div>`).join('')}</div>`);
+        <div class="qz-log">${L.slice(0, 20).map(x => `<div>${x.ok ? '✅' : '❌'} <b>${x.kind === 'mem' ? '💭 回忆题' : x.dir === 'ta' ? 'TA 考你' : '你考 TA'}</b> ${X.esc(x.q)} <span>答案：${X.esc(x.ans)} · ${x.dir === 'ta' ? '你选' : 'TA 答'}：${X.esc(x.pick)}</span>${x.say ? `<p>💬 ${X.esc(x.say)}</p>` : ''}</div>`).join('')}</div>`);
 };
 window.gyxQuizTa = async function (cid) { const c = X.char(cid) || X.cur(); const j = await taAsk(c); CUR = Object.assign({ cid: String(c.id) }, j); window.gyxQuizOpen(c.id); return CUR; };
 window.gyxQuizPick = async function (i) {
-    if (!CUR) return; const c = X.char(CUR.cid), pick = CUR.opts[i], it = { cid: CUR.cid, dir: 'ta', q: CUR.q, opts: CUR.opts, ans: CUR.ans, pick, ok: pick === CUR.ans, at: Date.now() };
+    if (!CUR) return; const c = X.char(CUR.cid), pick = CUR.opts[i], it = { cid: CUR.cid, dir: 'ta', q: CUR.q, opts: CUR.opts, ans: CUR.ans, pick, ok: pick === CUR.ans, at: Date.now(), kind: CUR.kind || '' };
     CUR = null; it.say = await react(c, it); D.log.unshift(it); await S.set('d', D); window.gyxQuizOpen(it.cid); return it;
 };
 window.gyxQuizMine = async function (cid) {
@@ -42,10 +53,16 @@ window.gyxQuizMine = async function (cid) {
     const it = { cid: String(c.id), dir: 'me', q, ans: a, pick, ok, at: Date.now() }; it.say = await react(c, it);
     D.log.unshift(it); await S.set('d', D); window.gyxQuizOpen(c.id); return it;
 };
-X.action({ key: 'gyx_quiz', label: '出一道默契题考她', hint: '关于你、关于你们', need: () => true, run: async c => { const j = await taAsk(c); CUR = Object.assign({ cid: String(c.id) }, j); X.say(c, `💞 ${j.say || '考考你'}\n「${j.q}」\n${j.opts.map((o, i) => 'ABCD'[i] + '. ' + o).join('\n')}\n（去「小功能 → 默契问答」答题）`); X.notify(c, `💞 ${X.name(c)} 出了一道默契题`, j.q, 'gyxQuizOpen'); return '出了一道默契题考你'; } }, 'gyxQuiz');
+X.action({ key: 'gyx_quiz', label: '出一道默契题考她（或者问她还记不记得哪天的事）', hint: '关于你、关于你们', need: () => true, run: async c => { const j = (Math.random() < .4 && await memAsk(c)) || await taAsk(c); CUR = Object.assign({ cid: String(c.id) }, j); X.say(c, `${j.kind === 'mem' ? '💭' : '💞'} ${j.say || '考考你'}\n「${j.q}」\n${j.opts.map((o, i) => 'ABCD'[i] + '. ' + o).join('\n')}\n（去「小功能 → 默契问答」答题）`); X.notify(c, `💞 ${X.name(c)} 出了一道默契题`, j.q, 'gyxQuizOpen'); return '出了一道默契题考你'; } }, 'gyxQuiz');
 X.ctx(id => { const L = D.log.filter(x => x.cid === String(id)); if (!L.length) return ''; const ok = L.filter(x => x.ok).length; return `【默契问答】你们玩过 ${L.length} 次默契问答，默契值 ${Math.round(ok / L.length * 100)}%。最近一题：${L[0].q}（${L[0].ok ? '答对' : '答错'}）。`; }, 'gyxQuiz');
 X.today(() => { const rows = []; if (CUR) rows.push({ t: '待答', x: `${X.esc(X.name(X.char(CUR.cid)))} 考你：${X.esc(CUR.q)}`, go: `gyxQuizOpen('${CUR.cid}')` }); const L = D.log.filter(x => X.day(new Date(x.at)) === X.day()); if (L.length) rows.push({ t: L.filter(x => x.ok).length + '/' + L.length, x: '今天的默契问答', go: 'gyxQuizOpen()' }); return { title: '💞 默契问答', rows }; }, 'gyxQuiz');
 X.css('gyxQzCss', `.qz-score{margin-left:auto;font-size:13px;color:#8e8e93}.qz-score b{font-size:22px;color:#ff5c8a}.qz-q{padding:14px;border-radius:18px;background:linear-gradient(135deg,#fff0f5,#f3f0ff);margin:10px 0}.qz-q em{font-style:normal;font-size:12px;color:#a07}.qz-q b{display:block;font-size:18px;margin:6px 0}.qz-q span{font-size:13px;color:#777}.qz-opts{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}.qz-log{font-size:13px;line-height:1.7}.qz-log>div{padding:8px 0;border-bottom:1px solid #f2f2f4}.qz-log span{display:block;font-size:12px;color:#999}.qz-log p{margin:2px 0;color:#8e4ec6}`);
-X.mini({ id: 'gyxQuiz', icon: '💞', title: '默契问答', desc: 'TA 考你、你考 TA，看看你们有多默契', onOpen: () => window.gyxQuizOpen() });
+X.mini({ id: 'gyxQuiz', icon: '💞', title: '默契问答', desc: 'TA 考你、你考 TA；还有「你还记得吗」回忆题', onOpen: () => window.gyxQuizOpen() });
 window.gyxQuizData = () => D;
 (async () => { D = Object.assign(D, await S.get('d', {})); D.log = D.log || []; })();
+// 也放进聊天里原来的 🎮 小游戏列表
+(function () { const reg = () => { if (typeof registerMiniGame !== 'function') return false; registerMiniGame({ id: 'gyx_quiz', name: '默契问答', icon: '💞', getStatus: () => null, onResume: sid => window.gyxQuizOpen(sid), onStart: (sid, opp) => window.gyxQuizOpen((opp || [])[0] || sid) }); return true; };
+    addEventListener('gyx:feat', e => { if (e.detail && e.detail.id === 'gyxQuiz') { if (e.detail.on) reg(); else try { registeredMiniGames = registeredMiniGames.filter(g => g.id !== 'gyx_quiz'); } catch (er) {} } });
+    if (X.on('gyxQuiz') && !reg()) { let n = 0; const iv = setInterval(() => { if (reg() || ++n > 60) clearInterval(iv); }, 500); } })();
+X.widget('gyxQuizW', { n: '默契问答', sizes: ['s', 'm'], tap: () => window.gyxQuizOpen(), r: w => { const L = D.log, ok = L.filter(x => x.ok).length; return X.gw(w, '💞', '默契问答', [CUR ? '有题等你答' : (L.length ? '默契 ' + Math.round(ok / L.length * 100) + '%' : '考考彼此'), L.length ? '答对 ' + ok + '/' + L.length : '', CUR ? X.esc(CUR.q) : '']); } }, 'gyxQuiz');
+X.memArr({ k: 'gyxQuiz', ico: '💞', n: '默契问答', d: '你们互相考过的题', arr: () => D.log, text: x => x.q + '｜答案：' + (x.ans || ''), edit: (x, v) => { const [q, a] = v.split(/｜答案：|\|/); x.q = q.trim(); if (a != null) x.ans = a.trim(); }, meta: x => (x.dir === 'ta' ? 'TA 考你' : '你考 TA') + (x.ok ? ' · 答对' : ' · 答错'), save: () => S.set('d', D) }, 'gyxQuiz');

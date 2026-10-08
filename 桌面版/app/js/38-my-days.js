@@ -292,7 +292,7 @@
             const dd = dayData(k);
             const dots = [dd.mine.length ? '<i class="mine"></i>' : '', dd.anniv.length ? '<i class="ann"></i>' : '',
                           dd.birth.length ? '<i class="bir"></i>' : ''].join('');
-            cells += `<div class="gymc-cell${k === tk ? ' today' : ''}${calSel === k ? ' on' : ''}" onclick="gyMyCalPick('${k}')">
+            cells += `<div class="gymc-cell${k === tk ? ' today' : ''}${calSel === k ? ' on' : ''}${window.gyPeriodCell ? window.gyPeriodCell(k) : ''}" onclick="gyMyCalPick('${k}')">
                 <b>${d}</b><div class="gymc-dots">${dots}</div></div>`;
         }
         const sel = calSel ? dayData(calSel) : null;
@@ -304,7 +304,7 @@
           </div>
           <div class="gymc-week">${['日','一','二','三','四','五','六'].map(x => `<span>${x}</span>`).join('')}</div>
           <div class="gymc-grid">${cells}</div>
-          <div class="gymc-legend"><i class="mine"></i>我的日程　<i class="ann"></i>纪念日　<i class="bir"></i>生日</div>
+          <div class="gymc-legend"><i class="mine"></i>我的日程　<i class="ann"></i>纪念日　<i class="bir"></i>生日${window.gyPeriodOpen ? '　<span onclick="gyPeriodOpen()" style="cursor:pointer;color:#e5566f">🩸 经期记录 ›</span>' : ''}</div>
           ${sel ? `<div class="gymc-day">
             <div class="gymc-day-hd">${esc(calSel)}${calSel === tk ? '（今天）' : ''}</div>
             ${sel.mine.map(it => `<div class="gymc-li">🗓️ ${it.time ? esc(it.time) + '　' : ''}${esc(it.text)}

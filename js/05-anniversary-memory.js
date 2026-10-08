@@ -612,7 +612,7 @@ async function generateCharTodosAI(regenerate) {
         const doneRecently = all.filter(t => t.done).slice(-6).map(t => t.text);
         const todayKey = gyDateKey(new Date());
 
-        const ask = `现在的真实时间：${new Date().toLocaleString('zh-CN', { hour12: false, weekday: 'long' })}（今天是 ${todayKey}）。
+        const ask = `现在的真实时间：${new Date().toLocaleString('zh-CN', { hour12: false, year: 'numeric', month: 'numeric', day: 'numeric', weekday: 'long', hour: '2-digit', minute: '2-digit' })}（今天是 ${todayKey}）。
 
 请以你自己的身份，列出你现在"还惦记着、但还没办"的事，也就是你的待办清单。
 
@@ -722,7 +722,7 @@ async function generateCharTodosForChar(char, regenerate) {
     const scheduleText = (char.schedule && char.schedule.text) ? char.schedule.text : '';
     const who = (typeof userDisplayName === 'function') ? userDisplayName(char) : '用户';
 
-    const ask = `现在的真实时间：${new Date().toLocaleString('zh-CN', { hour12: false, weekday: 'long' })}。
+    const ask = `现在的真实时间：${new Date().toLocaleString('zh-CN', { hour12: false, year: 'numeric', month: 'numeric', day: 'numeric', weekday: 'long', hour: '2-digit', minute: '2-digit' })}。
 请以你自己的身份，列出你现在"还惦记着、但还没办"的事（待办清单）。
 
 【今天的日程】：\n${scheduleText || '（还没安排）'}

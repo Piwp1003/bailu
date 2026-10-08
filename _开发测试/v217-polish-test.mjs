@@ -1,0 +1,53 @@
+// v217：✨ 整理过的外观（只改样子）：默认开着、能关；小功能页说明收起、一格一格；全部开关能展开；插件页能搜、新建收起；空播放器缩成小圆点
+import { chromium } from 'playwright';
+import { launchBrowser, fileUrl } from './_launch.mjs';
+import path from 'path';
+import fs from 'fs';
+
+const root = process.cwd();
+const BAILU = fs.existsSync(path.join(root, 'js', '90-bailu-cards.js'));
+const PLUG = JSON.parse(fs.readFileSync(path.join(root, '插件', '新玩法', '新玩法全家桶.json'), 'utf8'));
+const browser = await launchBrowser(chromium);
+const results = [];
+const check = (n, ok, extra = '') => results.push({ n, ok: !!ok, extra });
+const page = await (await browser.newContext({ viewport: { width: 1280, height: 900 } })).newPage();
+const errs = []; page.on('pageerror', e => errs.push(e.message));
+page.on('dialog', d => d.accept());
+await page.route(/^https?:\/\//, r => r.abort());
+await page.goto(fileUrl(path.join(root, 'index.html')));
+await page.waitForFunction(() => window.__guyuBooted && typeof executePluginOnLoad === 'function' && window.gyPolishSet, { timeout: 20000 });
+await page.waitForTimeout(1200);
+const tag = BAILU ? '[白露]' : '[谷雨]';
+await page.evaluate(({ PLUG }) => { myCharacters.push({ id: 9991, name: '顾言', worldbooks: [], diaryData: { letters: [], diaries: [] } }); PLUG.slice(0, 12).forEach(p => { plugins.push(Object.assign({}, p)); executePluginOnLoad(p); }); }, { PLUG });
+await page.waitForTimeout(3000);
+
+const a = await page.evaluate(async () => {
+  const on0 = document.body.classList.contains('gy-polish');
+  switchMainView('miniHub'); await new Promise(r => setTimeout(r, 300));
+  const about = !!document.querySelector('#miniFeatureList .gypl-about');
+  const grid = getComputedStyle(document.querySelector('#miniFeatureList .set-menu')).display;
+  openSettingsPanel('auto'); await new Promise(r => setTimeout(r, 300));
+  const row = document.querySelector('#autoFeatureList .auto-feat-row'); const more = row && row.querySelector('.gypl-more');
+  const cost0 = row && getComputedStyle(row.querySelector('.auto-feat-cost')).display;
+  more && more.click(); const cost1 = row && getComputedStyle(row.querySelector('.auto-feat-cost')).display; const cb = row.querySelector('input').checked;
+  switchMainView('plugins'); await new Promise(r => setTimeout(r, 300)); renderPluginsList();
+  const n = document.querySelectorAll('#pluginsList .wb-card').length;
+  gyPolishPluginFilter('暗号zzz不存在'); const hid = document.querySelectorAll('#pluginsList .wb-card.gypl-hide').length; gyPolishPluginFilter('');
+  const folded = document.getElementById('pluginFormSection').classList.contains('gypl-folded');
+  const search = !!document.querySelector('#pluginsList .gypl-psearch');
+  const music = document.getElementById('gymRoot'); const mEmpty = music ? music.classList.contains('gypl-empty') : null;
+  openSettingsPanel('appearance'); const sw = !!document.getElementById('gyPolishSw');
+  gyPolishSet(false); const off = !document.body.classList.contains('gy-polish'); gyPolishSet(true);
+  return { on0, about, grid, cost0, cost1, cbSame: cb === row.querySelector('input').checked, n, hid, folded, search, mEmpty, sw, off };
+});
+check(`${tag} 整理过的外观默认开着，外观设置里能关`, a.on0 && a.sw && a.off, JSON.stringify(a));
+check(`${tag} 小功能页：说明收进「ⓘ 这页是什么」，功能一格一格`, a.about && a.grid === 'grid', JSON.stringify(a));
+check(`${tag} 全部开关：「在哪 / 花不花钱」点展开才出来，点展开不会误勾开关`, a.cost0 === 'none' && a.cost1 !== 'none' && a.cbSame, JSON.stringify(a));
+check(`${tag} 插件页：能搜，新建插件默认收起`, a.n >= 10 && a.hid === a.n && a.folded && a.search, JSON.stringify(a));
+check(`${tag} 没放歌时音乐播放器缩成小圆点`, a.mEmpty === true || a.mEmpty === null, JSON.stringify(a));
+check(`${tag} 整个过程没有页面报错`, errs.length === 0, errs.join(' | ').slice(0, 600));
+await browser.close();
+const bad = results.filter(r => !r.ok);
+results.forEach(r => console.log((r.ok ? '  ✅' : '  ❌') + ' ' + r.n + (r.ok ? '' : '\n       → ' + r.extra)));
+console.log('\n' + (results.length - bad.length) + '/' + results.length + ' 通过');
+process.exit(bad.length ? 1 : 0);

@@ -76,7 +76,7 @@ function openStorySession(id) {
     const changed = currentStorySessionId !== id;
     currentStorySessionId = id;
     storyStudioTab = 'write';
-    // 换了一段续写＝换了一个"聊天"，广播酒馆的 CHAT_CHANGED。
+    // 换了一段续写＝换了一个"聊天"，广播同类软件的 CHAT_CHANGED。
     // 卡片靠这个事件重置自己的状态（比如手账本清掉上一段的进度），
     // 不发的话卡片会拿着上一段的数据继续显示。
     if (changed && typeof gyTavernEmit === 'function') {
@@ -331,7 +331,7 @@ function buildSsHistory(session, upToIndex) {
         return { role: t.role === 'user' ? 'user' : 'assistant', content: text };
     });
     // 角色卡组件通过 injectPrompts 临时挂上的提示词，在这里按深度插进历史。
-    // 只影响这次请求，不落存档正文——跟酒馆的 injectPrompts 语义一致。
+    // 只影响这次请求，不落存档正文——跟同类软件的 injectPrompts 语义一致。
     if (typeof gyApplyInjects === 'function' && session.cardInjects && session.cardInjects.length) {
         try { return gyApplyInjects(turns, null, null); } catch (e) { console.error('注入提示词出错：', e); }
     }
@@ -358,7 +358,7 @@ function renderSsTurns() {
     box.innerHTML = turns.map((t, idx) => {
         const isUser = t.role === 'user';
         const bits = [];
-        // 楼层号跟酒馆对齐：**从 0 开始**，楼层号就是 message_id。
+        // 楼层号跟同类软件对齐：**从 0 开始**，楼层号就是 message_id。
         // 角色卡的组件调 setChatMessages([{message_id:N}]) 时说的就是这个号，
         // 显示成 1 起会跟卡片对不上，排查问题时也容易数错。
         if (showFloor) bits.push(`#${idx}楼`);
@@ -372,7 +372,7 @@ function renderSsTurns() {
             : '';
 
         let swipeHtml = '';
-        // 开场那一楼：◀▶ 在这个角色的所有开场白之间切（跟酒馆第 0 楼的 swipes 一个意思）。
+        // 开场那一楼：◀▶ 在这个角色的所有开场白之间切（跟同类软件第 0 楼的 swipes 一个意思）。
         // 切的时候要重跑宏/正则/MVU 整条链，所以走 swipeSsTurn → ssSwitchOpening，
         // 不能像普通楼层那样直接换个文本了事。
         if (!isUser && t.fromGreeting && (t.greetingCount || 0) > 1) {
@@ -640,7 +640,7 @@ function applySsGreeting(item) {
         fromGreeting: true,
         greetingIndex: (typeof item.greetingIndex === 'number') ? item.greetingIndex : undefined,
         // 记下这个角色一共有几个开场白 —— 开场那一楼的 ◀▶ 就是在这些之间切，
-        // 跟酒馆里"第 0 楼的 swipes 就是所有候选开场白"完全一致。
+        // 跟同类软件里"第 0 楼的 swipes 就是所有候选开场白"完全一致。
         greetingCount: (char && typeof getGreetingOptions === 'function') ? (getGreetingOptions(char) || []).length : undefined,
     });
     session.updatedAt = Date.now();
@@ -775,7 +775,7 @@ async function sendSsTurn() {
     const aiTurnId = 't_' + Date.now() + '_a';
     session.turns.push({ id: userTurnId, role: 'user', text: userText || '（发来一张图片）', image: pendingImage || null, timestamp: Date.now() });
     session.turns.push({ id: aiTurnId, role: 'ai', text: '', timestamp: Date.now(), charId: turnCharId });
-    // 广播给角色卡里的组件：酒馆的 message_sent / generation_started 就是这两个时机
+    // 广播给角色卡里的组件：同类软件的 message_sent / generation_started 就是这两个时机
     if (typeof gyTavernEmit === 'function') {
         gyTavernEmit('message_sent', session.turns.length - 2);
         gyTavernEmit('generation_started');
@@ -1028,10 +1028,10 @@ async function ssMenuAct(act) {
 
 // ---------------------------------------------------------------- 角色卡按钮栏
 
-// 酒馆的「脚本按钮」：卡片调 replaceScriptButtons() 注册几个按钮，用户点一下，
+// 同类软件的「脚本按钮」：卡片调 replaceScriptButtons() 注册几个按钮，用户点一下，
 // 卡片自己的脚本收到一个事件去处理。
 //
-// 语义按白露的界面改了一点：酒馆把这类按钮塞在脚本库的抽屉里，白露直接放在续写操作区上方——
+// 语义按白露的界面改了一点：同类软件把这类按钮塞在脚本库的抽屉里，白露直接放在续写操作区上方——
 // 卡片本来就在这个页面里，按钮离它近才用得顺手。行为不变：点击 = 把事件发回给注册它的那张卡。
 //
 // 注册信息存在会话上（跟着这段续写走），卡片重新渲染、iframe 重建都不会把按钮弄丢。
@@ -1051,7 +1051,7 @@ function clickSsCardButton(idx) {
     const s = ssSession();
     const b = s && s.cardButtons && s.cardButtons[idx];
     if (!b) return;
-    // 事件名跟酒馆的 getButtonEvent() 算法一致，卡片那边 eventOn(getButtonEvent('名字')) 才对得上
+    // 事件名跟同类软件的 getButtonEvent() 算法一致，卡片那边 eventOn(getButtonEvent('名字')) 才对得上
     if (typeof gyTavernEmit === 'function') {
         gyTavernEmit((b.script_id || 'card') + '_' + b.name + '_button_clicked');
         gyTavernEmit('button_clicked', b.name);   // 再发一个通用的，兼容写法不一样的卡

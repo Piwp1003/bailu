@@ -743,6 +743,7 @@ body.gywx .fab-btn{display:none!important}
         render();
         try { document.getElementById('gyWxBody').scrollTop = 0; } catch (e) {}
     };
+    window.gyWxState = () => ({ sub: S.sub, tab: S.tab, pane: S.pane });   // 给 js/73「返回」用
     window.gyWxSub = function (s) { S.sub = s; render(); try { document.getElementById('gyWxBody').scrollTop = 0; } catch (e) {} };
     window.gyWxSearch = function (v) {
         S.q = String(v || '');

@@ -246,7 +246,7 @@
                         ${r.why ? `<em>${esc(r.why)}</em>` : (r.text ? '' : (r.act ? '<em>做过一次才会定下一次</em>' : '<em>点开让 TA 定</em>'))}
                         ${pct >= 0 ? `<div class="gyt-rh-bar"><s style="width:${pct}%"></s></div>` : ''}
                       </div>`; }).join('')}</div>`).join('')}
-                  <div class="gyt-rh-foot"><button type="button" data-ta-ask="${esc(c.id)}">${miss ? `🎲 让 TA 把剩下 ${miss} 件定了` : '🎲 让 TA 全部重新想想'}</button></div>
+                  <div class="gyt-rh-foot"><button type="button" data-ta-ask="${esc(c.id)}">${miss ? `🎲 让 TA 把剩下 ${miss} 件定了` : '🎲 让 TA 全部重新想想'}</button><label style="font-size:12px;margin-left:8px"><input type="checkbox" ${localStorage.getItem('gyTaDailyAsk') !== '0' ? 'checked' : ''} onchange="gyTaDailyAskSet&&gyTaDailyAskSet(this.checked)"> 每天自己重新想一遍</label></div>
                 </details>`;
             });
             h += `</details>`;

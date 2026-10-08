@@ -1,6 +1,23 @@
 /* ---- 新玩法插件的公用小工具（每个插件都带一份，谁先加载谁建好，后面的直接用） ---- */
 if (!window.GYX) (function () {
     const X = {};
+    // 🔋 插件体检 / 省电：记下每个插件开的定时器（靠每个插件末尾的 //# sourceURL=gyx-plugin/名字.js 认出是谁开的），省电模式下让它们跑慢一点
+    try {
+        if (!window.__gyxTimerWrap) {
+            window.__gyxTimerWrap = 1; window.__gyxTimers = [];
+            try { window.__gyxSaver = JSON.parse(localStorage.getItem('gyxSaver') || 'null') || { on: false, fac: 3, hid: 6, anim: true, auto: true }; } catch (e) { window.__gyxSaver = { on: false, fac: 3, hid: 6, anim: true, auto: true }; }
+            const _si = window.setInterval.bind(window), _ci = window.clearInterval.bind(window);
+            window.setInterval = function (fn, ms, ...a) {
+                if (typeof fn !== 'function') return _si(fn, ms, ...a);
+                let who = null; try { const m = String(new Error().stack || '').split('\n').slice(2).join('\n').match(/gyx-plugin\/([^:)\s]+?)\.js/); /* 跳过第一行（Error）和第二行（这个包装函数自己） */ if (m) { try { who = decodeURIComponent(m[1]); } catch (e) { who = m[1]; } } } catch (e) {}
+                if (!who) return _si(fn, ms, ...a);
+                const T = { who, ms: +ms || 0, runs: 0, cost: 0, last: 0, skip: 0, at: Date.now() };
+                const w = function () { const sv = window.__gyxSaver; if (sv && sv.on) { const f = document.hidden ? +sv.hid || 1 : +sv.fac || 1; if (f > 1 && Date.now() - T.last < T.ms * f - 50) { T.skip++; return; } } T.last = Date.now(); const t0 = performance.now(); try { return fn.apply(this, a); } finally { T.cost += performance.now() - t0; T.runs++; } };
+                const id = _si(w, ms); T.id = id; window.__gyxTimers.push(T); return id;
+            };
+            window.clearInterval = function (id) { const L = window.__gyxTimers || [], i = L.findIndex(t => t.id === id); if (i >= 0) L.splice(i, 1); return _ci(id); };
+        }
+    } catch (e) {}
     X.bailu = () => !!window.bailuCards;                                   // 白露：不接模型，用字卡
     X.esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
     X.pick = a => a[Math.floor(Math.random() * a.length)];
@@ -15,7 +32,7 @@ if (!window.GYX) (function () {
     X.plain = t => String(t || '').replace(/<[^>]+>/g, '').replace(/\[[^\]]*\]/g, '').replace(/\s+/g, ' ').trim();
     X.persona = c => String((c && (c.persona || c.description)) || '').slice(0, 900);
     X.recent = (c, n) => ((typeof globalChats !== 'undefined' && c && globalChats[c.id]) || []).filter(m => m.sender !== 'system').slice(-(n || 16)).map(m => (m.sender === 'me' ? X.me(c) : X.name(c)) + '：' + X.plain(m.text).slice(0, 120)).join('\n');
-    X.store = name => { const lf = (typeof localforage !== 'undefined' && localforage.createInstance) ? localforage.createInstance({ name: 'gyx_' + name, storeName: 'kv' }) : null; return { get: async (k, d) => { try { const v = lf && await lf.getItem(k); return v == null ? d : v; } catch (e) { return d; } }, set: async (k, v) => { try { if (lf) await lf.setItem(k, v); } catch (e) {} } }; };
+    X.store = name => { try { (window.__gyxStoreNames = window.__gyxStoreNames || []).push('gyx_' + name); } catch (e) {} const lf = (typeof localforage !== 'undefined' && localforage.createInstance) ? localforage.createInstance({ name: 'gyx_' + name, storeName: 'kv' }) : null; return { get: async (k, d) => { try { const v = lf && await lf.getItem(k); return v == null ? d : v; } catch (e) { return d; } }, set: async (k, v) => { try { if (lf) await lf.setItem(k, v); } catch (e) {} } }; };
     X.json = t => { try { const m = String(t || '').match(/\{[\s\S]*\}|\[[\s\S]*\]/); return m ? JSON.parse(m[0]) : null; } catch (e) { return null; } };
     // 问模型（谷雨）。白露没有模型：返回 null，由各插件自己从字卡里拼
     X.ask = async function (prompt, extra) {
@@ -65,7 +82,17 @@ if (!window.GYX) (function () {
     const MINIS = [];
     function syncMini() { try { if (typeof GY_MINI_FEATURES === 'undefined') return; MINIS.forEach(([d, fid]) => { const i = GY_MINI_FEATURES.findIndex(f => f.id === d.id); const on = !fid || X.on(fid); if (on && i < 0 && typeof registerMiniFeature === 'function') registerMiniFeature(d); if (!on && i >= 0) GY_MINI_FEATURES.splice(i, 1); }); } catch (e) {} }
     X.mini = (def, fid) => { MINIS.push([def, fid || def.id]); syncMini(); };
-    X.widget = (k, def) => { const W = window.__gyPmW; if (W && W.WD && !W.WD[k]) W.WD[k] = def; };
+    // 小手机桌面小组件：手机页还没加载好就等一会儿再登记；功能关了小组件显示「关着」而不是报错
+    const WQ = [];
+    function wFlush() { const W = window.__gyPmW; if (!W || !W.WD) return false; WQ.splice(0).forEach(([k, def, fid]) => { if (W.WD[k]) return; const r = def.r, tap = def.tap; if (fid) { def.r = w => X.on(fid) ? r(w) : `<div class="gw-x s"><b>💤</b><em>${X.esc(def.n)}（关着）</em></div>`; if (tap) def.tap = w => X.on(fid) ? tap(w) : (window.gyxSwitchOpen ? window.gyxSwitchOpen() : 0); } W.WD[k] = def; }); return true; }
+    let wTimer = null;
+    X.widget = (k, def, fid) => { WQ.push([k, def, fid]); if (wFlush() || wTimer) return; let n = 0; wTimer = setInterval(() => { if (wFlush() || ++n > 120) { clearInterval(wTimer); wTimer = null; } }, 500); };
+    // 记忆总览：插件记下的东西登记进「记忆总览 → 🧩 其它记忆」，能改能删（功能关了这一节就不显示）
+    X.mem = (def, fid) => { const reg = () => { if (typeof window.gyMemExAdd !== 'function') return false; window.gyMemExAdd(Object.assign({ on: () => !fid || X.on(fid) }, def)); return true; }; if (!reg()) { let n = 0; const iv = setInterval(() => { if (reg() || ++n > 80) clearInterval(iv); }, 500); } };
+    // 常见情况：一个数组里每条带 cid —— 按角色筛出来
+    X.memArr = (o, fid) => { const items = c => (o.arr() || []).filter(x => x && String(o.cid ? o.cid(x) : x.cid) === String(c.id)); X.mem({ k: o.k, ico: o.ico, n: o.n, d: o.d, items, text: x => String(o.text(x) || ''), meta: o.meta || (x => x.at ? new Date(x.at).toLocaleString() : ''), edit: (x, v) => { if (o.edit) o.edit(x, v); else x[o.field] = v; }, del: (c, i) => { const it = items(c)[i], A = o.arr(), j = A.indexOf(it); if (j >= 0) A.splice(j, 1); }, save: async () => { await o.save(); } }, fid); };
+    // 通用小组件外观：大图标 + 标题 + 几行字（小号只显示图标和第一行）
+    X.gw = (w, icon, title, lines) => { lines = (lines || []).filter(Boolean); return w.size === 's' ? `<div class="gw-x s"><b>${icon}</b><em>${lines[0] != null ? lines[0] : X.esc(title)}</em></div>` : `<div class="gw-x m"><div class="h"><b>${icon}</b><span>${X.esc(title)}</span></div>${lines.slice(0, 3).map(l => `<em>${l}</em>`).join('') || '<em>还没有内容</em>'}</div>`; };
     X.repaint = () => { try { const W = window.__gyPmW; if (W && W.render && document.body.classList.contains('gyphm') && !document.body.classList.contains('gyphm-app') && !document.querySelector('#gyPmHome .pm-lock')) W.render(); } catch (e) {} };
     X.whoSel = (sel, on) => `<select class="gyx-who" onchange="${on}(this.value)">${X.chars().map(c => `<option value="${X.esc(c.id)}"${String(c.id) === String(sel) ? ' selected' : ''}>${X.esc(X.name(c))}</option>`).join('')}</select>`;
     // 「今天」面板：每个插件往里加一小节（功能关了就不出现）
@@ -85,7 +112,7 @@ if (!window.GYX) (function () {
     X.todayHook = function () {
         const f = window.gyTodayRender; if (typeof f !== 'function' || f.__gyx) return;
         const w = function () { const r = f.apply(this, arguments); try { X.todayPaint(); } catch (e) {} return r; };
-        w.__gyx = true; window.gyTodayRender = w;
+        Object.keys(f).forEach(k => { try { w[k] = f[k]; } catch (e) {} }); w.__gyx = true; window.gyTodayRender = w;
     };
     setInterval(() => { X.todayHook(); }, 3000);
     // 统一的弹窗（小手机风格）
@@ -102,6 +129,7 @@ if (!window.GYX) (function () {
 .gyx-box{background:#fff;color:#1d1d1f;border-radius:22px;width:min(560px,100%);max-height:92vh;overflow:auto;box-sizing:border-box;box-shadow:0 24px 60px rgba(0,0,0,.2)}
 .gyx-hd{position:sticky;top:0;z-index:2;display:flex;align-items:center;justify-content:space-between;padding:14px 18px 10px;background:rgba(255,255,255,.9);backdrop-filter:blur(12px);font-size:17px}.gyx-x{cursor:pointer;color:#999;padding:2px 6px}
 .gyx-bd{padding:4px 18px 18px}
+.gw-x{height:100%;display:flex;flex-direction:column;justify-content:center;gap:3px;overflow:hidden}.gw-x.s{align-items:center;text-align:center}.gw-x.s b{font-size:30px;font-weight:normal;line-height:1.1}.gw-x .h{display:flex;align-items:center;gap:6px;margin-bottom:2px}.gw-x .h b{font-size:20px;font-weight:normal}.gw-x .h span{font-weight:600;font-size:13.5px}.gw-x em{font-style:normal;font-size:12px;color:var(--pm-sub,#888);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
 .gyx-btn{padding:9px 16px;border-radius:14px;border:none;background:#1d1d1f;color:#fff;cursor:pointer;font-family:inherit;font-size:14px}.gyx-btn.lite{background:#f2f2f4;color:#1d1d1f}.gyx-btn:disabled{opacity:.4}
 .gyx-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:8px 0}.gyx-tip{font-size:12.5px;color:#8e8e93;line-height:1.7;margin:6px 0}
 .gyx-who,.gyx-in{padding:8px 10px;border-radius:12px;border:1px solid #e5e5ea;background:#fafafa;font-family:inherit;font-size:14px;box-sizing:border-box}.gyx-in{width:100%}

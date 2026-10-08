@@ -43,6 +43,10 @@
           items: c => c.bioHistory || [], text: x => x.bio || '', meta: x => when(x.at), edit: (x, v) => { x.bio = v; }, del: (c, i) => { c.bioHistory.splice(i, 1); } }
     ];
 
+    // 别的模块 / 插件登记进来：gyMemExAdd({ k, ico, n, d, items, text, meta, edit, del, save, on })
+    //   save(c)：改 / 删完之后它自己存（插件的数据不在角色卡里）；on()：返回 false 时（功能关了）这一节不显示
+    window.gyMemExAdd = function (def) { if (!def || !def.k) return; const i = LISTS.findIndex(x => x.k === def.k); if (i >= 0) LISTS[i] = def; else LISTS.push(def); try { paint(); } catch (e) {} };
+    window.gyMemExList = () => LISTS.map(x => x.k);
     function html(c) {
         const texts = TEXTS.map(t => {
             const v = t.get(c) || '';
@@ -51,14 +55,16 @@
                 <div class="gyme-ops"><button type="button" class="btn-edit-small" onclick="gyMemExSetText('${t.k}','',1)">🗑️ 清空这段</button></div>`
                 : '<div class="gyme-none">还没有</div>'}</div>`;
         }).join('');
-        const lists = LISTS.map(L => {
-            const it = L.items(c);
+        const empty = [];
+        const lists = LISTS.filter(L => !L.on || L.on()).map(L => {
+            let it = []; try { it = L.items(c) || []; } catch (e) {}
+            if (!it.length && L.save) { empty.push(L.ico + ' ' + L.n); return ''; }
             return `<div class="gyme-sec"><div class="gyme-h">${L.ico} ${L.n}<em>${L.d}</em></div>
                 ${it.length ? it.map((x, i) => `<div class="gyme-row"><textarea class="gyme-ta s" rows="2" onchange="gyMemExEdit('${L.k}',${i},this.value)">${esc(L.text(x))}</textarea>
                     <div class="gyme-meta"><span>${esc(L.meta(x))}</span><button type="button" class="btn-edit-small" onclick="gyMemExDel('${L.k}',${i})">🗑️ 删掉</button></div></div>`).join('')
                 : '<div class="gyme-none">还没有</div>'}</div>`;
         }).join('');
-        return `<div class="gyme-title">🧩 其它记忆 <span>各个功能里 TA 记下的事。改完点别处就存；删了就真没了</span></div>${texts}${lists}`;
+        return `<div class="gyme-title">🧩 其它记忆 <span>各个功能里 TA 记下的事。改完点别处就存；删了就真没了</span></div>${texts}${lists}${empty.length ? `<div class="gyme-none" style="margin-top:8px">还没内容的：${esc(empty.join('、'))}</div>` : ''}`;
     }
     function paint() {
         const box = document.getElementById('memoryHubContent'); if (!box) return;
@@ -82,12 +88,12 @@
         const c = charOf(cur()); const L = LISTS.find(x => x.k === k); if (!c || !L) return;
         const x = L.items(c)[i]; if (!x) return;
         v = String(v || '').trim(); if (!v) { window.gyMemExDel(k, i); return; }
-        L.edit(x, v); saveAll(); toast('✅ 改好了', `${c.name} 的「${L.n}」`);
+        L.edit(x, v); if (L.save) L.save(c); else saveAll(); toast('✅ 改好了', `${c.name} 的「${L.n}」`);
     };
     window.gyMemExDel = async function (k, i) {
         const c = charOf(cur()); const L = LISTS.find(x => x.k === k); if (!c || !L) return;
         if (!(await ask(`删掉这一条「${L.n}」？删了 TA 就不记得了。`))) return;
-        L.del(c, i); saveAll(); paint(); toast('🗑️ 删掉了');
+        L.del(c, i); if (L.save) await L.save(c); else saveAll(); paint(); toast('🗑️ 删掉了');
     };
 
     // 「记忆条目」原来只能删不能改：每条后面加一颗「改」，点了就地改标题和内容

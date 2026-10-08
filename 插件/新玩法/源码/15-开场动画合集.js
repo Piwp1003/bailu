@@ -50,6 +50,22 @@ window.gyxIntroOpen = function () {
         <div class="gyx-row"><button class="gyx-btn lite" onclick="gyxIntroEdit(-1)">＋ 新建一个开场</button><label class="gyx-btn lite">上传开场<input type="file" accept=".json,.html,.htm,.css,.txt" multiple style="display:none" onchange="gyxIntroUpload(this)"></label><button class="gyx-btn lite" onclick="gyxIntroExport(-1)">把某个内置的复制成我的</button></div>
         <div id="gyxInEd"></div>`);
 };
+// 面板上的开关、勾选、预览（之前漏了这几个，导致「▶ 预览」点了没反应）
+const ALLSRC = { lib: true, custom: true, ta: true, cards: true };
+window.gyxIntroSet = (k, v) => { const c = getC(); c[k] = v; setC(c); if (k === 'on') { if (v) cache(); install(); } };
+window.gyxIntroPick = k => { const c = getC(), all = Object.keys(lib().styles); let s = c.styles && c.styles.length ? c.styles.filter(x => x === '__none' || all.includes(x)) : all.slice(); s = s.filter(x => x !== '__none'); s = s.includes(k) ? s.filter(x => x !== k) : s.concat(k); c.styles = s.length ? s : ['__none']; setC(c); window.gyxIntroOpen(); };
+window.gyxIntroAll = v => { const c = getC(); c.styles = v ? Object.keys(lib().styles) : ['__none']; setC(c); window.gyxIntroOpen(); };
+window.gyxIntroCat = k => { const c = getC(), all = Object.keys(lib().cats); let s = c.cats && c.cats.length ? c.cats.slice() : all.slice(); s = s.includes(k) ? s.filter(x => x !== k) : s.concat(k); c.cats = s.length ? s : all; setC(c); };
+window.gyxIntroSrc = k => { const c = getC(); c.src = Object.assign({}, ALLSRC, c.src || {}); c.src[k] = c.src[k] === false; setC(c); };
+window.gyxIntroPreview = function (id) {
+    cache(); const L = relib(); if (!L) { X.toast(X.v('开场没加载出来', '预览失败了'), '刷新一下再试'); return null; }
+    const c = getC(), all = Object.keys(L.styles); let pool = id && L.styles[id] ? [id] : (c.styles || []).filter(k => L.styles[k]); if (!pool.length) pool = all;
+    const old = document.getElementById('gyxIntro'); if (old) old.remove();
+    const ov = document.getElementById('gyxInOv'); if (ov) ov.style.visibility = 'hidden';
+    const r = L.play(X.pick(pool));
+    const back = () => { if (document.getElementById('gyxIntro')) return setTimeout(back, 300); if (ov) ov.style.visibility = ''; }; setTimeout(back, 400);
+    return r;
+};
 const TPL = { n: '我的开场', html: '<div class="bg"></div>\n<div class="box">\n  <div class="t">{title}</div>\n  <div class="s">{line}</div>\n  <div class="sg">{sign}</div>\n</div>', css: '.bg{position:absolute;inset:0;background:linear-gradient(160deg,#ffe3ec,#e3ecff)}\n.box{text-align:center;color:#333}\n.t{font-size:48px;letter-spacing:.2em;animation:giIn 1s both}\n.s{margin-top:12px;font-size:16px;animation:giIn 1s .5s both}\n.sg{font-size:12px;opacity:.6}' };
 window.gyxIntroEdit = function (i, base) {
     const c = getC(), u = i >= 0 ? (c.custom || [])[i] : (base || TPL), box = document.getElementById('gyxInEd'); if (!box) return;
@@ -144,3 +160,4 @@ X.css('gyxInCss', `.in-grid{display:grid;grid-template-columns:repeat(auto-fill,
 X.mini({ id: 'gyxIntro', icon: '🎬', title: '开场动画合集', desc: '20 种开场样式、上百句文案随机；想用哪几种自己选，也能关掉用回原来的', onOpen: () => window.gyxIntroOpen() });
 addEventListener('gyx:feat', e => { if (e.detail && e.detail.id === 'gyxIntro') install(); });
 (() => { const c = getC(); if (c.on == null) { c.on = true; setC(c); } install(); cache(); lib(); egHook(); takeCss(); setInterval(() => { egHook(); takeCss(); }, 3000); setInterval(cache, 5 * 60000); })();
+X.widget('gyxIntroW', { n: '开场动画', sizes: ['s'], tap: () => window.gyxIntroOpen(), r: w => X.gw(w, '🎬', '开场动画', ['换开场']) }, 'gyxIntro');

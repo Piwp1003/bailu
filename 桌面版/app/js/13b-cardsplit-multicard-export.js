@@ -165,7 +165,7 @@ ${fullPersona.substring(0, 1500)}
         const totalEntries = data.character_book.entries.length;
         if (await appConfirm(`🎉 角色读取成功！\n系统检测到该角色卡内嵌了 ${totalEntries} 条世界观设定(Lorebook)。\n是否自动将其逐条导入到白露的世界书中，并统一归到"${data.name || '导入角色'}"这个分组里？`)) {
             // 📁 角色卡自带的世界书统一归到"该角色名字"这个分组下，而不是沿用卡片原始的 extensions.group
-            // （原卡那个字段是SillyTavern自己的分类习惯，导过来的意义不大；按角色名分组更符合"这是TA的专属设定"
+            // （原卡那个字段是同类软件自己的分类习惯，导过来的意义不大；按角色名分组更符合"这是TA的专属设定"
             // 这个直觉，同一张卡再导入一次/别的角色卡也不会互相混在一起）。分组名不存在就顺手建一个。
             const charGroupName = (data.name || '导入角色').trim() || '导入角色';
             if (charGroupName && !worldbookCategories.includes(charGroupName)) worldbookCategories.push(charGroupName);
@@ -333,7 +333,7 @@ function openMultiCardPickerModal(list, b64Image) {
     <div id="gyMultiCardModal" style="position:fixed; inset:0; background:rgba(0,0,0,.55); z-index:99999; display:flex; align-items:center; justify-content:center;">
       <div style="background:#fff; border-radius:14px; max-width:420px; width:92%; max-height:80vh; overflow:auto; padding:18px;">
         <h3 style="margin:0 0 8px; color:#1d9bf0;">📦 这份文件里打包了 ${list.length} 个角色</h3>
-        <div style="font-size:13px; color:#536471; margin-bottom:10px;">SillyTavern 规范一张卡本该只有一个角色，但这份文件里检测到不止一个。勾选要导入的——存好一个自动接着填下一个：</div>
+        <div style="font-size:13px; color:#536471; margin-bottom:10px;">同类软件 规范一张卡本该只有一个角色，但这份文件里检测到不止一个。勾选要导入的——存好一个自动接着填下一个：</div>
         ${rows}
         <div style="display:flex; gap:8px; margin-top:12px;">
           <button class="btn-secondary" style="flex:1;" onclick="document.querySelectorAll('.gyMultiCardPick').forEach(c=>c.checked=!c.checked)">反选</button>
@@ -469,9 +469,9 @@ function advanceCharImportQueue() {
 }
 
 // ==========================================
-// 📤 导出角色卡为标准 PNG (兼容 SillyTavern V2 角色卡规范 chara_card_v2)
+// 📤 导出角色卡为标准 PNG (兼容同类软件V2 角色卡规范 chara_card_v2)
 // 原理：把角色JSON整体 base64 后，塞进PNG文件里一个叫"chara"的 tEXt 数据块。
-// 图片本身正常显示不受影响，别的支持这套规范的软件（酒馆等）能读出隐藏的角色数据；
+// 图片本身正常显示不受影响，别的支持这套规范的软件（同类软件等）能读出隐藏的角色数据；
 // 我们自己的 handleCharCardImport 也认这种文件，所以能反复导入导出、原样往返。
 // ==========================================
 const PNG_CRC_TABLE = (function () {
@@ -612,7 +612,7 @@ async function buildAndDownloadCharCard(info) {
         document.body.appendChild(a); a.click(); document.body.removeChild(a);
         setTimeout(() => URL.revokeObjectURL(url), 5000);
 
-        if (typeof showToast === 'function') showToast('', '✅ 导出成功', `角色卡已生成：${name}.png，可以分享给别人，也能被 SillyTavern 等同类酒馆软件识别导入。`, null, null, false);
+        if (typeof showToast === 'function') showToast('', '✅ 导出成功', `角色卡已生成：${name}.png，可以分享给别人，也能被 同类软件识别导入。`, null, null, false);
         else alert(`✅ 导出成功：${name}.png`);
     } catch (e) {
         console.error('导出角色卡失败', e);

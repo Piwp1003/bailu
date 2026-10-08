@@ -74,7 +74,7 @@
                 if (typeof namespaceInjectedIds === 'function') h = namespaceInjectedIds(h, 'cw' + b.start + '_' + (depth || 0));
                 // 渲染完跟原文一样（正则没真的把它变成界面）就还给正文
                 if (!h || h.indexOf(b.seg.slice(0, 12)) !== -1) { return; }
-                // 只是被包成了代码块（卡片靠酒馆插件脚本才能画出来的那种）——这里画不出来，还给正文
+                // 只是被包成了代码块（卡片靠同类软件插件脚本才能画出来的那种）——这里画不出来，还给正文
                 const bare = h.replace(/<\/?(pre|code|br|p|span)[^>]*>/gi, '');
                 if (!/<[a-z][^>]*>/i.test(bare)) { return; }
                 html += `<div class="gy-chat-widget" onclick="event.stopPropagation()">${h}</div>`;

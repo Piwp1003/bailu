@@ -638,6 +638,7 @@ let globalBgImage = null, globalBgOpacity = 1;
    真失败会弹一次提示告诉你，而不是假装存上了。
    ============================================================ */
 window.gyStore = function (name, storeName) {
+    try { (window.__gyStoreNames = window.__gyStoreNames || []).push([name, storeName]); } catch (e) {}   // 备份时知道有哪些小库（js/80）
     let lf = null;
     try {
         if (typeof localforage !== 'undefined') lf = localforage.createInstance({ name, storeName });

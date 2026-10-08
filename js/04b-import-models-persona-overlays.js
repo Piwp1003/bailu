@@ -14,8 +14,7 @@ async function importData(event) {
             const data = JSON.parse(e.target.result);
             // 直接写入和自动存档同一个数据库，再用同一套（已经过充分测试的）加载逻辑来应用，
             // 这样备份恢复和日常自动存档永远读取的是同一份字段清单，不会再出现"恢复漏了什么"的问题
-            await localforage.setItem('myTwitterAppData', data);
-            await loadAllData();
+            await gyHoldSaves(async () => { await localforage.setItem('myTwitterAppData', data); await loadAllData(); });
             // 恢复存档等于把内存里所有数据整个换掉，这时候还开着的任何弹窗显示的都是旧数据，
             // 留着只会挡住界面（用户反馈的"导入备份之后必须大退一次"，这是其中一种情况）。
             gyCloseAllOverlays();
@@ -669,7 +668,7 @@ async function runScheduleGeneration(charId, silent) {
 
     const recentChat = getRecentChatContext(charId);
     const recentPosts = globalPosts.filter(p => p.char.id == charId).slice(0, 5).map(p => p.text).join('\n---\n');
-    const nowStr = new Date().toLocaleString('zh-CN', { hour12: false, weekday: 'long' });
+    const nowStr = new Date().toLocaleString('zh-CN', { hour12: false, year: 'numeric', month: 'numeric', day: 'numeric', weekday: 'long', hour: '2-digit', minute: '2-digit' });
     const typeAsk = statusTypes.length > 0 ? `，并从这些状态类型里选一个最贴近的填入 "statusTypeLabel" 字段：[${statusTypes.map(t => t.label).join('、')}]，都不贴切就留空字符串` : '';
 
     const prompt = buildStructuredMessages(buildBasePrompt(char, true, recentChat + '\n' + recentPosts), [],
@@ -934,6 +933,15 @@ document.addEventListener('keydown', function (e) {
 });
 
 function gySetupInputWatchdog() {
+    // 右键菜单每次被打开（不管是聊天消息、推文还是聊天列表在用它）都记一下时间，看门狗只收「开了很久没人管」的
+    try {
+        const cm = document.getElementById('chatContextMenu');
+        if (cm && !cm.__gyOpenWatch) {
+            cm.__gyOpenWatch = true; let wasOpen = false;
+            new MutationObserver(() => { const open = cm.style.display !== 'none' && cm.style.display !== ''; if (open && !wasOpen) cm.dataset.openAt = String(Date.now()); wasOpen = open; })
+                .observe(cm, { attributes: true, attributeFilter: ['style'], childList: true });
+        }
+    } catch (e) {}
     // 点输入区的任何位置（包括图标行、内边距）都把焦点交给输入框
     const area = document.getElementById('chatInputArea');
     if (area) {
@@ -969,7 +977,11 @@ function gySetupInputWatchdog() {
             // 输入框被挡住了。先收掉已知的"忘了关"的残留浮层
             let fixed = '';
             const menu = document.getElementById('chatContextMenu');
-            if (menu && menu.contains(hit)) { menu.style.display = 'none'; fixed = '右键菜单'; }
+            if (menu && menu.contains(hit)) {
+                // 刚打开的菜单是用户正在选的，盖住输入框很正常（菜单一高就会盖到），不能收——以前这里一收，菜单就「闪一下就没了」
+                if (Date.now() - (+menu.dataset.openAt || 0) < 60000) return;
+                menu.style.display = 'none'; fixed = '右键菜单（开了很久没关）';
+            }
             const strayOverlay = hit.closest ? hit.closest('.modal-overlay') : null;
             if (!fixed && strayOverlay) {
                 const box = strayOverlay.querySelector('.modal-box') || strayOverlay.firstElementChild;

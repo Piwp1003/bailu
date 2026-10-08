@@ -360,7 +360,7 @@ function buildTimeAwareHistoryText(msgs, fallbackCharName) {
         }
         const tag = `[${formatRelativeTimeTag(ts)}]`;
         // 仅影响发给AI内容的正则脚本（promptOnly）在这里生效：不改动存档里的原文，只在拼进这次prompt时临时处理一下。
-        // depth按酒馆的惯例算：最新一条消息是0，越往前的旧消息深度数字越大（msgs是按时间正序排列的，数组末尾才是最新）。
+        // depth按同类软件的惯例算：最新一条消息是0，越往前的旧消息深度数字越大（msgs是按时间正序排列的，数组末尾才是最新）。
         const depth = msgs.length - 1 - idx;
         const textForPrompt = typeof applyPromptOnlyRegex === 'function' ? applyPromptOnlyRegex(m.text, depth) : m.text;
         if (m.sender === 'system') {
@@ -474,7 +474,7 @@ function formatDurationZh(ms) {
 // 跟"一键生成模式"里用户手动逐条勾选整本故事要用的世界书不一样，互动续写模式不需要手动挂载：
 // 自动读取【全局世界书】+【当前参与剧情的每个角色各自挂载的专属世界书】，再按关键词雷达对照最近的剧情文本
 // 触发（跟聊天里 getCharacterWorldbookText 的机制完全一致，只是这里要合并多个角色各自的专属世界书）。
-// ===== 世界书匹配引擎（仿SillyTavern World Info）=====
+// ===== 世界书匹配引擎（仿照同类软件 World Info）=====
 // 共用于聊天(getCharacterWorldbookText)和互动续写(getStoryWorldbookText)两处，统一维护一份逻辑，避免各自为政。
 //
 // 1. 主关键词：留空＝无条件命中（原有语义完全不变）。
@@ -499,7 +499,7 @@ function worldbookEntryMatchesText(w, text) {
     return secKeys.some(k => text.includes(k)); // and_any（默认）
 }
 
-// 运行时内存态（不持久化，跟酒馆一样只在当前会话周期内有意义）：记录每个"会话+世界书条目"组合最近一次的触发轮次，
+// 运行时内存态（不持久化，跟同类软件一样只在当前会话周期内有意义）：记录每个"会话+世界书条目"组合最近一次的触发轮次，
 // 用来支持 sticky（触发后维持N轮）/ cooldown（触发后N轮内不再重复）。key格式："sessionKey_条目id"
 let worldbookTriggerState = {};
 
@@ -1007,7 +1007,7 @@ const injOn = k => { try { return typeof window.gyInjectOn !== 'function' || win
    很多角色卡（尤其带"开场白目录"的那种）会把七八条开场白整段写进 description 里，
    导入之后它们就长在 char.persona 上。于是**每一个功能**——发推文、写日记、
    联网探索、小剧场——都在读那七八条互相矛盾的剧情开头：
-   一条写"你在酒馆遇见他"，一条写"你是他的上司"，模型只能各取一点乱拼。
+   一条写"你在同类软件遇见他"，一条写"你是他的上司"，模型只能各取一点乱拼。
 
    现在：
    · 人设里那几大段开场白**剥掉**（只在拼 prompt 时剥，存档里一个字不动）
@@ -1154,7 +1154,7 @@ function buildBasePrompt(char, includeChatSummary = true, chatHistoryStr = "", o
     return applyPluginMacros(applyMacros(prompt, char, opts.sessionId), char);
 }
 
-// ===== Token/字数预算估算（仿SillyTavern顶部的"当前prompt大小"提示）=====
+// ===== Token/字数预算估算（仿照同类软件顶部的"当前prompt大小"提示）=====
 // 粗略估算：中文等CJK字符基本"一个字≈一个token"，英文单词通常几个字符对应一个token，混合文本没法精确计算
 // （除非真的接入对应模型的tokenizer），这里用"字符数 ÷ 1.8"作为一个通用折中估计值，只用来给个大致概念、
 // 判断会不会明显超出上下文上限，不是精确计费依据（真实token数以服务商实际计费为准）。

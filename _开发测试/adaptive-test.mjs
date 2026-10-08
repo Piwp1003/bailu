@@ -40,7 +40,7 @@ for (const f of jsFiles) {
   const txt = fs.readFileSync(path.join(root, 'js', f), 'utf8');
   txt.split('\n').forEach((line, i) => {
     if (!line.includes('林')) return;
-    if (/森林|竹林|园林|林立|林荫|武林|少林|山林|树林|林间|丛林/.test(line)) return;
+    if (/森林|竹林|园林|林立|林荫|武林|少林|山林|树林|林间|丛林|柏林/.test(line)) return;
     if (line.includes('制作')) return;              // 作者署名，允许
     if (/\/[^\/\n]*\|林\|[^\/\n]*\//.test(line)) return;   // 关键词正则里单独一个「林」（树林的林），不是人名
     if (line.trim().startsWith('//')) return;       // 注释里提到没关系
