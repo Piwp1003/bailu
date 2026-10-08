@@ -105,13 +105,13 @@ const my = await page.evaluate(async () => { const W = window.__gyPmW.WD, ks = O
 check(`${tag} 神秘学加量：塔罗、月相、水晶球、天使数字、花语、守护动物、月老灵签……都是小手机小组件（${my.n} 个）`, my.n >= 14 && my.cards === 3 && my.h && my.moon, JSON.stringify(my));
 
 // 🧠 记忆总览：插件记下的东西都在「其它记忆」里，能改能删
-const mem = await page.evaluate(async () => { const ks = gyMemExList(); return { n: ks.filter(k => /^gyx/.test(k)).length, has: ['gyxTheater', 'gyxSecret', 'gyxPromise', 'gyxShow', 'gyxDream'].filter(k => !ks.includes(k)) }; });
+const mem = await page.evaluate(async () => { const ks = gyMemExList(); return { n: ks.filter(k => /^gyx/.test(k)).length, has: ['gyxTheater', 'gyxSecret', 'gyxPromise', 'gyxDream'].filter(k => !ks.includes(k)) }; });
 check(`${tag} 记忆总览：插件的记忆都登记进「🧩 其它记忆」（${mem.n} 节，能改能删）`, mem.n >= 20 && !mem.has.length, JSON.stringify(mem));
 
 // 🧩 小功能整理
 const hub = await page.evaluate(async () => {
   switchMainView('settings'); await new Promise(r => setTimeout(r, 300));
-  const list = () => { renderMiniFeaturePanel(); return [...document.querySelectorAll('#miniFeatureList .set-entry')].map(b => b.textContent); };
+  const list = () => { renderMiniFeaturePanel(); return [...document.querySelectorAll('#miniFeatureList .set-entry-title')].map(b => b.textContent); };
   if (!document.getElementById('miniFeatureList')) { const d = document.createElement('div'); d.id = 'miniFeatureList'; document.body.appendChild(d); }
   const all = list().join('|');
   const hidden = ['TA 的相册', '一起旅行', '纪念日惊喜', '一起存钱罐', 'TA 的声音', '功能开关中心'].filter(t => all.includes(t));
@@ -119,12 +119,12 @@ const hub = await page.evaluate(async () => {
   gyHubTab('陪伴'); const pei = list().join('|'); gyHubTab('all');
   gyGalleryOpen(); await new Promise(r => setTimeout(r, 1000)); const gal = (document.querySelector('#gyGalModal .gyhub-in') || {}).innerText || ''; gyGalleryClose();
   gydayOpen && gydayOpen(); await new Promise(r => setTimeout(r, 1000)); const day = (document.querySelector('#gydayModal .gyhub-in') || {}).innerText || ''; gydayClose && gydayClose();
-  gymapOpen(); await new Promise(r => setTimeout(r, 1000)); const map = (document.querySelector('#gymapModal .gyhub-in') || {}).innerText || ''; gymapClose();
+  gymapOpen(); await new Promise(r => setTimeout(r, 1000)); const map = document.getElementById('gymapTab-place') ? '🌏 两地' : ''; gymapClose();
   const setE = [...document.querySelectorAll('#setIndex [data-gyhub] .set-entry-title')].map(e => e.textContent);
   gyHubSet(false); await new Promise(r => setTimeout(r, 900)); const flat = list().join('|'); const setOff = document.querySelectorAll('#setIndex [data-gyhub]').length; gyHubSet(true);
-  return { hidden, tabs, pei: /桌面上的 TA/.test(pei) && !/音乐盒/.test(pei), gal, day, map, setE, flatHas: /TA 的相册/.test(flat) && /一起旅行/.test(flat), setOff };
+  return { hidden, tabs, pei: /早安晚安/.test(pei) && /哄/.test(pei) && !/音乐盒/.test(pei), gal, day, map, setE, flatHas: /TA 的相册/.test(flat) && /一起旅行/.test(flat), setOff };
 });
-check(`${tag} 小功能整理：分组标签；照片进图库、早安/旅行进行程与天气、日子类进我们的日子、钱进钱包、设置类挪去设置；关掉开关回到平铺`, !hub.hidden.length && hub.tabs === 5 && hub.pei && /TA 的相册/.test(hub.gal) && /纪念日惊喜/.test(hub.day) && /一起旅行/.test(hub.map) && hub.setE.length >= 3 && hub.flatHas && hub.setOff === 0, JSON.stringify(hub));
+check(`${tag} 小功能整理：分组标签；照片进相册、纪念日/生日进我们的日子、记账进钱包、同类的合成合集、设置类挪去设置；所在地在行程与天气的「两地」；关掉开关回到平铺`, !hub.hidden.length && hub.tabs === 5 && hub.pei && /TA 的相册/.test(hub.gal) && /纪念日惊喜/.test(hub.day) && /两地/.test(hub.map) && hub.setE.length >= 3 && hub.flatHas && hub.setOff === 0, JSON.stringify(hub));
 
 check(`${tag} 整个过程没有页面报错`, errs.length === 0, errs.join(' | ').slice(0, 600));
 await browser.close();

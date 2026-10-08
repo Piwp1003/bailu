@@ -114,6 +114,9 @@
         var ids = Object.keys(S);
         var pool = (cfg.styles && cfg.styles.length ? cfg.styles : ids).filter(function (k) { return S[k]; });
         if (!pool.length) pool = ids;
+        // 🎁 TA 偷偷换的开场（自主行动 intro_swap）：只放一次，用 TA 挑的样式和 TA 留的话
+        var G = !line && !force && cfg.gift && !cfg.gift.seen && cfg.gift.line ? cfg.gift : null;
+        if (G) { if (G.style && S[G.style]) id = G.style; cfg.gift.seen = Date.now(); try { localStorage.setItem(K, JSON.stringify(cfg)); } catch (e) {} line = { t: String(G.line), s: '—— ' + String(G.who || '') }; }
         if (!id || !S[id]) id = cfg.mode === 'seq' ? pool[((+cfg.seqI || 0)) % pool.length] : pick(pool);
         if (!force && cfg.mode === 'seq') { cfg.seqI = (+cfg.seqI || 0) + 1; try { localStorage.setItem(K, JSON.stringify(cfg)); } catch (e) {} }
         var L = line || pickLine();

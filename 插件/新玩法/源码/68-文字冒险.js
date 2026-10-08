@@ -49,3 +49,11 @@ X.memArr({ k: 'gyxQuest', ico: '🧭', n: '文字冒险', d: '打通过的冒险
 X.css('gyxQsCss', `.qs-box{max-height:60vh;overflow:auto;padding:4px 2px}.qs-intro{font-style:italic;color:#7a6a55;margin:6px 0 10px}.qs-sc{background:#f7f4ee;border-radius:14px;padding:10px 13px;margin:8px 0;line-height:1.8;font-size:14.5px}.qs-pick{text-align:right;color:#c0567a;font-size:13.5px;margin:4px 6px}.qs-ch{display:flex;flex-direction:column;gap:6px;margin-top:10px}.qs-ch>button{text-align:left}.qs-end{text-align:center;padding:16px 8px;background:linear-gradient(#fff,#fff3e0);border-radius:16px;margin-top:10px;line-height:1.8}.qs-end b{display:block;color:#b0703a;margin-bottom:6px}.qs-worlds{display:grid;grid-template-columns:1fr 1fr;gap:8px}.qs-worlds div{border-radius:16px;background:#f7f7f9;padding:16px;text-align:center;cursor:pointer}.qs-worlds span{font-size:36px;display:block}.qs-it{display:flex;gap:10px;align-items:center;padding:8px 2px;border-bottom:1px solid #f2f2f2;cursor:pointer}.qs-it span{font-size:24px}.qs-it em{display:block;font-style:normal;font-size:11.5px;color:#999}`);
 X.mini({ id: 'gyxQuest', icon: '🧭', title: '文字冒险', desc: 'TA 当旁白，你来选怎么走', cat: '一起做', onOpen: () => window.gyxQuestOpen() });
 (async () => { D = Object.assign(D, await S.get('d', {})); D.log = D.log || []; })();
+
+// 🎮 放进聊天里的游戏列表（和五子棋、UNO、猜拳在一起）；小功能里就不单独占一格了（js/79 看到这里登记了会藏起来）
+(function () {
+    const reg = () => { if (typeof registerMiniGame !== 'function') return false; registerMiniGame({ id: 'gyxQuest', name: '文字冒险', icon: '🧭', getStatus: () => null, onResume: () => window.gyxQuestOpen(), onStart: (sid, opp) => window.gyxQuestOpen(String((opp || [])[0] || sid || '')) }); return true; };
+    const unreg = () => { try { registeredMiniGames = registeredMiniGames.filter(g => g.id !== 'gyxQuest'); } catch (e) {} };
+    addEventListener('gyx:feat', e => { if (e.detail && e.detail.id === 'gyxQuest') e.detail.on ? reg() : unreg(); });
+    if (X.on('gyxQuest') && !reg()) { let n = 0; const iv = setInterval(() => { if (reg() || ++n > 60) clearInterval(iv); }, 500); }
+})();

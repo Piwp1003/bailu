@@ -105,6 +105,7 @@
                 switchMainView('diary');
                 const go = () => { try { if (typeof selectDiaryChar === 'function') selectDiaryChar(j.diary); if (j.tab && typeof switchDiaryTab === 'function') switchDiaryTab(j.tab); } catch (e) {} };
                 go(); setTimeout(go, 60);   // 立刻切一次（点完马上就是对的），稍后再补一次防止别的刷新把它盖回去
+                if (j.open) setTimeout(() => { try { if (typeof openDiaryDetail === 'function') openDiaryDetail(j.open); } catch (e) {} }, 160);   // 直接打开那封信（💌 拆信仪式会先给个信封）
                 return;
             }
             if (j.today) {
@@ -171,7 +172,7 @@
 
     // 动作 → 默认跳去哪（动作自己给了 jump 就用它的）
     const JUMP = {
-        letter: c => ({ diary: c.id, tab: 'letter' }), diary: c => ({ diary: c.id, tab: 'diary' }),
+        letter: c => { const L = (c.diaryData && c.diaryData.letters) || [], x = L.find(l => l && l.author !== 'user'); return { diary: c.id, tab: 'letter', open: x && Date.now() - (x.date || 0) < 10 * 60000 ? x.id : undefined }; }, diary: c => ({ diary: c.id, tab: 'diary' }),
         forum: () => ({ view: 'novel' }), anon: () => ({ view: 'anonForum' }),
         comment: (c, e) => postJump(lastCommentedPost(c)),
         like: (c, e) => postJump(likedPost(c, e) || (/评论/.test(String(e && e.result || '')) ? lastCommentedPost(c) : null)),

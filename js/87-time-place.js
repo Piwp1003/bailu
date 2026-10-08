@@ -31,10 +31,22 @@
     C.log = Array.isArray(C.log) ? C.log : [];
     const store = () => { try { localStorage.setItem(KEY, JSON.stringify(C)); } catch (e) {} };
     const devTz = (() => { try { return Intl.DateTimeFormat().resolvedOptions().timeZone || 'Asia/Shanghai'; } catch (e) { return 'Asia/Shanghai'; } })();
-    const userTz = () => C.user.tz || devTz;
+    // 你在哪个城市 / 时区：只存一份，在 🗺️ 行程与天气（js/23）里（天气也跟着它）。没有那个模块时才用这里自己的
+    const MAP = () => (typeof window.gymapUser === 'function' ? window.gymapUser() : null);
+    const uPlace = () => { const m = MAP(); return String((m && m.city) || C.user.place || '').split('（')[0].trim(); };
+    const uTz = () => { const m = MAP(); return (m && m.tz) || C.user.tz || ''; };
+    const userTz = () => uTz() || devTz;
+    // 老数据搬过去：这里原来填过的城市 / 时区，行程与天气那边还空着就搬过去，搬完这边清空
+    function moveToMap() {
+        if (!MAP() || (!C.user.place && !C.user.tz)) return;
+        const m = MAP();
+        if (C.user.place && !m.city && typeof window.gymapSetUserCityText === 'function') window.gymapSetUserCityText(C.user.place);
+        if (C.user.tz && !m.tz && typeof window.gymapSetUserTz === 'function') window.gymapSetUserTz(C.user.tz);
+        C.user = { place: '', tz: '' }; C.moved = Date.now(); store();
+    }
     const placeOf = c => (c && c.timePlace) || {};
     const charTz = c => placeOf(c).tz || userTz();
-    const distant = c => { const p = placeOf(c); if (p.distant != null) return !!p.distant; return !!(p.tz && p.tz !== userTz()) || !!(p.place && C.user.place && p.place.trim() !== C.user.place.trim()); };
+    const distant = c => { const p = placeOf(c); if (p.distant != null) return !!p.distant; return !!(p.tz && p.tz !== userTz()) || !!(p.place && uPlace() && p.place.trim() !== uPlace()); };
 
     // ---------- 现在（自定义时间会往后走） ----------
     const customOn = () => senseOn() && C.custom.on && !!C.custom.start && !isNaN(new Date(C.custom.start).getTime());
@@ -109,8 +121,8 @@
         const c = charById(id); const out = [];
         if (NUDGE[String(id)]) out.push(`【这次主动找她的由头】${NUDGE[String(id)]}`);
         if (!c) return out.join('\n');
-        const p = placeOf(c), up = C.user.place, far = distant(c);
-        if (!p.place && !p.tz && !up && !C.user.tz && !customOn()) return out.join('\n');
+        const p = placeOf(c), up = uPlace(), far = distant(c);
+        if (!p.place && !p.tz && !up && !uTz() && !customOn()) return out.join('\n');
         const me = p.place || (far ? '' : up) || '', her = up || '';
         if (!senseOn()) {
             if (me || her) out.push(`【你们各自在哪】${me ? '你在' + me : ''}${me && her ? '，' : ''}${her ? '她在' + her : ''}。${far ? '你们异地，不默认能见面；要见面得先有安排（车票、航班、请假），见面是件事。' : ''}`);
@@ -161,41 +173,55 @@
         if (!v && C.custom.frozen) { C.custom.setAt = Date.now(); }
         C.custom.frozen = !!v; store(); window.gyTimePlaceOpen(true);
     };
-    window.gyTimeUser = function (k, v) { C.user[k] = String(v || '').trim(); store(); logIt(k === 'tz' ? '你的时区改成 ' + tzName(v || devTz) : '你在 ' + (v || '（没填）')); window.gyTimePlaceOpen(true); };
+    window.gyTimeUser = function (k, v) {
+        v = String(v || '').trim();
+        if (k === 'tz' && typeof window.gymapSetUserTz === 'function') window.gymapSetUserTz(v);
+        else if (k === 'place' && typeof window.gymapSetUserCityText === 'function') window.gymapSetUserCityText(v);
+        else { C.user[k] = v; store(); }
+        logIt(k === 'tz' ? '你的时区改成 ' + tzName(v || devTz) : '你在 ' + (v || '（没填）')); rerender();
+    };
+    // 改完重画：在行程与天气的「两地」里改的就重画那一页，在这一页改的就重画这一页
+    function rerender() { const mm = document.getElementById('gymapModal'); if (mm && mm.classList.contains('on') && document.getElementById('gymapTab-place') && /on/.test(document.getElementById('gymapTab-place').className)) { try { window.gymapTab('place'); } catch (e) {} } if (document.getElementById('gyTimePlaceOv')) window.gyTimePlaceOpen(true); }
     window.gyTimeChar = function (cid, k, v) {
         const c = charById(cid); if (!c) return; c.timePlace = Object.assign({}, c.timePlace || {});
         if (k === 'distant') c.timePlace.distant = v === '' ? null : v === '1'; else c.timePlace[k] = String(v || '').trim();
-        save(); logIt(`${c.name}：${k === 'tz' ? '时区 ' + tzName(v || userTz()) : k === 'place' ? '在 ' + (v || '（没填）') : v === '1' ? '跟你异地' : v === '0' ? '跟你同城' : '异地自动判断'}`); window.gyTimePlaceOpen(true);
+        save(); logIt(`${c.name}：${k === 'tz' ? '时区 ' + tzName(v || userTz()) : k === 'place' ? '在 ' + (v || '（没填）') : v === '1' ? '跟你异地' : v === '0' ? '跟你同城' : '异地自动判断'}`); rerender();
     };
     const tzSel = (val, on, def) => `<select class="gytp-in" onchange="${on}">${[['', def]].concat(TZS).map(([v, n]) => `<option value="${esc(v)}"${v === (val || '') ? ' selected' : ''}>${esc(n)}</option>`).join('')}</select>`;
+    // 「你的时区 + 每个 TA 在哪」——画在 🗺️ 行程与天气的「🌏 两地」里（你的城市那边自己画）
+    window.gyTimePlaceHtml = function () {
+        const m = window.gyTimeMode(), tU = wallFor(userTz());
+        return `<div class="gytp gytp-inmap"><div class="gytp-sec">你的时区</div><div class="gytp-card"><div class="gytp-row">${tzSel(uTz(), "gyTimeUser('tz',this.value)", '跟手机一样（' + tzName(devTz) + '）')}</div>${m !== 'off' ? `<div class="gytp-tip">你这边现在：${esc(tU.s)}</div>` : ''}${typeof window.gymapUser !== 'function' ? `<div class="gytp-row"><input class="gytp-in" placeholder="城市（比如 上海）" value="${esc(uPlace())}" onchange="gyTimeUser('place',this.value)"></div>` : ''}</div>
+            <div class="gytp-sec">每个 TA 在哪 <span class="gytp-tip">不填＝跟你一样</span></div>
+            ${chars().map(c => { const p = placeOf(c), t = wallFor(charTz(c)), far = distant(c); return `<div class="gytp-card"><div class="gytp-name">${esc(c.name)} ${far ? '<i class="gytp-far">异地</i>' : ''}${m !== 'off' && (far || charTz(c) !== userTz()) ? `<em>那边 ${esc(t.hm)} · ${part(t.h)}</em>` : ''}</div>
+                <div class="gytp-row"><input class="gytp-in" placeholder="城市" value="${esc(p.place || '')}" onchange="gyTimeChar('${esc(c.id)}','place',this.value)">${tzSel(p.tz, `gyTimeChar('${esc(c.id)}','tz',this.value)`, '时区：跟你一样')}
+                <select class="gytp-in" onchange="gyTimeChar('${esc(c.id)}','distant',this.value)"><option value=""${p.distant == null ? ' selected' : ''}>异地：自动判断</option><option value="1"${p.distant === true ? ' selected' : ''}>跟你异地</option><option value="0"${p.distant === false ? ' selected' : ''}>跟你同城</option></select></div></div>`; }).join('') || '<div class="gytp-tip">还没有角色。</div>'}
+            <div class="gytp-tip" style="margin-top:10px">时区不一样或者标了异地：TA 按自己那边的白天黑夜过，知道你那边几点；不默认能见面。</div></div>`;
+    };
     window.gyTimePlaceOpen = function (keep) {
         let ov = document.getElementById('gyTimePlaceOv'); const st = ov ? ov.querySelector('.gytp-box').scrollTop : 0;
         if (!ov) { ov = document.createElement('div'); ov.id = 'gyTimePlaceOv'; ov.className = 'gytp-ov'; ov.addEventListener('click', e => { if (e.target === ov) ov.remove(); }); document.body.appendChild(ov); }
         const m = window.gyTimeMode(), tU = wallFor(userTz());
         const mb = (k, ico, t, d) => `<div class="gytp-mode${m === k ? ' on' : ''}" onclick="gyTimeSetMode('${k}')"><b>${ico} ${t}</b><span>${d}</span></div>`;
-        ov.innerHTML = `<div class="gytp-box"><div class="gytp-hd"><b>🌏 时间与所在地</b><span class="gytp-x" onclick="document.getElementById('gyTimePlaceOv').remove()">✕</span></div>
+        ov.innerHTML = `<div class="gytp-box"><div class="gytp-hd"><b>🕐 时间感知</b><span class="gytp-x" onclick="document.getElementById('gyTimePlaceOv').remove()">✕</span></div>
             <div class="gytp-sec">TA 怎么感知时间</div>
             <div class="gytp-modes">${mb('real', '🕰️', '真实时间', '跟现实走，TA 知道现在几点、隔了多久')}${mb('off', '🌫️', '不感知', '不知道现实里几点几号，时间只跟着剧情走')}${mb('custom', '📅', '自定义时间', '从你定的一刻开始往后走（剧情里的某一天）')}</div>
             ${m === 'custom' ? `<div class="gytp-card"><div class="gytp-row"><span>从</span><input class="gytp-in" type="datetime-local" value="${esc(C.custom.frozen ? C.custom.start : toLocalInput(new Date(nowMs())))}" onchange="gyTimeSetCustom(this.value)"><span>开始</span></div>
                 <label class="gytp-row"><input type="checkbox" ${C.custom.frozen ? 'checked' : ''} onchange="gyTimeFreeze(this.checked)"> 停在这一刻（不往后走）</label>
                 <div class="gytp-tip">现在剧情里是 <b>${esc(tU.s)}</b>。发给 TA 的内容里，「现在」附近的日期时间都会换成这个；一年以前的日期（生日、设定里的年份）不动。</div></div>` : ''}
             ${m === 'off' ? `<div class="gytp-card gytp-tip">TA 不会看到现在几点、几号，聊天记录也不带「3 小时前」。下面填的所在地照样告诉 TA（只说在哪，不说几点）。</div>` : ''}
-            <div class="gytp-sec">你在哪</div>
-            <div class="gytp-card"><div class="gytp-row"><input class="gytp-in" placeholder="城市（比如 上海）" value="${esc(C.user.place)}" onchange="gyTimeUser('place',this.value)">${tzSel(C.user.tz, "gyTimeUser('tz',this.value)", '时区：跟手机一样（' + tzName(devTz) + '）')}</div>
-            ${m !== 'off' ? `<div class="gytp-tip">你这边现在：${esc(tU.s)}</div>` : ''}</div>
-            <div class="gytp-sec">每个 TA 在哪 <span class="gytp-tip">不填＝跟你一样</span></div>
-            ${chars().map(c => { const p = placeOf(c), t = wallFor(charTz(c)), far = distant(c); return `<div class="gytp-card"><div class="gytp-name">${esc(c.name)} ${far ? '<i class="gytp-far">异地</i>' : ''}${m !== 'off' && (far || charTz(c) !== userTz()) ? `<em>那边 ${esc(t.hm)} · ${part(t.h)}</em>` : ''}</div>
-                <div class="gytp-row"><input class="gytp-in" placeholder="城市" value="${esc(p.place || '')}" onchange="gyTimeChar('${esc(c.id)}','place',this.value)">${tzSel(p.tz, `gyTimeChar('${esc(c.id)}','tz',this.value)`, '时区：跟你一样')}
-                <select class="gytp-in" onchange="gyTimeChar('${esc(c.id)}','distant',this.value)"><option value=""${p.distant == null ? ' selected' : ''}>异地：自动判断</option><option value="1"${p.distant === true ? ' selected' : ''}>跟你异地</option><option value="0"${p.distant === false ? ' selected' : ''}>跟你同城</option></select></div></div>`; }).join('') || '<div class="gytp-tip">还没有角色。</div>'}
-            <div class="gytp-tip" style="margin-top:10px">时区不一样或者标了异地：TA 按自己那边的白天黑夜过，知道你那边几点；不默认能见面。</div></div>`;
+            <div class="gytp-sec">你们各自在哪</div>
+            ${typeof window.gymapOpenTab === 'function' ? `<div class="gytp-card"><div class="gytp-tip" style="margin:0">你在 <b>${esc(uPlace() || '（还没填）')}</b>${uTz() ? '（' + esc(tzName(uTz())) + '）' : ''}${chars().filter(c => placeOf(c).place || placeOf(c).tz || distant(c)).map(c => `　·　${esc(c.name)} 在 <b>${esc(placeOf(c).place || tzName(charTz(c)))}</b>${distant(c) ? '（异地）' : ''}`).join('')}</div>
+            <div class="gytp-row" style="margin-top:8px"><button type="button" class="gytp-go" onclick="document.getElementById('gyTimePlaceOv').remove();gymapOpenTab('place')">在 🗺️ 行程与天气 →「🌏 两地」里改 ›</button></div>
+            <div class="gytp-tip">城市、时区、异地都跟天气放在一起了，只存一份。</div></div>` : window.gyTimePlaceHtml()}</div>`;
         if (keep) ov.querySelector('.gytp-box').scrollTop = st;
     };
 
     // ---------- 设置里的入口 / 小功能 ----------
     function mount() {
         const row = document.getElementById('gyTimeSenseRow');
-        if (row && !document.getElementById('gyTimePlaceBtn')) { const a = document.createElement('a'); a.id = 'gyTimePlaceBtn'; a.textContent = '🌏 时间与所在地 ›'; a.style.cssText = 'margin-left:auto;font-size:13px;color:#1d9bf0;cursor:pointer;white-space:nowrap;'; a.onclick = () => window.gyTimePlaceOpen(); row.appendChild(a); }
-        try { if (typeof registerMiniFeature === 'function' && !(typeof GY_MINI_FEATURES !== 'undefined' && GY_MINI_FEATURES.some(f => f.id === 'timePlace'))) registerMiniFeature({ id: 'timePlace', icon: '🌏', title: '时间与所在地', desc: 'TA 感知真实时间 / 不感知 / 用剧情里定的时间；你们各自在哪、异地时差', onOpen: () => window.gyTimePlaceOpen() }); } catch (e) {}
+        if (row && !document.getElementById('gyTimePlaceBtn')) { const a = document.createElement('a'); a.id = 'gyTimePlaceBtn'; a.textContent = '🕐 时间感知 ›'; a.style.cssText = 'margin-left:auto;font-size:13px;color:#1d9bf0;cursor:pointer;white-space:nowrap;'; a.onclick = () => window.gyTimePlaceOpen(); row.appendChild(a); }
+        try { if (typeof registerMiniFeature === 'function' && !(typeof GY_MINI_FEATURES !== 'undefined' && GY_MINI_FEATURES.some(f => f.id === 'timePlace'))) registerMiniFeature({ id: 'timePlace', icon: '🕐', title: '时间感知', desc: 'TA 感知真实时间 / 不感知 / 用剧情里定的时间（你们各自在哪个城市、异地时差，在行程与天气的「两地」里）', onOpen: () => window.gyTimePlaceOpen() }); } catch (e) {}
     }
 
     // ---------- 自主行动：异地的 TA 说说自己那边 ----------
@@ -234,7 +260,7 @@
                 if (m === 'off') return w.size === 's' ? `<div class="gytp-w s"><b>🌫️</b><em>不感知时间</em></div>` : `<div class="gytp-w m"><div class="h"><b>🌏</b><span>${c ? esc(c.name) : 'TA'}</span></div><em>${c ? esc(placeOf(c).place || '跟你一样') : ''} · 不感知时间</em></div>`;
                 const tB = wallFor(userTz()), tA = c ? wallFor(charTz(c)) : tB;
                 if (w.size === 's') return `<div class="gytp-w s"><b>${m === 'custom' ? '📅' : '🌏'}</b><em>${esc(tA.hm)}</em></div>`;
-                return `<div class="gytp-w m"><div class="h"><b>${m === 'custom' ? '📅' : '🌏'}</b><span>两地时间</span></div><div class="two"><div><i>你</i><strong>${esc(tB.hm)}</strong><small>${esc(C.user.place || tzName(userTz()))}</small></div><div><i>${c ? esc(c.name) : 'TA'}</i><strong>${esc(tA.hm)}</strong><small>${c ? esc(placeOf(c).place || tzName(charTz(c))) : ''}</small></div></div></div>`;
+                return `<div class="gytp-w m"><div class="h"><b>${m === 'custom' ? '📅' : '🌏'}</b><span>两地时间</span></div><div class="two"><div><i>你</i><strong>${esc(tB.hm)}</strong><small>${esc(uPlace() || tzName(userTz()))}</small></div><div><i>${c ? esc(c.name) : 'TA'}</i><strong>${esc(tA.hm)}</strong><small>${c ? esc(placeOf(c).place || tzName(charTz(c))) : ''}</small></div></div></div>`;
             } };
         return true;
     }
@@ -260,6 +286,7 @@
 .gytp-row{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:4px 0;font-size:13px}
 .gytp-in{flex:1;min-width:120px;padding:7px 10px;border-radius:10px;border:1px solid rgba(0,0,0,.12)!important;background:#fff;font-size:13px}
 .gytp-tip{font-size:12px;color:#7b8794;line-height:1.6;margin-top:4px}.gytp-name{font-weight:700;font-size:14px;display:flex;align-items:center;gap:8px}.gytp-name em{font-style:normal;font-weight:400;font-size:12px;color:#7b8794;margin-left:auto}
+.gytp-go{padding:8px 14px;border-radius:12px;border:none;background:#1d1d1f;color:#fff;cursor:pointer;font-family:inherit;font-size:13px}.gytp-inmap .gytp-sec:first-child{margin-top:4px}
 .gytp-far{font-style:normal;font-size:11px;padding:1px 8px;border-radius:9px;background:#fff0f5;color:#d63384;font-weight:500}
 body.dark-theme .gytp-box{background:#16181c;color:#e7e9ea}body.dark-theme .gytp-hd{background:rgba(22,24,28,.94)}body.dark-theme .gytp-in{background:#0d0f12;color:#e7e9ea}
 .gytp-w{height:100%;display:flex;flex-direction:column;justify-content:center;padding:10px;box-sizing:border-box}.gytp-w.s{align-items:center;gap:4px}.gytp-w.s b{font-size:24px}.gytp-w.s em{font-style:normal;font-size:13px;font-weight:700}
@@ -268,6 +295,6 @@ body.dark-theme .gytp-box{background:#16181c;color:#e7e9ea}body.dark-theme .gytp
     (document.head || document.documentElement).appendChild(css);
 
     let memOk = false, wOk = false;
-    function tick() { hookRewrite(); hookToday(); mount(); if (!memOk) memOk = regMem(); if (!wOk) wOk = regWidget(); }
+    function tick() { hookRewrite(); hookToday(); mount(); moveToMap(); if (!memOk) memOk = regMem(); if (!wOk) wOk = regWidget(); }
     tick(); setInterval(tick, 3000);
 })();

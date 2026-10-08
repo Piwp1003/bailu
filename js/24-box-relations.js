@@ -253,6 +253,27 @@
     // ---------- 注进 prompt ----------
     const ledgerOn = () => (typeof isAutoOn === 'function') ? isAutoOn('relLedger') : true;
 
+    // 💭 自主行动「提起账本里最近记下的一笔」：这次主动找她的由头（用完就删）
+    const RNUDGE = {};
+    // 最近两周、分量够、还没提过的一笔（被你删掉的不会再提）
+    const recallable = id => book(id).filter(e => e && Math.abs(+e.d || 0) >= 2 && e.why && Date.now() - e.at < 14 * 864e5 && Date.now() - e.at > 6 * 3600000 && !(S.recalled || {})[e.id]);
+    function regRecall() {
+        try {
+            if (typeof GY_AUTONOMY_ACTIONS === 'undefined' || GY_AUTONOMY_ACTIONS.some(a => a.key === 'ledger_recall')) return;
+            GY_AUTONOMY_ACTIONS.push({
+                key: 'ledger_recall', label: '提起账本里最近记下的一笔（「那次你……我记着」）',
+                hint: '你心里记着的一件事。按你的性格：外向的可能直接说，内敛的可能只是轻轻带一句、或者干脆用行动表示，甚至这次先不提',
+                need: c => ledgerOn() && recallable(c.id).length > 0 && typeof sendProactiveChatMessage === 'function',
+                run: async c => {
+                    const L = recallable(c.id); if (!L.length) return null;
+                    const e = L.sort((a, b) => Math.abs(b.d) - Math.abs(a.d))[0], ago = Math.max(1, Math.round((Date.now() - e.at) / 864e5));
+                    RNUDGE[String(c.id)] = `你心里一直记着 ${ago} 天前的一件事：${e.why}（那次让你们${e.d > 0 ? '更近了' : '有点疏远了'}）。现在你自然地想起它——像「你还记不记得那次……」那样提起来。完全按你的人设：话多的可以直说；内敛、嘴硬的只轻轻带一句、或者换个方式表达，别突然变得很会说`;
+                    try { await sendProactiveChatMessage(c); (S.recalled = S.recalled || {})[e.id] = Date.now(); await save(); return '提起了「' + String(e.why).slice(0, 20) + '」'; }
+                    catch (x) { return null; } finally { delete RNUDGE[String(c.id)]; }
+                }
+            });
+        } catch (e) {}
+    }
     window.__gyRelCtxFor = function (charId) {
         try {
             if (!ledgerOn()) return '';          // 🔌 总开关关了：一个字都不注入
@@ -641,6 +662,8 @@ body.dark-theme .gyrel-av{background:#2f3336;color:#e7e9ea;}
         addEntries();
         hookMemHub();
         syncAll();
+        regRecall(); setTimeout(regRecall, 3000);
+        { const base = window.__gyRelCtxFor; if (base && !base.__nudge) { const w = function (id) { const n = RNUDGE[String(id)]; return (n ? `\n【这次主动找她的由头】${n}\n` : '') + (base.apply(this, arguments) || ''); }; w.__nudge = true; window.__gyRelCtxFor = w; } }
         const sw = window.switchMainView;
         if (typeof sw === 'function' && !sw.__gyrelPatched) {
             window.switchMainView = function () {

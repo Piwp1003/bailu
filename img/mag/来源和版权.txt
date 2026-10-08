@@ -1,0 +1,10 @@
+这个文件夹里的图片素材（📰 黑白杂志风 用）
+
+dd_*.svg —— Open Doodles（Pablo Stanley 画的手绘插画），CC0（公共领域，可以随便用、改、商用）
+            https://www.opendoodles.com  ；这里用的是 npm 包 react-open-doodles 里的版本，渲染成黑白 SVG
+st_coffee.png、wp_coffee.jpg —— 照片 Rachel Michetti，CC0（来自 scikit-image 自带的示例图），抠图、转黑白
+st_cat.png   —— 照片 Stéfan van der Walt，CC0（scikit-image 示例图 chelsea），抠图、转黑白
+st_horse.png —— 剪影 Andreas Preuss，CC0（scikit-image 示例图 horse），加白边
+wp_stars.jpg —— 哈勃深空场，NASA，公共领域，转黑白
+wp_rocket.jpg —— SpaceX 发射台照片，公共领域（SpaceX 释出），转黑白
+其余的星星、胶带、条形码、邮戳、回形针这些是谷雨自己画的（代码里的 SVG）。

@@ -74,6 +74,18 @@ if (!window.GYX) (function () {
     X.feat = (id, def) => { if (!X.FEATS.some(f => f.id === id)) X.FEATS.push(Object.assign({ id, def: true, auto: true }, def)); };
     X.on = id => { const f = X.FEATS.find(x => x.id === id.replace(/\.auto$/, '')); const d = f ? (/\.auto$/.test(id) ? f.auto !== false : f.def !== false) : true; return FS[id] == null ? d : !!FS[id]; };
     X.set = (id, v) => { FS[id] = !!v; try { localStorage.setItem(FK, JSON.stringify(FS)); } catch (e) {} try { window.dispatchEvent(new CustomEvent('gyx:feat', { detail: { id, on: !!v } })); } catch (e) {} syncMini(); };
+    // 🗓️ 回顾类的节奏（周报、我们的书、星图、TA 眼中的你、回忆放映、TA 写给你的歌……）：多久总结一次你自己定。
+    //    每个插件 X.recapDef 登记自己能怎么调，X.recap(key) 读你选的；在「📚 回顾 → ⚙️ 多久总结一次」里改
+    const RK = 'gyxRecap'; let RC = {}; try { RC = JSON.parse(localStorage.getItem(RK) || '{}') || {}; } catch (e) {}
+    X.RECAP = window.__gyxRecapDefs = window.__gyxRecapDefs || [];
+    X.recapDef = (key, def) => { if (!X.RECAP.some(d => d.key === key)) X.RECAP.push(Object.assign({ key }, def)); };
+    X.recap = key => { const d = X.RECAP.find(x => x.key === key) || {}, c = RC[key] || {}; return { v: c.v != null ? c.v : d.def, auto: c.auto != null ? !!c.auto : d.autoDef !== false }; };
+    X.recapSet = (key, k, v) => { RC[key] = Object.assign({}, RC[key], { [k]: v }); try { localStorage.setItem(RK, JSON.stringify(RC)); } catch (e) {} };
+    const p2 = n => String(n).padStart(2, '0');
+    X.UNITS = { half: '半个月', month: '一个月', season: '一个季度', year: '一年' };
+    X.unitStart = (t, unit) => { const d = new Date(t); d.setHours(0, 0, 0, 0); if (unit === 'year') { d.setMonth(0, 1); } else if (unit === 'season') { d.setMonth(Math.floor(d.getMonth() / 3) * 3, 1); } else if (unit === 'half') { d.setDate(d.getDate() <= 15 ? 1 : 16); } else d.setDate(1); return d.getTime(); };
+    X.unitKey = (t, unit) => { const d = new Date(t), y = d.getFullYear(), m = d.getMonth() + 1; return unit === 'year' ? y + '' : unit === 'season' ? y + '-Q' + Math.ceil(m / 3) : unit === 'half' ? y + '-' + p2(m) + (d.getDate() <= 15 ? '上' : '下') : y + '-' + p2(m); };
+    X.unitPrev = (t, unit) => X.unitKey(X.unitStart(t, unit) - 1, unit);
     // 弹窗文字不固定：给几种说法，随机挑一个
     X.v = (...a) => X.pick(a);
     X.auto = c => { try { return typeof getCharActMode === 'function' ? getCharActMode(c) === 'auto' : c.actMode === 'auto'; } catch (e) { return false; } };
@@ -117,6 +129,14 @@ if (!window.GYX) (function () {
     setInterval(() => { X.todayHook(); }, 3000);
     // 统一的弹窗（小手机风格）
     X.panel = function (id, title, html, cls) {
+        // 🧩 正在「合集」里打开（js/79）：直接画在合集的标签下面，不另弹一层
+        let host = null; try { host = typeof window.gyHubHost === 'function' ? window.gyHubHost(id, title) : null; } catch (e) {}
+        if (host) {
+            const old = document.getElementById(id); if (old) old.remove();
+            const el =document.createElement('div'); el.id = id; el.className = 'gyx-inhub ' + (cls || ''); el.setAttribute('data-gy-nopage', '1');
+            el.innerHTML = `<div class="gyx-box"><div class="gyx-bd">${html}</div></div>`;
+            host.appendChild(el); return el;
+        }
         let ov = document.getElementById(id); if (ov) ov.remove();
         ov = document.createElement('div'); ov.id = id; ov.className = 'gyx-ov ' + (cls || '');
         ov.innerHTML = `<div class="gyx-box"><div class="gyx-hd"><b>${title}</b><span class="gyx-x" onclick="document.getElementById('${id}').remove()">✕</span></div><div class="gyx-bd">${html}</div></div>`;
@@ -137,7 +157,7 @@ textarea.gyx-in{resize:vertical;line-height:1.7}
 .gyx-card{background:#f7f7f9;border-radius:16px;padding:12px 14px;margin:8px 0}
 .gyx-chip{display:inline-block;padding:5px 11px;border-radius:999px;background:#f2f2f4;font-size:13px;cursor:pointer;margin:2px}.gyx-chip.on{background:#1d1d1f;color:#fff}
 .gyx-hand{font-family:"Ma Shan Zheng","Zhi Mang Xing","Long Cang","Xingkai SC","STXingkai","华文行楷","KaiTi","STKaiti","楷体",cursive}
-.gyx-ov.dark .gyx-box{background:#1c1c1e;color:#f5f5f7}.gyx-ov.dark .gyx-hd{background:rgba(28,28,30,.9)}
+.gyx-ov.dark .gyx-box{background:#1c1c1e;color:#f5f5f7}.gyx-inhub>.gyx-box>.gyx-bd{padding:2px 18px 18px}.gyx-inhub.dark{background:#1c1c1e;color:#f5f5f7;border-radius:0 0 22px 22px}.gyx-ov.dark .gyx-hd{background:rgba(28,28,30,.9)}
 `);
     // 手写字体（联网时加载，不联网就用系统里的楷体/行楷）
     if (!document.getElementById('gyxFont')) { const l = document.createElement('link'); l.id = 'gyxFont'; l.rel = 'stylesheet'; l.href = 'https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&family=Long+Cang&display=swap'; document.head.appendChild(l); }

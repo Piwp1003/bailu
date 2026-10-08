@@ -79,7 +79,7 @@ await page.evaluate(({ PLUG, BAILU }) => {
 await sleep(3500);
 
 
-const NEW = [['gyxEcho', 'gyx_echo', 'gyxEchoW'], ['gyxOurBook', 'gyx_ourbook', 'gyxOurBookW'], ['gyxCode', 'gyx_code', 'gyxCodeW'], ['gyxSurvey', 'gyx_survey', 'gyxSurveyW'], ['gyxCoupon', 'gyx_coupon', 'gyxCouponW'], ['gyxAskBox', 'gyx_askbox', 'gyxAskBoxW']];
+const NEW = [['gyxEcho', 'gyx_echo', 'gyxEchoW'], ['gyxOurBook', 'gyx_ourbook', 'gyxOurBookW'], ['gyxSurvey', 'gyx_survey', 'gyxSurveyW'], ['gyxCoupon', 'gyx_coupon', 'gyxCouponW'], ['gyxAskBox', 'gyx_askbox', 'gyxAskBoxW']];
 const reg = await page.evaluate(NEW => { const miss = []; const ks = gyMemExList(); NEW.forEach(([f, a, w]) => { if (!GYX.FEATS.some(x => x.id === f)) miss.push(f + ':开关'); if (!GY_AUTONOMY_ACTIONS.some(x => x.key === a)) miss.push(f + ':自主'); if (!window.__gyPmW.WD[w]) miss.push(f + ':小组件'); if (!ks.includes(f)) miss.push(f + ':记忆'); if (!GY_MINI_FEATURES.some(x => x.id === f)) miss.push(f + ':小功能'); }); const wr = NEW.map(([, , w]) => { try { return window.__gyPmW.WD[w].r({ size: 'm' }); } catch (e) { return 'ERR ' + e.message; } }).filter(h => /ERR/.test(h)); return { miss, wr }; }, NEW);
 check(`${tag} 6 个新插件都登记好了：开关 / 自主行动 / 小组件 / 记忆总览 / 小功能`, !reg.miss.length && !reg.wr.length, JSON.stringify(reg));
 
@@ -107,9 +107,7 @@ check(`${tag} 我们的书：按月分章，有封面、序、目录，能翻页
 const mq = await page.evaluate(async () => { const q = await gyxQuizMem('9991'); const it = await gyxQuizPick(q.opts.indexOf(q.ans)); document.getElementById('gyxQzOv')?.remove(); return { kind: q.kind, ok: it.ok, logKind: gyxQuizData().log[0].kind }; });
 check(`${tag} 你还记得吗：TA 从聊天总结里挑一天出回忆题，答了有反应`, mq.kind === 'mem' && mq.ok && mq.logKind === 'mem', JSON.stringify(mq));
 
-// 🔐 暗号
-const code = await page.evaluate(async () => { gyxCodeOpen('9991'); document.getElementById('gyxCdW').value = '月亮'; document.getElementById('gyxCdM').value = '我想你了'; await gyxCodeAdd('9991'); const sid = '9991'; const n0 = globalChats[sid].length; globalChats[sid].push({ sender: 'me', text: '今晚的月亮好圆', timestamp: Date.now() }); const cx = __gyxCtxFor(9991); await new Promise(r => setTimeout(r, 3500)); const said = globalChats[sid].slice(n0 + 1).filter(m => m.sender == 9991).length; const it = await gyxCodeInvent('9991'); document.getElementById('gyxCdOv')?.remove(); return { cx: /刚刚说了暗号「月亮」/.test(cx), said, used: gyxCodeData().codes['9991'].find(x => x.w === '月亮').n, inv: !!it }; });
-check(`${tag} 我们的暗号：你说了暗号，TA 知道是什么意思并照约定回${BAILU ? '（白露直接回一句）' : ''}；TA 也能提议新暗号`, (BAILU || code.cx) && code.used === 1 && code.inv && (!BAILU || code.said >= 1), JSON.stringify(code));
+// 🔐 我们的暗号：v225 按你的选择去掉了
 
 // 📋 调查问卷
 const sv = await page.evaluate(async () => { const r1 = await gyxSurveyStart('9991', 'sv_love', 'ta'); gyxSurveyStart('9991', 'sv_love', 'both'); gyxSurveyFill(['恋人', 5, ['声音'], '我', '海边', 4, '我爱你']); const r2 = await gyxSurveySubmit(); const t = document.getElementById('gyxSvOv').innerText; document.getElementById('gyxSvOv')?.remove(); return { ta: r1.ans.ta.length, me: r2.ans.me, cmp: /题想的一样/.test(t), cm: !!r2.comment }; });
@@ -123,7 +121,7 @@ check(`${tag} 兑换券：TA 送券，撕下来用，聊天里说「我要用」
 const ab = await page.evaluate(async () => { gyxAskBoxOpen('9991'); document.getElementById('gyxAbQ').value = '你有喜欢的人吗？'; document.getElementById('gyxAbA').checked = true; await gyxAskBoxSend('9991'); await gyxAskBoxNow('9991'); const x = gyxAskBoxData().qs[0]; const t = document.getElementById('gyxAbOv').innerText; document.getElementById('gyxAbOv')?.remove(); return { a: x.a, from: x.from, t: /其实是你/.test(t) }; });
 check(`${tag} 提问箱：匿名投问题，TA 公开回答`, ab.a && ab.from === 'anon' && ab.t, JSON.stringify(ab));
 
-const acts = await page.evaluate(async () => { const out = {}; for (const a of ['gyx_echo', 'gyx_ourbook', 'gyx_code', 'gyx_code_new', 'gyx_survey', 'gyx_coupon', 'gyx_coupon_use', 'gyx_askbox', 'gyx_quiz']) { const d = GY_AUTONOMY_ACTIONS.find(x => x.key === a); try { out[a] = d.need(myCharacters[0]) ? String(await d.run(myCharacters[0])) : '不需要'; } catch (e) { out[a] = 'ERR ' + e.message; } } return out; });
+const acts = await page.evaluate(async () => { const out = {}; for (const a of ['gyx_echo', 'gyx_ourbook', 'gyx_survey', 'gyx_coupon', 'gyx_coupon_use', 'gyx_askbox', 'gyx_quiz']) { const d = GY_AUTONOMY_ACTIONS.find(x => x.key === a); try { out[a] = d.need(myCharacters[0]) ? String(await d.run(myCharacters[0])) : '不需要'; } catch (e) { out[a] = 'ERR ' + e.message; } } return out; });
 check(`${tag} 新插件的自主行动跑起来不报错`, !Object.values(acts).some(v => /ERR/.test(v)), JSON.stringify(acts));
 
 check(`${tag} 整个过程没有页面报错`, errs.length === 0, errs.join(' | ').slice(0, 600));

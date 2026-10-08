@@ -1046,6 +1046,7 @@
         const f = spotFor(C.pages[p], nw, nh); it.g = { x: f.x, y: f.y, w: nw, h: nh };
         C.pages[p].push(it); layout(C.pages[p]); flipNext = true; save(); G().closeSheet(); render();
         const el = document.querySelector(`#gyPmHome [data-id="${it.id}"]`); if (el) el.scrollIntoView({ block: 'nearest' });
+        return it;
     };
 
     /* ---------------- 美化 ---------------- */
@@ -1117,6 +1118,13 @@
         if (kind === 'color') { C.wall = null; C.wallColor = typeof v === 'number' ? WALLS[v] : v; } else { C.wall = null; C.wallColor = null; }
         save(); render(); window.gyPmBeauty();
     };
+    // 给别的模块用（📰 杂志风的壁纸）：直接换桌面 / 锁屏壁纸。url＝图片地址，或者 {color:'CSS 背景'}
+    window.gyPmSetWall = function (v, lock) {
+        const img = typeof v === 'string' ? v : null, col = v && v.color ? v.color : null;
+        if (lock) { C.lockWall = img; C.lockColor = col; C.lockFg = null; } else { C.wall = img; C.wallColor = col; if (!C.lockWall && !C.lockColor) C.lockFg = null; }
+        save(); render();
+    };
+    window.gyPmPrefGet = k => C[k];
     window.gyPmWallFile = function (inp) {
         takeMedia(inp, screenAspect(), 1080, u => { C.wall = u; C.wallColor = null; if (!C.lockWall && !C.lockColor) C.lockFg = null; save(); render(); window.gyPmBeauty(); }, { title: '桌面壁纸' });
     };

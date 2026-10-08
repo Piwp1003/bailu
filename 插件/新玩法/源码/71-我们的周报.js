@@ -4,6 +4,16 @@ X.feat('gyxWeekly', { n: '🗞️ 我们的周报', desc: '每周一 TA 出一�
 const S = X.store('weekly');
 let D = { issues: [] };   // [{id, cid, wk, from, to, no, head, lead, col, fc, quotes:[], st:{}, ads:[], at}]
 const H = cid => ((typeof globalChats !== 'undefined' && globalChats[cid]) || []).filter(m => m && m.sender !== 'system' && !m.side && m.timestamp && X.plain(m.text));
+X.recapDef('weekly', { n: '🗞️ 我们的周报', kind: 'days', def: 7, opts: [7, 14, 30], txt: '多久出一期', autoTxt: '到时间 TA 自己出刊' });
+const SPAN = () => Math.max(1, +X.recap('weekly').v || 7) * 864e5;
+// 最近一段「已经过完」的时间：7 天＝按周一对齐（原来的样子）；14 / 30 天＝从上一期结束的地方接着往后数
+function win(cid) {
+    const sp = SPAN(); if (sp === 7 * 864e5) { const m = monday(); return [m - sp, m]; }
+    const t0 = new Date(); t0.setHours(0, 0, 0, 0); const T = t0.getTime();
+    const last = D.issues.filter(x => x.cid === String(cid) && x.to).sort((a, b) => b.to - a.to)[0];
+    if (last) { let f = last.to; while (f + sp * 2 <= T) f += sp; return [f, f + sp]; }
+    return [T - sp, T];
+}
 const monday = (t = Date.now()) => { const d = new Date(t); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() - ((d.getDay() + 6) % 7)); return d.getTime(); };
 const md = t => { const d = new Date(t); return (d.getMonth() + 1) + '.' + d.getDate(); };
 const WX = ['☀️ 晴', '🌤️ 晴转多云', '⛅ 多云', '🌦️ 小雨转晴', '🌈 雨后彩虹', '🌙 晴朗的夜', '💗 局部地区有粉色泡泡', '🍬 甜度超标'];
@@ -26,7 +36,7 @@ async function make(c, from, to) {
     const it = { id: 'wk' + Date.now().toString(36), cid, wk: X.day(new Date(from)), from, to, no, head: X.plain(j.head).slice(0, 24), lead: X.plain(j.lead), colT: X.plain(j.colT || '小编专栏'), col: X.plain(j.col || ''), fc: X.plain(j.fc || X.pick(WX)), quotes: g.quotes, st: g.st, ads: ads(cid), at: Date.now() };
     D.issues = D.issues.filter(x => !(x.cid === cid && x.wk === it.wk)); D.issues.unshift(it); await S.set('d', D); return it;
 }
-window.gyxWeeklyMake = async (cid, thisWeek) => { const c = X.char(cid) || X.cur(); if (!c) return null; const m = monday(); const it = thisWeek ? await make(c, m, Date.now() + 1) : await make(c, m - 7 * 864e5, m); if (!it) { X.toast('🗞️ 这周还没什么新闻', '多聊几句再出刊'); return null; } window.gyxWeeklyRead(it.id); return it; };
+window.gyxWeeklyMake = async (cid, thisWeek) => { const c = X.char(cid) || X.cur(); if (!c) return null; const [f, t] = win(c.id); const it = thisWeek ? await make(c, t > Date.now() ? f : t, Date.now() + 1) : await make(c, f, Math.min(t, Date.now() + 1)); if (!it) { X.toast('🗞️ 这周还没什么新闻', '多聊几句再出刊'); return null; } window.gyxWeeklyRead(it.id); return it; };
 window.gyxWeeklyRead = id => {
     const x = D.issues.find(i => i.id === id); if (!x) return; const c = X.char(x.cid), me = X.me(c), ta = X.name(c), s = x.st, E = X.esc;
     const d = new Date(x.to - 1), WD = ['日', '一', '二', '三', '四', '五', '六'];
@@ -39,7 +49,7 @@ window.gyxWeeklyRead = id => {
         <div class="np-kicker">头 版 · 独 家</div><h2 class="np-head">${E(x.head)}</h2>
         <p class="np-lead${x.lead.length > 110 ? ' cols' : ''}"><span class="np-dc">${dc}</span>${rest}</p>
         <div class="np-grid">
-          <section class="np-box"><h4>本周数据</h4><div class="np-nums">${big(s.n, '总句数')}${big(s.days + '<em>/7</em>', '聊天天数')}${big(s.gn, '晚安')}${big(s.miss, '想你')}</div>
+          <section class="np-box"><h4>本周数据</h4><div class="np-nums">${big(s.n, '总句数')}${big(s.days + '<em>/' + Math.max(1, Math.round(((x.to || 0) - (x.from || 0)) / 864e5) || 7) + '</em>', '聊天天数')}${big(s.gn, '晚安')}${big(s.miss, '想你')}</div>
             <table><tr><td>${E(me)} 说了</td><td>${s.me} 句</td></tr><tr><td>${E(ta)} 说了</td><td>${s.ta} 句</td></tr><tr><td>最热闹的一天</td><td>${s.big}</td></tr><tr><td>黄金时段</td><td>${s.hour} 点</td></tr><tr><td>哈哈哈指数</td><td>${s.haha}</td></tr></table></section>
           <section class="np-q"><h4>本周金句</h4>${x.quotes.map((q, i) => `<blockquote class="${i ? '' : 'top'}"><p>${E(q.t)}</p><cite>${E(q.who === 'me' ? me : ta)} · ${md(q.at)}</cite></blockquote>`).join('') || '<p class="np-dim">本周沉默是金。</p>'}</section>
         </div>
@@ -55,13 +65,13 @@ window.gyxWeeklyData = () => D;
 window.gyxWeeklyOpen = function (who) {
     const c = X.char(who) || X.cur(); if (!c) return; const cid = String(c.id), L = D.issues.filter(x => x.cid === cid);
     X.panel('gyxWeeklyOv', '🗞️ 我们的周报', `<div class="gyx-row">${X.whoSel(cid, 'gyxWeeklyOpen')}<button class="gyx-btn" onclick="this.disabled=true;this.textContent='排版中…';gyxWeeklyMake('${cid}')">上周的</button><button class="gyx-btn lite" onclick="this.disabled=true;this.textContent='排版中…';gyxWeeklyMake('${cid}',1)">这周到现在的</button></div>
-        <div class="gyx-tip">${X.v('每周一早上 TA 会出上周的那一期。', '主编是 TA，读者只有你。', '新闻都是你们的事。')}</div>
+        <div class="gyx-tip">${X.v(X.recap('weekly').v == 7 ? '每周一早上 TA 会出上周的那一期。' : `每 ${X.recap('weekly').v} 天 TA 出一期。`, '主编是 TA，读者只有你。', '新闻都是你们的事。')}</div>
         ${L.map(x => `<div class="np-it" onclick="gyxWeeklyRead('${x.id}')"><b>第 ${x.no} 期 · ${X.esc(x.head)}</b><em>${md(x.from)}～${md(x.to - 1)} · ${x.st.n} 句</em><i onclick="event.stopPropagation();gyxWeeklyDel('${x.id}')">删</i></div>`).join('') || '<div class="gyx-tip">还没出过刊</div>'}`);
 };
-async function tick() { if (!X.on('gyxWeekly')) return; const m = monday(); if (new Date().getHours() < 7) return; for (const c of X.chars()) { const wk = X.day(new Date(m - 7 * 864e5)); if (D.issues.some(x => x.cid === String(c.id) && x.wk === wk)) continue; if (!H(String(c.id)).some(x => x.timestamp >= m - 7 * 864e5 && x.timestamp < m)) continue; const it = await make(c, m - 7 * 864e5, m); if (it && X.on('gyxWeekly.auto')) X.notify(c, `🗞️ ${X.v('新一期《我们的周报》出刊了', '周报送到了', '今天的报纸到了')}：${X.esc(it.head)}`, '主编：' + X.name(c), () => window.gyxWeeklyRead(it.id)); } }
+async function tick() { if (!X.on('gyxWeekly') || !X.recap('weekly').auto) return; if (new Date().getHours() < 7) return; for (const c of X.chars()) { const [f, t] = win(c.id); if (t > Date.now()) continue; const wk = X.day(new Date(f)); if (D.issues.some(x => x.cid === String(c.id) && x.wk === wk)) continue; if (!H(String(c.id)).some(x => x.timestamp >= f && x.timestamp < t)) continue; const it = await make(c, f, t); if (it && X.on('gyxWeekly.auto')) X.notify(c, `🗞️ ${X.v('新一期《我们的周报》出刊了', '周报送到了', '今天的报纸到了')}：${X.esc(it.head)}`, '主编：' + X.name(c), () => window.gyxWeeklyRead(it.id)); } }
 X.ctx(id => { const x = D.issues.find(i => i.cid === String(id)); return x && Date.now() - x.at < 2 * 864e5 ? `【你刚给你们出了一期周报】头版：「${x.head}」；你的专栏：${x.col.slice(0, 60)}` : ''; }, 'gyxWeekly');
-X.action({ key: 'gyx_weekly', label: '给你们出一期周报', hint: '我们的周报', need: c => { const m = monday(); return !D.issues.some(x => x.cid === String(c.id) && x.at >= m) && H(String(c.id)).some(x => x.timestamp >= m - 7 * 864e5); },
-    run: async c => { const m = monday(); const it = await make(c, m - 7 * 864e5, m) || await make(c, m, Date.now() + 1); if (!it) return null; X.notify(c, `🗞️ ${X.esc(X.name(c))} ${X.v('出了一期周报', '把你们的一周编成了报纸')}：${X.esc(it.head)}`, '去看看', () => window.gyxWeeklyRead(it.id)); return '出了一期周报'; } }, 'gyxWeekly');
+X.action({ key: 'gyx_weekly', label: '给你们出一期周报', hint: '我们的周报', need: c => { const [f, t] = win(c.id); return !D.issues.some(x => x.cid === String(c.id) && (x.wk === X.day(new Date(f)) || x.at >= t)) && H(String(c.id)).some(x => x.timestamp >= f); },
+    run: async c => { const [f, t] = win(c.id); const it = await make(c, f, Math.min(t, Date.now() + 1)) || await make(c, t, Date.now() + 1); if (!it) return null; X.notify(c, `🗞️ ${X.esc(X.name(c))} ${X.v('出了一期周报', '把你们的一周编成了报纸')}：${X.esc(it.head)}`, '去看看', () => window.gyxWeeklyRead(it.id)); return '出了一期周报'; } }, 'gyxWeekly');
 X.today(() => ({ title: '🗞️ 周报', rows: D.issues.filter(x => X.day(new Date(x.at)) === X.day()).map(x => ({ t: '第 ' + x.no + ' 期', x: X.esc(x.head), go: `gyxWeeklyRead('${x.id}')` })) }), 'gyxWeekly');
 X.widget('gyxWeeklyW', { n: '我们的周报', sizes: ['s', 'm'], tap: () => D.issues[0] ? window.gyxWeeklyRead(D.issues[0].id) : window.gyxWeeklyOpen(), r: w => { const x = D.issues[0]; return X.gw(w, '🗞️', '我们的周报', x ? ['第 ' + x.no + ' 期', X.esc(x.head)] : ['还没出刊']); } }, 'gyxWeekly');
 X.memArr({ k: 'gyxWeekly', ico: '🗞️', n: '我们的周报', d: '每期的头版和 TA 的专栏', arr: () => D.issues, text: x => x.head + '｜' + x.col, edit: (x, v) => { const [a, b] = v.split('｜'); x.head = a; if (b != null) x.col = b; }, meta: x => '第 ' + x.no + ' 期 · ' + md(x.from) + '～' + md(x.to - 1), save: () => S.set('d', D) }, 'gyxWeekly');

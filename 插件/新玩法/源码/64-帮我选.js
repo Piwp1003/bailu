@@ -45,3 +45,11 @@ X.memArr({ k: 'gyxPick', ico: '🎡', n: '帮我选', d: '纠结过的事、选�
 X.css('gyxPkCss', `.pk-wh{position:relative;display:flex;justify-content:center;margin:6px 0}.pk-ptr{position:absolute;top:-4px;left:50%;transform:translateX(-50%);z-index:2;color:#e0567a;font-size:20px}.pk-res em{font-style:normal;font-size:12px;color:#999}.pk-res b{display:block;font-size:22px;margin:4px 0}.pk-it{display:flex;gap:6px;align-items:center;padding:6px 2px;border-bottom:1px solid #f3f3f3;font-size:13.5px;flex-wrap:wrap}.pk-it span{flex:1;min-width:150px}.pk-it em{font-style:normal;font-size:11px;color:#aaa}.pk-it input{width:130px}.pk-it i{font-style:normal;font-size:11px;color:#aaa;cursor:pointer}`);
 X.mini({ id: 'gyxPick', icon: '🎡', title: '帮我选', desc: '纠结的时候让 TA 帮你选 / 转转盘', cat: '生活', onOpen: () => window.gyxPickOpen() });
 (async () => { D = Object.assign(D, await S.get('d', {})); D.log = D.log || []; })();
+
+// 🎮 放进聊天里的游戏列表（和五子棋、UNO、猜拳在一起）；小功能里就不单独占一格了（js/79 看到这里登记了会藏起来）
+(function () {
+    const reg = () => { if (typeof registerMiniGame !== 'function') return false; registerMiniGame({ id: 'gyxPick', name: '帮我选', icon: '🎡', getStatus: () => null, onResume: () => window.gyxPickOpen(), onStart: (sid, opp) => window.gyxPickOpen(String((opp || [])[0] || sid || '')) }); return true; };
+    const unreg = () => { try { registeredMiniGames = registeredMiniGames.filter(g => g.id !== 'gyxPick'); } catch (e) {} };
+    addEventListener('gyx:feat', e => { if (e.detail && e.detail.id === 'gyxPick') e.detail.on ? reg() : unreg(); });
+    if (X.on('gyxPick') && !reg()) { let n = 0; const iv = setInterval(() => { if (reg() || ++n > 60) clearInterval(iv); }, 500); }
+})();

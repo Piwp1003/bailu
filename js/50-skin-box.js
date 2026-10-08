@@ -243,6 +243,53 @@
         return r;
     };
 
+    /* ---------- 🎁 TA 挑一套皮肤送你（自主行动 skin_gift）：发一张卡在私聊里，你点「好啊」才换 ---------- */
+    S.gifts = Array.isArray(S.gifts) ? S.gifts : [];
+    function regGiftKind() {
+        const K = window.GY_INVITE_KINDS; if (!K || K.skin) return !!K;
+        K.skin = { ico: '🎨', name: '换个皮肤', verb: '换上', go: '看看皮肤',
+            accept(inv) { try { window.gySkinQuick(); } catch (e) {} },
+            answer(inv, yes) { const g = S.gifts.find(x => x.inv === inv.id); if (g) { g.ans = yes ? 'yes' : 'no'; saveCfg(); } if (yes && inv.data && inv.data.skinId) window.gySkinUse(inv.data.skinId); } };
+        return true;
+    }
+    async function giftLine(c, name) {
+        try {
+            const api = (typeof getApiConfig === 'function') ? getApiConfig(true) : null;
+            if (api && api.key && typeof callChatCompletionAPI === 'function' && !window.bailuCards) {
+                const ask = `你在她存的界面皮肤里挑了一套「${name}」想让她换上。跟她说一句（20 字以内，像你会说的，可以说为什么挑这个），不要引号。只输出这句话。`;
+                const msgs = (typeof buildStructuredMessages === 'function' && typeof buildBasePrompt === 'function') ? buildStructuredMessages(buildBasePrompt(c, false, ''), [], ask) : [{ role: 'user', content: ask }];
+                const d = await callChatCompletionAPI(api, msgs);
+                let t = String((d && d.choices && d.choices[0] && d.choices[0].message && d.choices[0].message.content) || '').trim();
+                if (typeof stripReasoningBlocks === 'function') t = stripReasoningBlocks(t);
+                t = t.replace(/^["'“”「」]+|["'“”「」]+$/g, '');
+                if (t && t.length <= 60) return t;
+            }
+        } catch (e) {}
+        return ['这个好看，换上试试？', '我挑了一个，你看喜不喜欢', '看到这个就想到你', '给你换个心情？'][Math.floor(Math.random() * 4)];
+    }
+    window.gySkinGift = async function (char) {
+        const c = typeof char === 'object' ? char : (typeof myCharacters !== 'undefined' ? myCharacters : []).find(x => String(x.id) === String(char));
+        const pool = LIST.filter(x => x.id !== ACTIVE); if (!c || !pool.length || !regGiftKind() || typeof window.gyInviteFromChar !== 'function') return null;
+        const sk = pool[Math.floor(Math.random() * pool.length)], line = await giftLine(c, sk.name);
+        const inv = window.gyInviteFromChar({ char: c, kind: 'skin', title: sk.name, sub: '点「好啊」就换上，不喜欢随时换回来', line, data: { skinId: sk.id }, onYes: () => { window.gySkinUse(sk.id); const g = S.gifts.find(x => x.inv === (inv && inv.id)); if (g) { g.ans = 'yes'; saveCfg(); } }, onNo: () => { const g = S.gifts.find(x => x.inv === (inv && inv.id)); if (g) { g.ans = 'no'; saveCfg(); } } });
+        S.gifts.unshift({ id: 'sg' + Date.now().toString(36), cid: String(c.id), at: Date.now(), skin: sk.name, line, inv: inv && inv.id }); S.gifts = S.gifts.slice(0, 40); saveCfg();
+        return sk.name;
+    };
+    function regGift() {
+        try {
+            regGiftKind();
+            if (typeof GY_AUTONOMY_ACTIONS === 'undefined' || GY_AUTONOMY_ACTIONS.some(a => a.key === 'skin_gift')) return;
+            GY_AUTONOMY_ACTIONS.push({ key: 'skin_gift', label: '在她存的皮肤里挑一套送她（她点「好啊」才换）', hint: '觉得哪个颜色衬她',
+                need: c => S.on !== false && LIST.some(x => x.id !== ACTIVE) && typeof window.gyInviteFromChar === 'function' && !S.gifts.some(g => Date.now() - g.at < 4 * 864e5),
+                run: async c => { const n = await window.gySkinGift(c); return n ? '挑了一套皮肤「' + n + '」送你' : null; } });
+        } catch (e) {}
+        try {
+            if (typeof window.gyMemExAdd === 'function' && !window.__gySkinMem) { window.__gySkinMem = 1;
+                window.gyMemExAdd({ k: 'gySkinGift', ico: '🎨', n: 'TA 送过的皮肤', d: 'TA 挑皮肤时说的话', on: () => true, items: c => S.gifts.filter(g => g.cid === String(c.id)), text: g => g.line, edit: (g, v) => { g.line = String(v); }, del: (c, i) => { const it = S.gifts.filter(g => g.cid === String(c.id))[i]; S.gifts = S.gifts.filter(g => g !== it); }, meta: g => `「${g.skin}」 · ${new Date(g.at).toLocaleDateString()}${g.ans === 'yes' ? ' · 你换上了' : g.ans === 'no' ? ' · 你没换' : ''}`, save: saveCfg }); }
+        } catch (e) {}
+    }
+    regGift(); setTimeout(regGift, 2000); setTimeout(regGift, 6000);
+
     try {
         if (typeof registerMiniFeature === 'function') {
             registerMiniFeature({

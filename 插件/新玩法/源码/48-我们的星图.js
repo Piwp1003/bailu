@@ -3,7 +3,8 @@ if (window.__gyxStar) return; window.__gyxStar = 1;
 X.feat('gyxStar', { n: '✨ 我们的星图', desc: '每段回忆是一颗星，每个月连成一个 TA 起名的星座' });
 const S = X.store('star');
 let D = { names: {}, extra: [], hide: {} };   // names[cid][YYYY-MM] = 名字；extra = [{id, cid, at, text}]
-const ym = t => { const d = new Date(t); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0'); };
+X.recapDef('star', { n: '✨ 我们的星图', kind: 'unit', def: 'month', opts: ['half', 'month', 'season', 'year'], txt: '多久连成一个星座' });
+const ym = t => X.unitKey(t, X.recap('star').v || 'month');   // 一个星座 = 你选的时间段（默认一个月）
 const hash = s => { let h = 2166136261; for (const ch of String(s)) h = Math.imul(h ^ ch.charCodeAt(0), 16777619); return (h >>> 0) / 4294967296; };
 function stars(c) {
     const cid = String(c.id), L = [];
@@ -47,7 +48,7 @@ window.gyxStarOpen = function (who) {
         <div class="gyx-row"><input id="gyxStarIn" class="gyx-in" style="flex:1" placeholder="自己摘一颗：今天发生了什么值得记住的？"><button class="gyx-btn" onclick="gyxStarAdd('${cid}')">挂上去</button></div>`, 'dark');
     setTimeout(() => draw(c), 30);
 };
-X.action({ key: 'gyx_star', label: '给你们这个月的回忆起个星座名', hint: '你们的星图', need: c => { const m = ym(Date.now()); return stars(c).filter(x => ym(x.at) === m).length >= 3 && !((D.names[String(c.id)] || {})[m]); },
+X.action({ key: 'gyx_star', label: '给你们最近这段日子的回忆起个星座名', hint: '你们的星图', need: c => { const m = ym(Date.now()); return stars(c).filter(x => ym(x.at) === m).length >= 3 && !((D.names[String(c.id)] || {})[m]); },
     run: async c => { const m = ym(Date.now()), n = await nameIt(c, m, stars(c).filter(x => ym(x.at) === m)); return (await X.reach(c, `你把你们这个月的回忆连成了一个星座，起名叫「${n}」。告诉她，说说为什么叫这个`)) ? '起了个星座名' : null; } }, 'gyxStar');
 X.today(() => { const rows = []; X.chars().forEach(c => { const L = stars(c).filter(x => X.day(new Date(x.at)) === X.day()); if (L.length) rows.push({ t: '+' + L.length + ' ✦', x: `和 ${X.esc(X.name(c))} 的星图亮了 ${L.length} 颗`, go: `gyxStarOpen('${c.id}')` }); }); return { title: '✨ 我们的星图', rows }; }, 'gyxStar');
 X.widget('gyxStarW', { n: '我们的星图', sizes: ['s', 'm'], tap: () => window.gyxStarOpen(), r: w => { const c = X.cur(); const L = c ? stars(c) : []; const nm = c && (D.names[String(c.id)] || {})[ym(Date.now())]; return X.gw(w, '✨', '我们的星图', [L.length + ' 颗星', nm ? '这个月：' + X.esc(nm) : L.length ? X.esc(L[L.length - 1].text.slice(0, 30)) : '']); } }, 'gyxStar');

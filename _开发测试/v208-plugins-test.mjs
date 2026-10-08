@@ -45,9 +45,9 @@ await page.evaluate(({ PLUG, BAILU }) => {
 }, { PLUG, BAILU });
 await page.waitForTimeout(1500);
 const tag = BAILU ? '[白露]' : '[谷雨]';
-const NEW = ['gyxTrip', 'gyxMakeup', 'gyxAvatar', 'gyxShow', 'gyxBday', 'gyxBook'];
+const NEW = ['gyxTrip', 'gyxMakeup', 'gyxAvatar', 'gyxBday', 'gyxBook'];
 const ins = await page.evaluate(NEW => ({ miss: NEW.filter(k => !GY_MINI_FEATURES.some(f => f.id === k)), n: (window.__gyxFeats || []).length, dup: GY_MINI_FEATURES.filter(f => /gyxWeather|gyxList|睡前故事/.test(f.id + f.title)).map(f => f.id) }), NEW).catch(e => ({ err: e.message }));
-check(`${tag} 第三批 6 个插件都装上了；重复的（天气、歌单、单独的睡前故事）没有`, ins.miss && !ins.miss.length && !ins.dup.length, JSON.stringify(ins));
+check(`${tag} 第三批 5 个插件都装上了（追剧进度不要了）；重复的（天气、歌单、单独的睡前故事）没有`, ins.miss && !ins.miss.length && !ins.dup.length, JSON.stringify(ins));
 const close = id => page.evaluate(id => { const o = document.getElementById(id); if (o) o.remove(); }, id);
 
 // ✈️ 一起旅行
@@ -62,9 +62,7 @@ check(`${tag} 吵架和好：冷战时 TA 知道、来哄你，哄不好就写�
 const av = await page.evaluate(async () => { gyxAvatarCfg(false); const it = await gyxAvatarGen('9981', 'moon'); await gyxAvatarUse(it.id); const used = currentUser.avatarImg === it.me && myCharacters[0].avatarImg === it.ta; await gyxAvatarBack('9981'); const back = myCharacters[0].avatarImg !== it.ta; document.getElementById('gyxAvOv')?.remove(); return { img: /^data:image\/png/.test(it.me) && /^data:image\/png/.test(it.ta), used, back }; });
 check(`${tag} 情侣头像：做一对拼在一起的头像，一键换上，也能换回原来的`, av.img && av.used && av.back, JSON.stringify(av));
 
-// 📺 追剧进度
-const sh = await page.evaluate(async () => { gyxShowOpen(); gyxShowWho('9981'); document.getElementById('gyxShN').value = '漫长的季节'; document.getElementById('gyxShT').value = '12'; const s = await gyxShowAdd(); await gyxShowTaEp(s.id); await gyxShowTaEp(s.id); document.getElementById('gyxShM' + s.id).value = '好压抑但好看'; await gyxShowEp(s.id); const ctx = getBoxPrompt(myCharacters[0]); document.getElementById('gyxShOv')?.remove(); return { me: s.me, ta: s.ta, notes: s.notes.length, spoil: /不能剧透/.test(ctx) }; });
-check(`${tag} 追剧进度：你看完一集 TA 来聊（短评都记着），TA 看得比你快就不剧透`, sh.me === 1 && sh.ta === 2 && sh.notes >= 2 && sh.spoil, JSON.stringify(sh));
+// 📺 追剧进度：v225 按你的选择去掉了（又不能一起追）
 
 // 🎂 给 TA 过生日
 const bd = await page.evaluate(async () => { gyxBdayOpen('9981'); const t0 = document.getElementById('gyxBdPl').innerText; await gyxBdaySet('9981', 'cake', '草莓奶油两层'); await gyxBdaySet('9981', 'gift', '一支钢笔'); const h = await gyxBdayHint('9981'); document.getElementById('gyxBdPl').remove(); gyxBdayParty('9981'); const say = await gyxBdayBlow('9981'); const out = document.getElementById('gyxBdOv').classList.contains('out'); gyxBdayClose(); return { left: /5/.test(t0), h: !!h, say: !!say, out, log: gyxBdayData().log.length }; });
@@ -79,11 +77,11 @@ const sl = await page.evaluate(async () => { gyxWakeOpen(); gyxSleepKind('us'); 
 check(`${tag} 哄睡：睡前故事能选讲法（童话/我们俩/接着讲/小日常/点题），讲过的收进故事本`, sl.t && sl.chips >= 10 && sl.book, JSON.stringify(sl));
 
 // 🤖 自主行动
-const acts = await page.evaluate(() => ['gyx_trip', 'gyx_makeup', 'gyx_avatar', 'gyx_show', 'gyx_bday_hint', 'gyx_book'].filter(k => !GY_AUTONOMY_ACTIONS.some(a => a.key === k)));
+const acts = await page.evaluate(() => ['gyx_trip', 'gyx_makeup', 'gyx_avatar', 'gyx_bday_hint', 'gyx_book'].filter(k => !GY_AUTONOMY_ACTIONS.some(a => a.key === k)));
 check(`${tag} 第三批都在 TA 的自主行动里`, !acts.length, JSON.stringify(acts));
 
 // 📅 今天面板
-const td = await page.evaluate(async () => { gyTodaySet(true); gyTodayRender(); await new Promise(r => setTimeout(r, 200)); const t = document.getElementById('gyToday').innerText; GYX.set('gyxBook', false); gyTodayRender(); const off = !/🧾 记账/.test(document.getElementById('gyToday').innerText); GYX.set('gyxBook', true); gyTodaySet(false); return { miss: ['旅行', '追剧', '的生日', '记账'].filter(k => !t.includes(k)), off }; });
+const td = await page.evaluate(async () => { gyTodaySet(true); gyTodayRender(); await new Promise(r => setTimeout(r, 200)); const t = document.getElementById('gyToday').innerText; GYX.set('gyxBook', false); gyTodayRender(); const off = !/🧾 记账/.test(document.getElementById('gyToday').innerText); GYX.set('gyxBook', true); gyTodaySet(false); return { miss: ['旅行', '的生日', '记账'].filter(k => !t.includes(k)), off }; });
 check(`${tag} 「今天」面板：旅行、追剧、TA 的生日、记账都有；关掉就不显示`, !td.miss.length && td.off, JSON.stringify(td));
 
 // 📱 小组件：每个插件都有，大小两种都能画，功能关了显示「关着」

@@ -67,3 +67,11 @@ X.memArr({ k: 'gyxHunt', ico: '🗺️', n: '寻宝', d: '找到过的宝藏和 
 X.css('gyxHtCss', `.ht-map{display:flex;align-items:center;gap:4px;margin:8px 0 12px}.ht-map span{width:30px;height:30px;border-radius:50%;background:#eee;display:flex;align-items:center;justify-content:center;font-size:13px;flex:none}.ht-map span.ok{background:#7bd3a8;color:#fff}.ht-map span.cur{background:#ffcf6b;animation:htp 1.2s infinite}.ht-map i{flex:1;border-top:2px dashed #ddd}@keyframes htp{50%{transform:scale(1.12)}}.ht-end{text-align:center}.ht-chest{font-size:80px;animation:htc 1s ease}@keyframes htc{from{transform:scale(.3) rotate(-20deg);opacity:0}}.ht-end>b{display:block;font-size:18px;margin:8px 0}`);
 X.mini({ id: 'gyxHunt', icon: '🗺️', title: 'TA 布置的寻宝', desc: '线索藏在各处，一关关解开拿礼物', cat: '一起做', onOpen: () => window.gyxHuntOpen() });
 (async () => { D = Object.assign(D, await S.get('d', {})); D.log = D.log || []; })();
+
+// 🎮 放进聊天里的游戏列表（和五子棋、UNO、猜拳在一起）；小功能里就不单独占一格了（js/79 看到这里登记了会藏起来）
+(function () {
+    const reg = () => { if (typeof registerMiniGame !== 'function') return false; registerMiniGame({ id: 'gyxHunt', name: 'TA 布置的寻宝', icon: '🗺️', getStatus: () => null, onResume: () => window.gyxHuntOpen(), onStart: (sid, opp) => window.gyxHuntOpen(String((opp || [])[0] || sid || '')) }); return true; };
+    const unreg = () => { try { registeredMiniGames = registeredMiniGames.filter(g => g.id !== 'gyxHunt'); } catch (e) {} };
+    addEventListener('gyx:feat', e => { if (e.detail && e.detail.id === 'gyxHunt') e.detail.on ? reg() : unreg(); });
+    if (X.on('gyxHunt') && !reg()) { let n = 0; const iv = setInterval(() => { if (reg() || ++n > 60) clearInterval(iv); }, 500); }
+})();

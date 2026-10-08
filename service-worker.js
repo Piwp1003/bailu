@@ -127,6 +127,7 @@ const CORE_ASSETS = [
     './js/87-time-place.js?v=' + V,
     './js/88-prompt-lib.js?v=' + V,
     './js/89-chat-think.js?v=' + V,
+    './js/93-phone-mag.js?v=' + V,
     './js/92-bailu-builtin.js?v=' + V
 ];
 
@@ -168,6 +169,23 @@ self.addEventListener('fetch', (event) => {
     const url = new URL(req.url);
     if (url.origin !== self.location.origin) return; // 跨域请求（AI API中转、CDN脚本等）不拦截，避免影响这些动态/第三方请求
 
+    // 🆕 打开页面（index.html）改成「先问网络」：以前首页也是先用缓存，刷新一次拿到的永远是上一版的首页——
+    //    上一版首页里写的是旧版本号，注册的也是旧的这个 Service Worker，于是上传了新版、刷新也看不到，要刷两次才换。
+    //    现在首页每次先去网络拿（最多等 4 秒），拿不到（离线 / 太慢）才用缓存里的，离线照样能打开。
+    const isPage = req.mode === 'navigate' || /\/(index\.html)?$/.test(url.pathname);
+    if (isPage) {
+        event.respondWith(caches.open(CACHE_NAME).then(async (cache) => {
+            const net = fetch(new Request(req, { cache: 'reload' })).then((res) => { if (res && res.ok) cache.put(req, res.clone()); return res; }).catch(() => null);
+            const timeout = new Promise(r => setTimeout(() => r(null), 4000));
+            const res = await Promise.race([net, timeout]);
+            if (res && res.ok) return res;
+            const cached = await cache.match(req) || await cache.match('./index.html') || await cache.match('./');
+            if (cached) return cached;
+            const late = await net; if (late) return late;
+            return new Response('当前离线，且没有可用的缓存内容。', { status: 503, statusText: 'Offline' });
+        }));
+        return;
+    }
     event.respondWith(
         caches.open(CACHE_NAME).then(async (cache) => {
             const cached = await cache.match(req);

@@ -31,9 +31,19 @@ window.gyxSongPlay = id => {
     return { notes: notes.length, sec: Math.round(t * beat) };
 };
 window.gyxSongStop = stop;
+// 🗓️ 多久写一首、写哪一段日子：你自己定（「📚 回顾 → ⚙️ 多久总结一次」里也能改）
+X.recapDef('song', { n: '🎵 TA 写给你的歌', kind: 'days', def: 7, opts: [3, 7, 14, 30], txt: '多久写一首（写的就是这段日子里的事）', autoTxt: '到时间 TA 自己写一首送你', autoDef: false });
+const SD = () => Math.max(1, +X.recap('song').v || 7);
+function material(c) {
+    const from = Date.now() - SD() * 864e5, sum = [];
+    try { String(c.chatSummary || '').split('\n').forEach(l => { const m = l.match(/^\[([^\]]+)\]\s*(.+)/); if (!m) return; const t = new Date(m[1].replace(/\s*[上下]午/, ' ')).getTime(); if (t >= from) sum.push(m[2].replace(/【[^】]*】/g, '').slice(0, 120)); }); } catch (e) {}
+    const L = ((typeof globalChats !== 'undefined' && globalChats[c.id]) || []).filter(m => m && m.sender !== 'system' && !m.side && m.timestamp >= from && X.plain(m.text));
+    const pick = L.length > 20 ? L.filter((m, i) => i % Math.ceil(L.length / 20) === 0).slice(-20) : L;
+    return `这 ${SD()} 天里的事：\n${sum.join('\n') || '（没有总结）'}\n这 ${SD()} 天里的几句话：\n${pick.map(m => (m.sender === 'me' ? '她：' : '你：') + X.plain(m.text).slice(0, 70)).join('\n') || X.recent(c, 16)}`;
+}
 async function write(c, theme) {
     let j = null;
-    if (!X.bailu()) j = X.json(await X.ask(`${X.who(c)}\n你要给她写一首原创的歌${theme ? '，关于：' + theme : '，写你们之间的事'}。\n最近的聊天：\n${X.recent(c, 16)}\n要求：原创，不要引用任何现成的歌词；8~12 行，每行 5~12 个字，有具体的细节（你们说过的话、做过的事），押一点韵；选一个情绪。\n只输出 JSON：{"title":"歌名","mood":"甜 或 温柔 或 欢快 或 忧伤","lyrics":["第一行","第二行"],"note":"写完想对她说的一句话"}`));
+    if (!X.bailu()) j = X.json(await X.ask(`${X.who(c)}\n你要给她写一首原创的歌${theme ? '，关于：' + theme : '，写你们之间的事'}。\n${material(c)}\n要求：原创，不要引用任何现成的歌词；8~12 行，每行 5~12 个字，有具体的细节（你们说过的话、做过的事），押一点韵；选一个情绪。\n只输出 JSON：{"title":"歌名","mood":"甜 或 温柔 或 欢快 或 忧伤","lyrics":["第一行","第二行"],"note":"写完想对她说的一句话"}`));
     if (!j || !Array.isArray(j.lyrics) || j.lyrics.length < 4) {
         const cs = X.cards(['情话', '聊天', '晚安'], c, 8).map(t => X.plain(t).replace(/[。！？!?]$/, '').slice(0, 14)).filter(t => t.length >= 3);
         const base = ['今天的风很轻', '我又想起你', '你说晚安的时候', '我还没有睡去', '窗外的灯一盏一盏', '亮在你回来的路上', '如果你累了', '就靠在我肩上'];
@@ -47,6 +57,8 @@ window.gyxSongRedo = async id => { const s = D.list.find(x => x.id === id); if (
 window.gyxSongEdit = async (id, li, v) => { const s = D.list.find(x => x.id === id); if (!s) return; if (li === 'title') s.title = v; else if (li === 'bpm') s.bpm = Math.max(40, Math.min(200, +v || s.bpm)); else s.lyrics[li] = v; await S.set('d', D); };
 window.gyxSongDel = async id => { const s = D.list.find(x => x.id === id); stop(); D.list = D.list.filter(x => x.id !== id); await S.set('d', D); window.gyxSongOpen(s && s.cid); };
 window.gyxSongCfg = (k, v) => { D.cfg[k] = v; S.set('d', D); };
+window.gyxSongEvery = (k, v) => { X.recapSet('song', k, k === 'v' ? +v : !!v); };
+async function tick() { if (!X.on('gyxSong') || !X.recap('song').auto || X.bailu()) return; for (const c of X.chars()) { const last = D.list.find(x => x.cid === String(c.id)); if (last && Date.now() - last.at < SD() * 864e5) continue; if (!last && !((typeof globalChats !== 'undefined' && globalChats[c.id]) || []).some(m => m && m.timestamp > Date.now() - SD() * 864e5)) continue; const s = await write(c, ''); if (s) X.notify(c, `🎵 ${X.esc(X.name(c))} ${X.v('给你写了一首歌', '把这几天写成了一首歌', '哼了一首新歌给你')}：《${X.esc(s.title)}》`, '去听听', () => window.gyxSongOpen(c.id, s.id)); break; } }
 window.gyxSongData = () => D;
 window.gyxSongOpen = function (who, sid) {
     const c = X.char(who) || X.cur(); if (!c) return; const cid = String(c.id), L = D.list.filter(x => x.cid === cid), s = sid ? D.list.find(x => x.id === sid) : null;
@@ -57,15 +69,16 @@ window.gyxSongOpen = function (who, sid) {
         <details class="gyx-tip"><summary>改歌词 / 速度 / 音色</summary>${s.lyrics.map((l, li) => `<input class="gyx-in" style="margin:3px 0" value="${X.esc(l)}" onchange="gyxSongEdit('${s.id}',${li},this.value)">`).join('')}<div class="gyx-row">速度 <input class="gyx-who" type="number" value="${s.bpm}" style="width:70px" onchange="gyxSongEdit('${s.id}','bpm',this.value)"> 音色 <select class="gyx-who" onchange="gyxSongCfg('wave',this.value)">${[['triangle', '柔和'], ['sine', '干净'], ['square', '游戏机'], ['sawtooth', '亮']].map(([k, n]) => `<option value="${k}"${D.cfg.wave === k ? ' selected' : ''}>${n}</option>`).join('')}</select> 音量 <input type="range" min="0" max="100" value="${D.cfg.vol}" onchange="gyxSongCfg('vol',+this.value)"></div><span class="gyx-chip" onclick="gyxSongDel('${s.id}')">删掉这首</span></details>
         <div class="gyx-row"><button class="gyx-btn lite" onclick="gyxSongOpen('${cid}')">‹ 歌本</button></div>`
         : `<div class="gyx-row">${X.whoSel(cid, 'gyxSongOpen')}</div><div class="gyx-row"><input id="gyxSgTh" class="gyx-who" style="flex:1" placeholder="想听关于什么的（可空）：下雨天 / 我们第一次聊天…"><button class="gyx-btn" onclick="this.disabled=true;this.textContent='TA 在写…';gyxSongWrite('${cid}')">${X.v('请 TA 写一首', '让 TA 写首歌', '点歌')}</button></div>
+        <div class="gyx-row gyx-tip" style="margin:4px 0">多久写一首：<select class="gyx-who" onchange="gyxSongEvery('v',this.value)">${[3, 7, 14, 30].map(n => `<option value="${n}"${SD() === n ? ' selected' : ''}>每 ${n} 天（写这 ${n} 天的事）</option>`).join('')}</select><label><input type="checkbox" ${X.recap('song').auto ? 'checked' : ''} onchange="gyxSongEvery('auto',this.checked)"> 到时间 TA 自己写</label></div>
         <div style="font-weight:700;margin:12px 0 4px">歌本（${L.length} 首）</div>${L.map(x => `<div class="sg-it" onclick="gyxSongOpen('${cid}','${x.id}')"><span>🎵</span><div><b>${X.esc(x.title)}</b><em>${x.mood} · ${new Date(x.at).toLocaleDateString()} · ${X.esc(x.lyrics[0] || '')}</em></div></div>`).join('') || '<div class="gyx-tip">还没有歌</div>'}`);
     const rm = ov.remove.bind(ov); ov.remove = () => { stop(); rm(); };
 };
 X.ctx(id => { const s = D.list.find(x => x.cid === String(id)); return s && Date.now() - s.at < 3 * 864e5 ? `【你前几天给她写了一首歌《${s.title}》】开头两句：${s.lyrics.slice(0, 2).join('，')}。` : ''; }, 'gyxSong');
-X.action({ key: 'gyx_song', label: '给她写一首歌', hint: 'TA 写给你的歌', need: c => !D.list.some(x => x.cid === String(c.id) && Date.now() - x.at < 7 * 864e5),
+X.action({ key: 'gyx_song', label: '给她写一首歌', hint: 'TA 写给你的歌', need: c => !D.list.some(x => x.cid === String(c.id) && Date.now() - x.at < SD() * 864e5),
     run: async c => { const s = await write(c, ''); X.notify(c, `🎵 ${X.esc(X.name(c))} ${X.v('给你写了一首歌', '偷偷写了首歌', '想哼首歌给你听')}：《${X.esc(s.title)}》`, s.lyrics[0], () => window.gyxSongOpen(c.id, s.id)); return (await X.reach(c, `你给她写了一首歌《${s.title}》，有点不好意思地告诉她，叫她去「🎵 TA 写给你的歌」里听你哼`)) ? '写了一首歌' : null; } }, 'gyxSong');
 X.today(() => ({ title: '🎵 TA 写给你的歌', rows: D.list.filter(x => X.day(new Date(x.at)) === X.day()).map(x => ({ t: '新歌', x: '《' + X.esc(x.title) + '》', go: `gyxSongOpen('${x.cid}','${x.id}')` })) }), 'gyxSong');
 X.widget('gyxSongW', { n: 'TA 写给你的歌', sizes: ['s', 'm'], tap: () => { const s = D.list[0]; s ? window.gyxSongOpen(s.cid, s.id) : window.gyxSongOpen(); }, r: w => { const s = D.list[0]; return X.gw(w, '🎵', 'TA 写的歌', s ? ['《' + X.esc(s.title) + '》', X.esc(s.lyrics[0] || '')] : ['点一首？']); } }, 'gyxSong');
 X.memArr({ k: 'gyxSong', ico: '🎵', n: 'TA 写给你的歌', d: '歌名和歌词（一行一句，用 / 隔开）', arr: () => D.list, text: x => x.title + '：' + x.lyrics.join(' / '), edit: (x, v) => { const i = v.indexOf('：'); if (i > 0) { x.title = v.slice(0, i); x.lyrics = v.slice(i + 1).split(/\s*\/\s*/).filter(Boolean); } }, meta: x => x.mood + ' · ' + new Date(x.at).toLocaleDateString(), save: () => S.set('d', D) }, 'gyxSong');
 X.css('gyxSgCss', `.sg-sheet{background:repeating-linear-gradient(#fffdf8 0 35px,#efe8da 35px 36px);border-radius:16px;padding:16px 14px;margin:6px 0}.sg-t{text-align:center;font-size:20px;font-weight:700;outline:none;letter-spacing:2px}.sg-l{text-align:center;font-size:17px;line-height:36px;letter-spacing:1px}.sg-l i{font-style:normal;transition:color .15s,transform .15s;display:inline-block}.sg-l i.sung{color:#c0567a}.sg-l i.on{color:#ff3b6b;transform:translateY(-3px) scale(1.2)}.sg-it{display:flex;gap:10px;align-items:center;padding:8px 2px;border-bottom:1px solid #f2f2f2;cursor:pointer}.sg-it span{font-size:22px}.sg-it em{display:block;font-style:normal;font-size:11.5px;color:#999}`);
 X.mini({ id: 'gyxSong', icon: '🎵', title: 'TA 写给你的歌', desc: '原创歌词 + 合成器哼旋律', cat: '回忆', onOpen: () => window.gyxSongOpen() });
-(async () => { D = Object.assign(D, await S.get('d', {})); D.list = D.list || []; D.cfg = Object.assign({ wave: 'triangle', vol: 60 }, D.cfg || {}); })();
+(async () => { D = Object.assign(D, await S.get('d', {})); D.list = D.list || []; D.cfg = Object.assign({ wave: 'triangle', vol: 60 }, D.cfg || {}); setTimeout(tick, 90000); setInterval(tick, 3600000); })();

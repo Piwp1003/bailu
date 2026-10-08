@@ -91,9 +91,9 @@
 
     async function save() { if (LF) { try { await LF.setItem(KEY, JSON.parse(JSON.stringify(S))); } catch (e) { console.warn('[行程] 存档失败', e); } } }
     async function load() {
-        if (!LF) { migrate(); return; }
+        if (!LF) { migrate(); window.__gymapLoaded = true; return; }
         try { const d = await LF.getItem(KEY); if (d && typeof d === 'object') S = Object.assign(S, d); } catch (e) {}
-        migrate();
+        migrate(); window.__gymapLoaded = true;   // js/87 等这个：读完存档之前别往里写（不然会把没读出来的默认值存回去）
     }
 
     const uid = p => (p || 'x') + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
@@ -260,7 +260,7 @@
         }
     };
     window.gymapPickCity = async function (lat, lon, name, sub) {
-        S.user = { city: name + (sub ? '（' + sub + '）' : ''), lat, lon, tz: '' };
+        S.user = { city: name + (sub ? '（' + sub + '）' : ''), lat, lon, tz: S.user.tz || '' };
         S.weather.real = null; S.weather.lastFetchDay = '';
         await save();
         renderPanel();
@@ -277,7 +277,7 @@
         if (box) box.innerHTML = '<div class="gymap-hint">正在问浏览器要位置…（弹权限框的话点允许）</div>';
         navigator.geolocation.getCurrentPosition(async pos => {
             const { latitude, longitude } = pos.coords;
-            S.user = { city: `定位到的位置（${latitude.toFixed(2)}, ${longitude.toFixed(2)}）`, lat: latitude, lon: longitude, tz: '' };
+            S.user = { city: `定位到的位置（${latitude.toFixed(2)}, ${longitude.toFixed(2)}）`, lat: latitude, lon: longitude, tz: S.user.tz || '' };
             S.weather.real = null; S.weather.lastFetchDay = '';
             await save(); renderPanel(); gymapRefreshWeather();
         }, err => {
@@ -327,9 +327,29 @@
     };
 
     // 供 prompt 钩子用：角色会知道自己在哪、那儿什么天气、你那儿什么天气
+    // ☔ 变天提醒：这次主动找她的由头（自主行动 weather_care 填，用完就删）
+    const WNUDGE = {};
+    // 今天值得说一声的天气：你那边（真实）下雨 / 很冷 / 很热；TA 那边（虚构）下雨下雪刮风
+    function weatherWorth(c) {
+        const w = S.weather, out = [];
+        const r = w.real;
+        if ((w.mode === 'real' || w.mode === 'both') && r && r.day === today() && S.user.city) {
+            const city = S.user.city.split('（')[0];
+            if (r.rain != null && r.rain >= 50) out.push({ who: 'her', t: `她那边（${city}）今天降水概率 ${r.rain}%（${wDesc(r.code)}）`, tip: '提醒她带伞' });
+            else if (/雨|雪|雷/.test(wDesc(r.code))) out.push({ who: 'her', t: `她那边（${city}）今天${wDesc(r.code)}`, tip: '提醒她带伞' });
+            if (r.tmin != null && r.tmin <= 5) out.push({ who: 'her', t: `她那边今天最低 ${r.tmin}℃`, tip: '叫她多穿点' });
+            if (r.tmax != null && r.tmax >= 33) out.push({ who: 'her', t: `她那边今天最高 ${r.tmax}℃`, tip: '叫她防晒、多喝水' });
+        }
+        if ((w.mode === 'fiction' || w.mode === 'both')) {
+            const f = facOf(c).find(f => w.fic[f] && w.fic[f].day === today() && /雨|雪|风|冷|雷|雾|冰|寒|暴/.test(w.fic[f].text));
+            if (f) out.push({ who: 'ta', t: `你那边（${f}）今天：${w.fic[f].text}`, tip: '说说你这边变天了' });
+        }
+        return out;
+    }
+    window.gymapWeatherWorth = c => weatherWorth(c);
     window.__gyMapCtxFor = function (charId) {
         try {
-            let out = '';
+            let out = WNUDGE[String(charId)] ? `\n【这次主动找她的由头】${WNUDGE[String(charId)]}` : '';
             const c = chars().find(x => String(x.id) === String(charId));
             if (!c) return '';
             const sp = spotById(S.charLoc[String(c.id)]);
@@ -782,6 +802,7 @@ body.dark-theme .gf-box[data-skin="t-dark"]{background:#0c0e12;}
               <button class="gymap-tab" id="gymapTab-move" onclick="gymapTab('move')">行程规则</button>
               <button class="gymap-tab" id="gymapTab-date" onclick="gymapTab('date')">🤝 约出去</button>
               <button class="gymap-tab" id="gymapTab-weather" onclick="gymapTab('weather')">天气</button>
+              <button class="gymap-tab" id="gymapTab-place" onclick="gymapTab('place')">🌏 两地</button>
             </div>
             <div class="gymap-bd" id="gymapBody"></div></div>`;
         m.addEventListener('click', e => { if (e.target === m) gymapClose(); });
@@ -1367,14 +1388,25 @@ body.dark-theme .gf-box[data-skin="t-dark"]{background:#0c0e12;}
         try { paintFloat(); } catch (e) {}
         const box = document.getElementById('gymapModal');
         if (!box || !box.classList.contains('on')) return;
-        ['map', 'move', 'date', 'weather'].forEach(t => {
+        ['map', 'move', 'date', 'weather', 'place'].forEach(t => {
             const el = document.getElementById('gymapTab-' + t);
             if (el) el.className = 'gymap-tab' + (t === tab ? ' on' : '');
         });
         const b = document.getElementById('gymapBody');
-        b.innerHTML = tab === 'map' ? tabMap() : tab === 'move' ? tabMove() : tab === 'date' ? tabDate() : tabWeather();
+        b.innerHTML = tab === 'map' ? tabMap() : tab === 'move' ? tabMove() : tab === 'date' ? tabDate() : tab === 'place' ? tabPlace() : tabWeather();
         if (tab === 'map') bindCanvas();
     }
+
+    // ===== 🌏 两地：你在哪个城市、每个 TA 在哪个城市 / 时区 / 是不是异地（原来在「时间与所在地」里，合并到这儿；画法在 js/87） =====
+    function tabPlace() {
+        if (typeof window.gyTimePlaceHtml !== 'function') return '<div class="gymap-hint">这一页要 js/87 才画得出来。</div>';
+        return `<div class="gymap-sec"><h4>📍 你在哪儿</h4><div class="gymap-hint">${S.user.city ? `现在是：<b>${esc(S.user.city)}</b>` : '还没填城市'}　<button class="gymap-mini" onclick="gymapTab('weather')">${S.user.city ? '换城市' : '去填城市'} ›</button>（天气也跟着这个城市）</div></div>` + window.gyTimePlaceHtml();
+    }
+    // 给 js/87 用：你所在的城市 / 时区只存这一份
+    window.gymapUser = () => !window.__gymapLoaded ? null :  ({ city: S.user.city || '', tz: S.user.tz || '', lat: S.user.lat, lon: S.user.lon });
+    window.gymapSetUserTz = async v => { if (!window.__gymapLoaded) return; S.user.tz = String(v || ''); await save(); renderPanel(); };
+    window.gymapSetUserCityText = async v => { if (!window.__gymapLoaded) return; v = String(v || '').trim(); if (!v || v === (S.user.city || '').split('（')[0]) return; S.user = { city: v, lat: null, lon: null, tz: S.user.tz || '' }; S.weather.real = null; await save(); renderPanel(); };
+    window.gymapOpenTab = function (t) { tab = t || 'map'; if (typeof window.gyOpenFeaturePage === 'function' && document.getElementById('view-feature-page')) { try { window.gyOpenFeaturePage('map'); } catch (e) { window.gymapOpen(); } } else window.gymapOpen(); setTimeout(() => { tab = t || 'map'; renderPanel(); }, 60); };
 
     // ===== 地图页 =====
     function tabMap() {
@@ -2643,6 +2675,19 @@ ${letChar ? '待多久、去干什么，你自己定。' : '待多久和干什�
                 run: async (char) => {
                     const r = await gymapCharInvite(char.id);
                     return r ? ('约对方去了' + r) : null;
+                }
+            });
+            GY_AUTONOMY_ACTIONS.splice(GY_AUTONOMY_ACTIONS.length - 1, 0, {
+                key: 'weather_care',
+                label: '变天了，提醒她带伞 / 加衣（或者说说你那边变天了）',
+                hint: '她那边下雨、降温、很热；或者你那边刮风下雪——像惦记她的人那样说一声，别像天气预报',
+                need: (char) => (S.wcare || {})[String(char.id)] !== today() && weatherWorth(char).length > 0 && typeof sendProactiveChatMessage === 'function',
+                run: async (char) => {
+                    const L = weatherWorth(char); if (!L.length) return null;
+                    const x = L.find(v => v.who === 'her') || L[0];
+                    WNUDGE[String(char.id)] = `${x.t}。${x.tip}——按你的性格和你们的关系来：可以是叮嘱、嘴硬的关心、或者顺手说一句，别像天气预报${x.who === 'her' ? '' : '；也惦记一下她那边'}`;
+                    try { await sendProactiveChatMessage(char); (S.wcare = S.wcare || {})[String(char.id)] = today(); (S.wlog = S.wlog || []).unshift({ at: Date.now(), cid: String(char.id), t: x.tip }); S.wlog = S.wlog.slice(0, 60); await save(); return x.who === 'her' ? x.tip : '说了说自己那边变天了'; }
+                    catch (e) { return null; } finally { delete WNUDGE[String(char.id)]; }
                 }
             });
             GY_AUTONOMY_ACTIONS.splice(GY_AUTONOMY_ACTIONS.length - 1, 0, {

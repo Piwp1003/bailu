@@ -289,7 +289,7 @@ ${getFinalAnswerMarkerPromptNote()}
         if (!parsed) return false;
         const letter = { id: 'd_' + Date.now() + '_' + Math.floor(Math.random() * 1000), title: parsed.title || '新信件', content: parsed.content || '', date: Date.now(), author: 'char' };
         char.diaryData.letters.unshift(letter);
-        gyDiaryNotify(char, `<b>${char.name}</b> 给你寄来了一封信：${letter.title}`, `收到 ${char.name} 的信`, letter.title, { diary: char.id, tab: 'letter' });
+        gyDiaryNotify(char, `<b>${char.name}</b> 给你寄来了一封信：${letter.title}`, `收到 ${char.name} 的信`, letter.title, { diary: char.id, tab: 'letter', open: letter.id });   // 点通知直接拆这封（装了 💌 拆信仪式就先看到信封）
         gyDiaryChanged(char, 'letter');
         return true;
     } catch (e) {
